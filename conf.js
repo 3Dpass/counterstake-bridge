@@ -188,4 +188,76 @@ exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 
 
 exports.webPort = process.env.testnet ? 7001 : 7000; // set to null in order to disable the web server
 
+
+// 3DPass Network Configuration
+exports.threedpass_factory_contract_addresses = {
+    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
+};
+exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+};
+exports.threedpass_oracle_addresses = {
+    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+};
+
+
+// 3DPass Network Configuration
+exports.threedpass_factory_contract_addresses = {
+    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
+};
+exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+};
+exports.threedpass_oracle_addresses = {
+    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+};
+
+
+// 3DPass Network Configuration
+exports.threedpass_factory_contract_addresses = {
+    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
+};
+exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+};
+exports.threedpass_oracle_addresses = {
+    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+};
+
+
+// 3DPass Network Configuration
+exports.threedpass_factory_contract_addresses = {
+    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
+};
+exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+};
+exports.threedpass_oracle_addresses = {
+    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+};
+
+
+// 3DPass Network Configuration
+exports.threedpass_factory_contract_addresses = {
+    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
+};
+exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+};
+exports.threedpass_oracle_addresses = {
+    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+};
+
+
+// 3DPass Network Configuration
+exports.threedpass_factory_contract_addresses = {
+    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
+};
+exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+};
+exports.threedpass_oracle_addresses = {
+    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+};
+
 console.log('finished watchdog conf');

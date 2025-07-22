@@ -109,6 +109,30 @@ module.exports = {
       timeoutBlocks: 200,
       skipDryRun: true
     },
+    threedpass_dev: {
+      provider: () => new HDWalletProvider(mnemonic, `https://127.0.0.1:9978`),
+      network_id: 1333,
+      gasPrice: 10e9,
+      confirmations: 1,
+      timeoutBlocks: 200,
+      skipDryRun: true
+    },
+    threedpass_testnet: {
+      provider: () => new HDWalletProvider(mnemonic, `https://test-rpc-http.3dpass.org`),
+      network_id: 1334,
+      gasPrice: 10e9,
+      confirmations: 1,
+      timeoutBlocks: 200,
+      skipDryRun: true
+    },
+    threedpass: {
+      provider: () => new HDWalletProvider(mnemonic, `https://rpc-http.3dpass.org`),
+      network_id: 1333,
+      gasPrice: 10e9,
+      confirmations: 1,
+      timeoutBlocks: 200,
+      skipDryRun: true
+    }
   },
 
   // Set default mocha options here, use special reporters etc.

@@ -46,8 +46,12 @@ function getProvider(network, bFree) {
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://matic-mumbai--ws.datahub.figment.io/apikey/${conf.datahub_key}` : `wss://matic-mainnet--ws.datahub.figment.io/apikey/${conf.datahub_key}`);
 
 		case 'Kava':
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava.io`);
-			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava-rpc.com`);
+			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://kava-testnet.kava.chainstacklabs.com/ws/v1/${conf.chainstack_keys.kava.key}` : `wss://kava-mainnet.kava.chainstacklabs.com/ws/v1/${conf.chainstack_keys.kava.key}`);
+		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/kava_testnet/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/kava_evm/ws/${conf.ankr_key}`);
+		case '3DPass':
+			return process.env.devnet
+			? new ethers.providers.JsonRpcProvider("http://127.0.0.1:9978")
+			: new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://test-rpc-http.3dpass.org/ws/v1/${conf.threedpass_key}` : `wss://rpc-http.3dpass.org/ws/v1/${conf.threedpass_key}`);
 	}
 	throw Error(`unknown network ` + network);
 }

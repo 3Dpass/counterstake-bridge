@@ -184,6 +184,7 @@ const coingeckoChainIds = {
 	BSC: 'binance-smart-chain',
 	Polygon: 'polygon-pos',
 	Kava: 'kava',
+	'3DPass': '3dpass',
 };
 
 async function tryGetTokenPrice(network, token_address, nativeSymbol, cached) {
@@ -192,6 +193,7 @@ async function tryGetTokenPrice(network, token_address, nativeSymbol, cached) {
 		case 'BSC':
 		case 'Polygon':
 		case 'Kava':
+		case '3DPass':
 			try {
 				const chain = coingeckoChainIds[network];
 				return await fetchERC20ExchangeRateCached(chain, token_address, nativeSymbol, cached);

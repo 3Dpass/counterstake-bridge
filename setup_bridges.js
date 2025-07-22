@@ -76,6 +76,17 @@ const evmProps = {
 		factory: conf.kava_factory_contract_addresses[conf.version],
 		assistant_factory: conf.kava_assistant_factory_contract_addresses[conf.version],
 	},
+	'3DPass': {
+		symbol: 'P3D',
+		price: 0.0012,
+		decimals_on_obyte: 8,
+		large_threshold: parseEther('100000'),
+		stablecoinSymbol: 'wUSDT', // Wrapped USDT on 3dpass - The Ledger of Things network
+		stablecoinTokenAddress: process.env.testnet ? '0xfBFBfbFA000000000000000000000000000000de' : '0xfBFBfbFA000000000000000000000000000000de', // Local assetId: 222, availalbe through the assets-ers20 precompile
+		stablecoinDecimals: 6,
+		factory: conf.threedpass_factory_contract_addresses[conf.version],
+		assistant_factory: conf.threedpass_assistant_factory_contract_addresses[conf.version],
+	},
 };
 
 const oracleAddresses = process.env.testnet
@@ -84,12 +95,14 @@ const oracleAddresses = process.env.testnet
 		BSC: '0x3d2cd866b2e2e4fCE1dCcf662E71ea9611113344',
 		Polygon: '0x7A5b663D4Be50E415803176d9f473ee81db590b7',
 		Kava: '0x5e4E4eA9C780b6dF0087b0052A7A1ad039F398bB',
+		'3DPass': 'YOUR_3DPASS_TESTNET_ORACLE_ADDRESS',
 	}
 	: {
 		Ethereum: '0xAC4AA997A171A6CbbF5540D08537D5Cb1605E191',
 		BSC: '0xdD52899A001a4260CDc43307413A5014642f37A2',
 		Polygon: '0xdd603Fc2312A0E7Ab01dE2dA83e7776Af406DCeB',
 		Kava: '0x16f5E8ad38cf676a0a78436ED8F5C8c19dA3be3d',
+		'3DPass': 'YOUR_3DPASS_MAINNET_ORACLE_ADDRESS',
 	};
 
 //const evmNetwork = 'Ethereum';
@@ -126,6 +139,7 @@ let providers = {};
 //providers.BSC = getProvider('BSC');
 //providers.Polygon = getProvider('Polygon');
 providers.Kava = getProvider('Kava');
+providers['3DPass'] = getProvider('3DPass');
 
 // keep websocket connections alive
 for (let n in providers) {
@@ -545,10 +559,59 @@ async function setupEthereum2BSCBridge(tokenAddress, symbol, ethereum_decimals, 
 	await createEvmExportAssistant(export_aa, symbol, 'Ethereum');
 }
 
+async function setupEthereum2ThreeDPassBridge(tokenAddress, symbol, ethereum_decimals, large_threshold, price_in_usd) {
+	assertValidEthereumAddress(tokenAddress);
+	const oracleAddress = oracleAddresses['3DPass'];
+	const oracle = new ethers.Contract(oracleAddress, oracleJson.abi, ethWallet.connect(providers['3DPass']));
+	const res = await oracle.setPrice(tokenAddress, "_NATIVE_", price_in_usd, evmProps['3DPass'].price);
+	await res.wait();
+	await wait(2000);
+
+	const token_on_3dpass = await createEvmImport(tokenAddress, symbol, evmProps['3DPass'].large_threshold, oracleAddress, 'Ethereum', '3DPass');
+	await wait(2000);
+	await createEvmImportAssistant(token_on_3dpass, symbol, '3DPass');
+	const export_contract = await createEvmExport(token_on_3dpass, tokenAddress, parseUnits(large_threshold + '', ethereum_decimals), 'Ethereum', '3DPass');
+	await wait(2000);
+	await createEvmExportAssistant(export_contract, symbol, 'Ethereum');
+}
+
+async function setupThreeDPass2EthereumBridge(tokenAddressOn3DPass, symbol, decimalsOn3DPass, large_threshold, price_in_usd) {
+	assertValidEthereumAddress(tokenAddressOn3DPass);
+	const oracleAddress = oracleAddresses.Ethereum;
+	const oracle = new ethers.Contract(oracleAddress, oracleJson.abi, ethWallet.connect(providers.Ethereum));
+	const res = await oracle.setPrice(tokenAddressOn3DPass, "_NATIVE_", price_in_usd, evmProps.Ethereum.price);
+	await res.wait();
+	await wait(2000);
+
+	const token_on_eth = await createEvmImport(tokenAddressOn3DPass, symbol, evmProps.Ethereum.large_threshold, oracleAddress, '3DPass', 'Ethereum');
+	await wait(2000);
+	await createEvmImportAssistant(token_on_eth, symbol, 'Ethereum');
+	const export_contract = await createEvmExport(token_on_eth, tokenAddressOn3DPass, parseUnits(large_threshold + '', decimalsOn3DPass), '3DPass', 'Ethereum');
+	await wait(2000);
+	await createEvmExportAssistant(export_contract, symbol, '3DPass');
+}
+
+
 async function setupAdditionalBridge() {
 	await init();
 	await transfers.start();
 	webserver.start();
+
+	await setupEthereum2ThreeDPassBridge(
+		'0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT on ETH Mainnet
+		'USDT',
+		6, // USDT decimals
+		'10000', // large_threshold in USDT
+		1 // price in USD
+	);
+	// await setupThreeDPass2EthereumBridge(
+	// 	'0xfBFBfbFA000000000000000000000000000000de', // wUSDT on 3DPass
+	// 	'wUSDT',
+	// 	6, // wUSDT decimals
+	// 	'10000', // large_threshold in wUSDT
+	// 	1 // price in USD
+	// );
+
 	await setupEvm2ObyteBridge(AddressZero, 'KAVA', 'KAVA', 18, 5, 20000);
 	await setupEvm2ObyteBridge(evmStablecoinTokenAddress, 'USDC', 'KUSDC', 6, 4, 20000, 1, `${obyte_oracle}/GBYTE_USD`);
 	await setupObyte2EvmBridge('base', 'GBYTE', 9, 1000e9, 1e9, 20);

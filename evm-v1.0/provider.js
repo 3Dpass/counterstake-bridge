@@ -22,6 +22,10 @@ function getProvider(network, bFree) {
 			*/
 		//	return new ethers.providers.JsonRpcProvider(process.env.testnet ? `https://polygon-mumbai.g.alchemy.com/v2/${conf.alchemy_keys.polygon.testnet}` : `https://polygon-mainnet.g.alchemy.com/v2/${conf.alchemy_keys.polygon.mainnet}`);
 			return new ethers.providers.WebSocketProvider(process.env.testnet ? `https://speedy-nodes-nyc.moralis.io/${conf.moralis_key}/polygon/mumbai/ws` : `https://speedy-nodes-nyc.moralis.io/${conf.moralis_key}/polygon/mainnet/ws`);
+		case '3DPass':
+			return process.env.devnet
+			? new ethers.providers.JsonRpcProvider("http://127.0.0.1:9978")
+			: new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://test-rpc-http.3dpass.org/ws/v1/${conf.threedpass_key}` : `wss://rpc-http.3dpass.org/ws/v1/${conf.threedpass_key}`);
 	}
 	throw Error(`unknown network ` + network);
 }

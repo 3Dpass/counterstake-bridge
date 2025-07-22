@@ -25,7 +25,8 @@ const { utils: { parseEther }, constants: { AddressZero } } = ethers;
 //const evmNetwork = 'Ethereum';
 //const evmNetwork = 'BSC';
 //const evmNetwork = 'Polygon';
-const evmNetwork = 'Kava';
+//const evmNetwork = 'Kava';
+const evmNetwork = '3DPass';
 
 const evmNativePrice = 1; // the dollar price of the native token (ETH, BNB, etc)
 

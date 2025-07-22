@@ -1,5 +1,6 @@
 "use strict";
 const mutex = require('ocore/mutex.js');
+const db = require('ocore/db.js');
 
 let watchedKeys = {};
 
@@ -66,8 +67,29 @@ function isRateLimitError(errMsg) {
 	);
 }
 
+async function getObyteAssistantsForEthAddress(ethAddress) {
+	const rows = await db.query("SELECT DISTINCT aa FROM eth_addresses WHERE eth_address=?", [ethAddress]);
+	return rows.map(r => r.aa);
+}
+
+async function getEthAddressForObyteAssistant(aa) {
+	const rows = await db.query("SELECT eth_address FROM eth_addresses WHERE aa=?", [aa]);
+	if (rows.length === 0)
+		return null;
+	return rows[0].eth_address;
+}
+
+function h160ToH256(h160Address) {
+	const addressBytes = Buffer.from(h160Address.slice(2), 'hex');
+	const h256Address = Buffer.concat([Buffer.alloc(12), addressBytes]).toString('hex');
+	return '0x' + h256Address;
+}
+
 exports.asyncCallWithTimeout = asyncCallWithTimeout;
 exports.wait = wait;
 exports.watchForDeadlock = watchForDeadlock;
 exports.getVersion = getVersion;
 exports.isRateLimitError = isRateLimitError;
+exports.getObyteAssistantsForEthAddress = getObyteAssistantsForEthAddress;
+exports.getEthAddressForObyteAssistant = getEthAddressForObyteAssistant;
+exports.h160ToH256 = h160ToH256;

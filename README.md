@@ -4,7 +4,7 @@ Run this bot to assist users with cross-chain transfers facilitated by [counters
 
 The bot also serves as watchdog. It monitors the ongoing transfers and if it sees a fraudulent claim or challenge, it sends a counterstake looking to win the stake posted by the fraudulent claim or challenge. The potential ROI is 66.7%. See [how counterstake works](https://counterstake.org/how-it-works).
 
-Currently, the bot supports transfers between Obyte, Ethereum, and BSC.
+Currently, the bot supports transfers between Obyte, Ethereum, BSC, and 3DPass.
 
 The are no guarantees of the correct operation of the software. There might be bugs which can lead to losing money. Use at your own risk.
 
@@ -45,6 +45,10 @@ This is your Ethereum address. Fund it with ETH and any ERC20 tokens that users 
 ====== my BSC address:  0xEA6D65BAE2E0dDF1A3723B139cb989FAbCD63318
 ```
 This is your BSC address. Fund it with BNB and any BEP20 tokens that users are likely to expatriate to other chains. Larger balances will enable you to serve larger transfers and win competition against other assistant bots.
+```
+====== my 3DPass address:  0xEA6D65BAE2E0dDF1A3723B139cb989FAbCD63318
+```
+This is your 3DPass address. Fund it with P3D and any 3DPRC20 tokens that users are likely to expatriate to other chains. Larger balances will enable you to serve larger transfers and win competition against other assistant bots.
 
 Larger balances also allow you to serve more transfers in parallel before your bot's capacity is exhausted.
 
@@ -112,7 +116,9 @@ Set `control_addresses` in your conf.json to let the bot know who is allowed to 
 ```
         "payout_addresses": {
                 "Obyte": "EJC4A7WQGHEZEKW6RLO7F26SAR4LAQBU",
-                "Ethereum": "0xbd2C1400eA794D837669d3A83Ef8B3534579b5BF"
+                "Ethereum": "0xbd2C1400eA794D837669d3A83Ef8B3534579b5BF",
+                "BSC": "0xbd2C1400eA794D837669d3A83Ef8B3534579b5BF",
+                "3DPass": "0xbd2C1400eA794D837669d3A83Ef8B3534579b5BF"
         },
 ```
 
