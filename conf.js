@@ -261,3 +261,10 @@ exports.threedpass_oracle_addresses = {
 };
 
 console.log('finished watchdog conf');
+
+// 3DPass specific: P3D precompile address
+exports.p3d_precompile_address = '0x0000000000000000000000000000000000000802';
+
+exports.counterstakeFactory = '0x943e8fcbA7C432D0C1adf61dC43C33273111e168';
+exports.assistantFactory = '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0';
+exports.oracle = '0xAc647d0caB27e912C844F27716154f54EDD519cE';
