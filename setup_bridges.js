@@ -108,7 +108,8 @@ const oracleAddresses = process.env.testnet
 //const evmNetwork = 'Ethereum';
 //const evmNetwork = 'BSC';
 //const evmNetwork = 'Polygon';
-const evmNetwork = 'Kava';
+//const evmNetwork = 'Kava';
+const evmNetwork = '3DPass';
 
 const evmNativeSymbol = evmProps[evmNetwork].symbol;
 const evmNativePrice = evmProps[evmNetwork].price;
@@ -138,7 +139,7 @@ let providers = {};
 //providers.Ethereum = getProvider('Ethereum');
 //providers.BSC = getProvider('BSC');
 //providers.Polygon = getProvider('Polygon');
-providers.Kava = getProvider('Kava');
+//providers.Kava = getProvider('Kava');
 providers['3DPass'] = getProvider('3DPass');
 
 // keep websocket connections alive

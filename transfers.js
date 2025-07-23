@@ -940,7 +940,9 @@ async function handleNewAssistantAA(side, assistant_aa, bridge_aa, network, mana
 	if (!bridge)
 		return unlock(`got new ${side} assistant for AA ${bridge_aa} but the bridge not found`);
 	const { bridge_id } = bridge;
-	const meIsManager = networkApi[network].getMyAddress() === manager;
+	// Map network names to networkApi keys
+	const networkApiKey = network === '3DPass' ? 'ThreeDPass' : network;
+	const meIsManager = networkApi[networkApiKey].getMyAddress() === manager;
 	if (meIsManager)
 		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, [assistant_aa, version, bridge_id]);
 	await db.query(`INSERT ${db.getIgnore()} INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [assistant_aa, bridge_id, bridge_aa, network, side, manager, assistant_shares_asset, assistant_shares_symbol, version]);

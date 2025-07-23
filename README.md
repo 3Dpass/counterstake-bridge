@@ -25,6 +25,12 @@ cd evm
 yarn global add truffle
 truffle compile
 ```
+or
+
+```bash
+cd evm
+npx truffle compile --all
+```bash
 
 ## Run
 ```bash

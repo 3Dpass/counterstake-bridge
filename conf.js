@@ -104,6 +104,16 @@ if (process.env.devnet){
 	exports.kava_assistant_factory_contract_addresses = {
 		'v1.1': '',
 	};
+	// 3DPass devnet contract addresses
+	exports.threedpass_factory_contract_addresses = {
+		'v1.1': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168' // TODO: Replace with actual devnet contract address
+	};
+	exports.threedpass_assistant_factory_contract_addresses = {
+		'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0' // TODO: Replace with actual devnet contract address
+	};
+	exports.threedpass_oracle_addresses = {
+		'3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE' // TODO: Replace with actual devnet oracle address
+	};
 }
 else if (process.env.testnet) {
 	exports.ethereum_factory_contract_addresses = {
@@ -184,87 +194,30 @@ exports.bClaimForOthers = true;
 exports.bUseOwnFunds = true;
 exports.bAttack = true; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
 
+// Disable problematic networks for testing
+exports.disablePolygon = true;
+exports.disableKava = true;
+exports.disableBSC = false; // Re-enable BSC for testing
+
 exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 0.5%
 
 exports.webPort = process.env.testnet ? 7001 : 7000; // set to null in order to disable the web server
 
 
-// 3DPass Network Configuration
-exports.threedpass_factory_contract_addresses = {
-    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
-};
-exports.threedpass_assistant_factory_contract_addresses = {
-    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
-};
-exports.threedpass_oracle_addresses = {
-    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
-};
-
-
-// 3DPass Network Configuration
-exports.threedpass_factory_contract_addresses = {
-    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
-};
-exports.threedpass_assistant_factory_contract_addresses = {
-    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
-};
-exports.threedpass_oracle_addresses = {
-    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
-};
-
-
-// 3DPass Network Configuration
-exports.threedpass_factory_contract_addresses = {
-    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
-};
-exports.threedpass_assistant_factory_contract_addresses = {
-    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
-};
-exports.threedpass_oracle_addresses = {
-    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
-};
-
-
-// 3DPass Network Configuration
-exports.threedpass_factory_contract_addresses = {
-    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
-};
-exports.threedpass_assistant_factory_contract_addresses = {
-    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
-};
-exports.threedpass_oracle_addresses = {
-    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
-};
-
-
-// 3DPass Network Configuration
-exports.threedpass_factory_contract_addresses = {
-    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
-};
-exports.threedpass_assistant_factory_contract_addresses = {
-    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
-};
-exports.threedpass_oracle_addresses = {
-    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
-};
-
-
-// 3DPass Network Configuration
-exports.threedpass_factory_contract_addresses = {
-    'v1.0': '0x2CA310AF11b7923D1a65240B317551a264C8AA2C'
-};
-exports.threedpass_assistant_factory_contract_addresses = {
-    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
-};
-exports.threedpass_oracle_addresses = {
-    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
-};
+// 3DPass Network Configuration (mainnet/testnet - devnet is configured above)
+if (!process.env.devnet) {
+	exports.threedpass_factory_contract_addresses = {
+		'v1.1': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+	};
+	exports.threedpass_assistant_factory_contract_addresses = {
+		'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0'
+	};
+	exports.threedpass_oracle_addresses = {
+		'3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+	};
+}
 
 console.log('finished watchdog conf');
 
 // 3DPass specific: P3D precompile address
 exports.p3d_precompile_address = '0x0000000000000000000000000000000000000802';
-
-exports.counterstakeFactory = '0x943e8fcbA7C432D0C1adf61dC43C33273111e168';
-exports.assistantFactory = '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0';
-exports.oracle = '0xAc647d0caB27e912C844F27716154f54EDD519cE';

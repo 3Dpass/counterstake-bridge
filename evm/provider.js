@@ -24,11 +24,11 @@ function getProvider(network, bFree) {
 		
 		case 'BSC':
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.blockvision.org/v1/${conf.blockvision_key}` : `wss://bsc-mainnet.blockvision.org/v1/${conf.blockvision_key}`);
-			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.nodereal.io/ws/v1/${conf.nodereal_key}` : `wss://bsc-mainnet.nodereal.io/ws/v1/${conf.nodereal_key}`);
+		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.nodereal.io/ws/v1/${conf.nodereal_key}` : `wss://bsc-mainnet.nodereal.io/ws/v1/${conf.nodereal_key}`);
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc.getblock.io/${conf.getblock_key}/testnet/` : `wss://bsc.getblock.io/${conf.getblock_key}/mainnet/`);
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/bsc_testnet_chapel/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/bsc/ws/${conf.ankr_key}`);
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `https://speedy-nodes-nyc.moralis.io/${conf.moralis_key}/bsc/testnet/ws` : `wss://bsc--mainnet--ws.datahub.figment.io/apikey/${conf.datahub_key}`);
-		//	return new ethers.providers.JsonRpcProvider(process.env.testnet ? "https://data-seed-prebsc-1-s1.binance.org:8545" : "https://bsc-dataseed.binance.org");
+			return new ethers.providers.JsonRpcProvider(process.env.testnet ? "https://data-seed-prebsc-1-s1.binance.org:8545" : "https://bsc-dataseed.binance.org");
 		//	return new ethers.providers.JsonRpcProvider(process.env.testnet ? "https://bsc-testnet.publicnode.com" : "https://bsc.publicnode.com");
 		
 		case 'Polygon':
@@ -46,12 +46,18 @@ function getProvider(network, bFree) {
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://matic-mumbai--ws.datahub.figment.io/apikey/${conf.datahub_key}` : `wss://matic-mainnet--ws.datahub.figment.io/apikey/${conf.datahub_key}`);
 
 		case 'Kava':
-			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://kava-testnet.kava.chainstacklabs.com/ws/v1/${conf.chainstack_keys.kava.key}` : `wss://kava-mainnet.kava.chainstacklabs.com/ws/v1/${conf.chainstack_keys.kava.key}`);
+			// Use a fallback if chainstack_keys is not configured
+			if (conf.chainstack_keys && conf.chainstack_keys.kava && conf.chainstack_keys.kava.key) {
+				return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://kava-testnet.kava.chainstacklabs.com/ws/v1/${conf.chainstack_keys.kava.key}` : `wss://kava-mainnet.kava.chainstacklabs.com/ws/v1/${conf.chainstack_keys.kava.key}`);
+			} else {
+				// Fallback to public RPC
+				return new ethers.providers.JsonRpcProvider(process.env.testnet ? "https://kava-testnet.kava.chainstacklabs.com" : "https://kava-mainnet.kava.chainstacklabs.com");
+			}
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/kava_testnet/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/kava_evm/ws/${conf.ankr_key}`);
 		case '3DPass':
 			return process.env.devnet
-			? new ethers.providers.JsonRpcProvider("http://127.0.0.1:9978")
-			: new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://test-rpc-http.3dpass.org/ws/v1/${conf.threedpass_key}` : `wss://rpc-http.3dpass.org/ws/v1/${conf.threedpass_key}`);
+			? new ethers.providers.JsonRpcProvider("http://127.0.0.1:9944")
+			: new ethers.providers.WebSocketProvider(process.env.testnet ? `ws://127.0.0.1:9944` : `ws://127.0.0.1:9944`);
 	}
 	throw Error(`unknown network ` + network);
 }
