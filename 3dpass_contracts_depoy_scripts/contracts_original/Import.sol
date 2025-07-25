@@ -3,12 +3,13 @@ pragma solidity ^0.8.3;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./ERC20.sol";
 import "./IOracle.sol";
-import "./Counterstake3DPass.sol";
+import "./Counterstake.sol";
 import "./VotedValueAddress.sol";
 import "./CounterstakeLibrary.sol";
 import "./IERC20WithSymbol.sol";
 
-contract Import3DPass is ERC20, Counterstake3DPass {
+
+contract Import is ERC20, Counterstake {
 
 	using SafeERC20 for IERC20;
 
@@ -25,10 +26,10 @@ contract Import3DPass is ERC20, Counterstake3DPass {
 
 	bytes32 private constant base_hash = keccak256(abi.encodePacked("base"));
 	bytes32 private constant zx_hash = keccak256(abi.encodePacked("0x0000000000000000000000000000000000000000"));
-	bytes32 private constant p3d_hash = keccak256(abi.encodePacked("0x0000000000000000000000000000000000000802"));
+
 
 	constructor (string memory _home_network, string memory _home_asset, string memory __name, string memory __symbol, address stakeTokenAddr, address oracleAddr, uint16 _counterstake_coef100, uint16 _ratio100, uint _large_threshold, uint[] memory _challenging_periods, uint[] memory _large_challenging_periods) 
-	Counterstake3DPass(stakeTokenAddr, _counterstake_coef100, _ratio100, _large_threshold, _challenging_periods, _large_challenging_periods) 
+	Counterstake(stakeTokenAddr, _counterstake_coef100, _ratio100, _large_threshold, _challenging_periods, _large_challenging_periods) 
 	ERC20(__name, __symbol)
 	{
 		initImport(_home_network, _home_asset, __name, __symbol, oracleAddr);
@@ -37,16 +38,12 @@ contract Import3DPass is ERC20, Counterstake3DPass {
 	function initImport(string memory _home_network, string memory _home_asset, string memory __name, string memory __symbol, address oracleAddr) public
 	{
 		require(address(governance) == address(0), "already initialized");
-		require(bytes(_home_network).length > 0, "home network cannot be empty");
-		require(bytes(_home_asset).length > 0, "home asset cannot be empty");
-		require(bytes(__name).length > 0, "token name cannot be empty");
-		require(bytes(__symbol).length > 0, "token symbol cannot be empty");
-		validateOracle(oracleAddr);
 		oracleAddress = oracleAddr;
 		home_network = _home_network;
 		home_asset = _home_asset;
 		name = __name;
 		symbol = __symbol;
+		validateOracle(oracleAddr);
 	}
 
 	function setupGovernance(GovernanceFactory governanceFactory, VotedValueFactory votedValueFactory) external {
@@ -57,36 +54,16 @@ contract Import3DPass is ERC20, Counterstake3DPass {
 
 	function getOraclePrice(address oracleAddr) view private returns (uint, uint) {
 		bytes32 home_asset_hash = keccak256(abi.encodePacked(home_asset));
-		string memory asset_key = (home_asset_hash == base_hash || home_asset_hash == zx_hash || home_asset_hash == p3d_hash) ? home_network : home_asset;
-		
-		string memory stake_key;
-		if (isP3D(settings.tokenAddress)) {
-			stake_key = "P3D"; // Use P3D symbol for oracle
-		} else if (settings.tokenAddress == address(0)) {
-			stake_key = "_NATIVE_";
-		} else {
-			stake_key = IERC20WithSymbol(settings.tokenAddress).symbol();
-		}
-		
-		return IOracle(oracleAddr).getPrice(asset_key, stake_key);
+		return IOracle(oracleAddr).getPrice(
+			home_asset_hash == base_hash || home_asset_hash == zx_hash ? home_network : home_asset, 
+			settings.tokenAddress == address(0) ? "_NATIVE_" : IERC20WithSymbol(settings.tokenAddress).symbol()
+		);
 	}
 
 	function validateOracle(address oracleAddr) view public {
 		require(CounterstakeLibrary.isContract(oracleAddr), "bad oracle");
 		(uint num, uint den) = getOraclePrice(oracleAddr);
 		require(num > 0 || den > 0, "no price from oracle");
-		
-		// Additional validation for P3D-specific oracle requirements
-		// Temporarily disabled to debug deployment issue
-		// if (isP3D(settings.tokenAddress)) {
-		// 	// Verify that the oracle can provide P3D prices
-		// 	try IOracle(oracleAddr).getPrice("P3D", "_NATIVE_") returns (uint p3d_num, uint p3d_den) {
-		// 		require(p3d_num > 0 || p3d_den > 0, "oracle must support P3D pricing");
-		// 	} catch {
-		// 		// If the oracle call fails, we'll skip this validation for now
-		// 		// This allows deployment to proceed while we debug the oracle issue
-		// 	}
-		// }
 	}
 
 	function setOracle(address oracleAddr) onlyVotedValueContract external {
@@ -100,6 +77,7 @@ contract Import3DPass is ERC20, Counterstake3DPass {
 	function setMinPrice(uint _min_price20) onlyVotedValueContract external {
 		min_price20 = _min_price20;
 	}
+
 
 	// repatriate
 	function transferToHomeChain(string memory home_address, string memory data, uint amount, uint reward) external {
@@ -115,20 +93,25 @@ contract Import3DPass is ERC20, Counterstake3DPass {
 		return Math.max(Math.max(stake_in_image_asset * num / den, stake_in_image_asset * min_price20 / 1e20), settings.min_stake);
 	}
 
+
 	function sendWithdrawals(address payable to_address, uint paid_claimed_amount, uint won_stake) internal override {
 		if (paid_claimed_amount > 0){
 			_mint(to_address, paid_claimed_amount);
 		}
-		if (won_stake > 0){
-			transferTokens(settings.tokenAddress, to_address, won_stake);
-		}
+		if (settings.tokenAddress == address(0))
+			to_address.transfer(won_stake);
+		else
+			IERC20(settings.tokenAddress).safeTransfer(to_address, won_stake);
+	}
+
+	function receiveMoneyInClaim(uint stake, uint paid_amount) internal override {
+		if (paid_amount > 0)
+			_burn(msg.sender, paid_amount);
+		receiveStakeAsset(stake);
 	}
 
 	function sendToClaimRecipient(address payable to_address, uint paid_amount) internal override {
 		_mint(to_address, paid_amount);
 	}
 
-	function receiveMoneyInClaim(uint stake, uint paid_amount) internal override {
-		receiveStakeAsset(stake + paid_amount);
-	}
-} 
+}

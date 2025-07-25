@@ -4,7 +4,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./VotedValue.sol";
-import "./IP3D.sol";
 
 contract Governance is ReentrancyGuard {
 
@@ -66,10 +65,7 @@ contract Governance is ReentrancyGuard {
 		require(from == msg.sender || addressBelongsToGovernance(msg.sender), "not allowed");
 		if (votingTokenAddress == address(0))
 			require(msg.value == amount, "wrong amount received");
-		else if (votingTokenAddress == 0x0000000000000000000000000000000000000802) { // P3D precompile
-			require(msg.value == 0, "don't send ETH");
-			require(IP3D(votingTokenAddress).transferFrom(from, address(this), amount), "P3D transferFrom failed");
-		} else {
+		else {
 			require(msg.value == 0, "don't send ETH");
 			IERC20(votingTokenAddress).safeTransferFrom(from, address(this), amount);
 		}
@@ -91,8 +87,6 @@ contract Governance is ReentrancyGuard {
 		balances[msg.sender] -= amount;
 		if (votingTokenAddress == address(0))
 			payable(msg.sender).transfer(amount);
-		else if (votingTokenAddress == 0x0000000000000000000000000000000000000802) // P3D precompile
-			require(IP3D(votingTokenAddress).transfer(msg.sender, amount), "P3D transfer failed");
 		else
 			IERC20(votingTokenAddress).safeTransfer(msg.sender, amount);
 		emit Withdrawal(msg.sender, amount);

@@ -7,9 +7,11 @@
   "license": "MIT",
   "dependencies": {
     "@koa/cors": "^5.0.0",
+    "@openzeppelin/contracts": "^4.9.3",
     "@polkadot/util-crypto": "^12.6.2",
     "@truffle/hdwallet-provider": "^2.1.15",
     "aabot": "git+https://github.com/byteball/aabot.git",
+    "dotenv": "^17.2.1",
     "ethers": "^5.8.0",
     "headless-obyte": "git+https://github.com/byteball/headless-obyte.git",
     "json-rpc2": "^2.0.0",

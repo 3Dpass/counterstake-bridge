@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "./ERC20.sol";
 import "./Import.sol";
 import "./CounterstakeLibrary.sol";
-import "./IP3D.sol";
 
 contract ImportAssistant is ERC20, ReentrancyGuard, CounterstakeReceiver, ERC165 {
 
@@ -58,7 +57,7 @@ contract ImportAssistant is ERC20, ReentrancyGuard, CounterstakeReceiver, ERC165
 
 
 	modifier onlyETH(){
-		require(tokenAddress == address(0) || tokenAddress == Counterstake(bridgeAddress).P3D_PRECOMPILE(), "ETH/P3D only");
+		require(tokenAddress == address(0), "ETH only");
 		_;
 	}
 
@@ -95,27 +94,15 @@ contract ImportAssistant is ERC20, ReentrancyGuard, CounterstakeReceiver, ERC165
 		ts = block.timestamp;
 		(address tokenAddr, , , , , ) = Import(bridgeAddr).settings();
 		tokenAddress = tokenAddr;
-		if (tokenAddr != address(0)) {
-			if (tokenAddr == Counterstake(bridgeAddr).P3D_PRECOMPILE()) {
-				IP3D(tokenAddr).approve(bridgeAddr, type(uint).max);
-			} else {
-				IERC20(tokenAddr).safeApprove(bridgeAddr, type(uint).max);
-			}
-		}
+		if (tokenAddr != address(0))
+			IERC20(tokenAddr).safeApprove(bridgeAddr, type(uint).max);
 		managerAddress = (managerAddr != address(0)) ? managerAddr : msg.sender;
 		profit_diffusion_period = default_profit_diffusion_period;
 	}
 
 
 	function getGrossBalance() internal view returns (UintBalance memory bal) {
-		uint stake_bal;
-		if (tokenAddress == address(0)) {
-			stake_bal = address(this).balance;
-		} else if (tokenAddress == Counterstake(bridgeAddress).P3D_PRECOMPILE()) {
-			stake_bal = IP3D(tokenAddress).balanceOf(address(this));
-		} else {
-			stake_bal = IERC20(tokenAddress).balanceOf(address(this));
-		}
+		uint stake_bal = (tokenAddress == address(0)) ? address(this).balance : IERC20(tokenAddress).balanceOf(address(this));
 		uint image_bal = IERC20(bridgeAddress).balanceOf(address(this));
 		bal.stake = stake_bal + balance_in_work.stake;
 		bal.image = image_bal + balance_in_work.image;
@@ -331,10 +318,7 @@ contract ImportAssistant is ERC20, ReentrancyGuard, CounterstakeReceiver, ERC165
 	function buyShares(uint stake_asset_amount, uint image_asset_amount) payable nonReentrant external {
 		if (tokenAddress == address(0))
 			require(msg.value == stake_asset_amount, "wrong amount received");
-		else if (tokenAddress == Counterstake(bridgeAddress).P3D_PRECOMPILE()) {
-			require(msg.value == 0, "don't send ETH");
-			require(IP3D(tokenAddress).transferFrom(msg.sender, address(this), stake_asset_amount), "P3D transferFrom failed");
-		} else {
+		else {
 			require(msg.value == 0, "don't send ETH");
 			IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), stake_asset_amount);
 		}
@@ -409,10 +393,7 @@ contract ImportAssistant is ERC20, ReentrancyGuard, CounterstakeReceiver, ERC165
 	function swapStake2Image(uint stake_asset_amount, uint min_amount_out) payable nonReentrant external {
 		if (tokenAddress == address(0))
 			require(msg.value == stake_asset_amount, "wrong amount received");
-		else if (tokenAddress == Counterstake(bridgeAddress).P3D_PRECOMPILE()) {
-			require(msg.value == 0, "don't send ETH");
-			require(IP3D(tokenAddress).transferFrom(msg.sender, address(this), stake_asset_amount), "P3D transferFrom failed");
-		} else {
+		else {
 			require(msg.value == 0, "don't send ETH");
 			IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), stake_asset_amount);
 		}
@@ -527,8 +508,6 @@ contract ImportAssistant is ERC20, ReentrancyGuard, CounterstakeReceiver, ERC165
 	function payStakeTokens(address to, uint amount) internal {
 		if (tokenAddress == address(0))
 			payable(to).transfer(amount);
-		else if (tokenAddress == Counterstake(bridgeAddress).P3D_PRECOMPILE())
-			require(IP3D(tokenAddress).transfer(to, amount), "P3D transfer failed");
 		else
 			IERC20(tokenAddress).safeTransfer(to, amount);
 	}
