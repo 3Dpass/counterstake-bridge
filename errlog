@@ -1,0 +1,23 @@
+unhandledRejection event Error: Ethereum disconnected before having caught up
+    at EventEmitter.<anonymous> (/Users/jm/counterstake-bridge/transfers.js:1128:10)
+    at EventEmitter.emit (node:events:517:28)
+    at Timeout._onTimeout (/Users/jm/counterstake-bridge/evm-chain.js:893:31)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7) Error: Ethereum disconnected before having caught up
+    at EventEmitter.<anonymous> (/Users/jm/counterstake-bridge/transfers.js:1128:10)
+    at EventEmitter.emit (node:events:517:28)
+    at Timeout._onTimeout (/Users/jm/counterstake-bridge/evm-chain.js:893:31)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+/Users/jm/counterstake-bridge/run.js:40
+	throw up;
+	^
+
+Error: Ethereum disconnected before having caught up
+    at EventEmitter.<anonymous> (/Users/jm/counterstake-bridge/transfers.js:1128:10)
+    at EventEmitter.emit (node:events:517:28)
+    at Timeout._onTimeout (/Users/jm/counterstake-bridge/evm-chain.js:893:31)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+
+Node.js v18.20.2
