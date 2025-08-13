@@ -1,0 +1,318 @@
+{
+  "development": {
+    "network": {
+      "name": "3DPass Local Testnet",
+      "chainId": "*",
+      "rpcUrl": "http://127.0.0.1:9978",
+      "wsUrl": "ws://127.0.0.1:9944"
+    },
+    "accounts": {
+      "account1": {
+        "address": "d7auzwczfr3Fwz3S7XYvKvmQEhTwtXk9xgqiNqegvFmroELnX",
+        "privateKey": "0x207e1ef72d141764416df41c32dd2f862d90fee0e3799a343e496dd2bf1bad17",
+        "evm": "0x41d06a54D85EE34c0Ca7c21979eE87b9817cde5b",
+        "description": "Generated Test 1 - Working pair with verified substrate-to-EVM mapping"
+      },
+      "account2": {
+        "address": "d7cDYbqfGFfVfjPbZX6Legr19RmTt6TBpn9DwSSpaYyrdYRih",
+        "privateKey": "0xc775a5cdb0aa759020c3bd26bac4e90b8b66434c201ce02b04749c9d1728d62e",
+        "evm": "0x3bC6F415BbE667E0Fdaca81b7A78E8AE6469E688",
+        "description": "Generated Test 2 - Working pair with verified substrate-to-EVM mapping"
+      },
+      "account3": {
+        "address": "d7dP6FxMfFrqyNpDu4XXxJVAzpR3taxVaUUW3TfmRVbsSVG63",
+        "privateKey": "0x5f7ce4e488d5df837220bfdb4c43af7b19f5213f6ddf254b286d8287daca250e",
+        "evm": "0x71f68AEbF8959256200014E9902f23031c914227",
+        "description": "Generated Test 3 - Working pair with verified substrate-to-EVM mapping"
+      },
+      "account4": {
+        "address": "d7gJxX34mZGNxFVuuKQbwJKrGB6tgEM1X42ExFwSNg7xiU6J5",
+        "seed": "oak share roast shine heart athlete inch lottery door injury great tuition",
+        "privateKey": "0x45d88d969b0eaa9159ba507968cac4e3c8c782c5946a745af8a2b2a1ea2b375e",
+        "evm": "0xfaf07f6091bb3c457f081563386f584101fbad38",
+        "description": "Generated Test 4 - Native P3D (Substrate) address with the EVM alias",
+        "origin": "Substrate"
+      }
+    },
+    "contracts": {
+      "nativeTokenPrecompile": "0x0000000000000000000000000000000000000802",
+      "batchPrecompile": "0x0000000000000000000000000000000000000808"
+    },
+    "testParameters": {
+      "defaultGas": 6000000,
+      "defaultGasPrice": 1,
+      "testTokenAmount": "1000000",
+      "bridgeTestAmount": "10000",
+      "challengePeriod": 300
+    },
+    "assets": {
+      "Asset1": {
+        "assetId": 222,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "Wrapped USDT on LoT",
+          "symbol": "wUSDT",
+          "decimals": 6
+        },
+        "evmContract": "0xfBFBfbFA000000000000000000000000000000de"
+      },
+      "Asset2": {
+        "assetId": 111,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "Wrapped USDC on LoT",
+          "symbol": "wUSDC",
+          "decimals": 6
+        },
+        "evmContract": "0xFbfbFBfA0000000000000000000000000000006f"
+      },
+      "Asset3": {
+        "assetId": 333,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "Wrapped BUSD on LoT",
+          "symbol": "wBUSD",
+          "decimals": 6
+        },
+        "evmContract": "0xFbFBFBfA0000000000000000000000000000014D"
+      },
+      "Asset4": {
+        "assetId": 444,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "FIRE token",
+          "symbol": "FIRE",
+          "decimals": 6
+        },
+        "evmContract": "0xFbfBFBfA000000000000000000000000000001bC"
+      },
+      "Asset5": {
+        "assetId": 555,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "WATER token",
+          "symbol": "WATER",
+          "decimals": 6
+        },
+        "evmContract": "0xfBFBFBfa0000000000000000000000000000022b"
+      },
+      "Asset6": {
+        "assetId": 666,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "WIND token",
+          "symbol": "WIND",
+          "decimals": 6
+        },
+        "evmContract": "0xFbFbFBFA0000000000000000000000000000029A"
+      },
+      "Asset7": {
+        "assetId": 777,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "EARTH token",
+          "symbol": "EARTH",
+          "decimals": 6
+        },
+        "evmContract": "0xFbfbfbFa00000000000000000000000000000309"
+      },
+      "Asset8": {
+        "assetId": 888,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "DREAM token",
+          "symbol": "DREAM",
+          "decimals": 6
+        },
+        "evmContract": "0xfBfBFbFa00000000000000000000000000000378"
+      },
+      "Asset9": {
+        "assetId": 999,
+        "minBalance": 1,
+        "objDetails": null,
+        "metadata": {
+          "name": "LIFE token",
+          "symbol": "LIFE",
+          "decimals": 6
+        },
+        "evmContract": "0xFbFBfbfA000000000000000000000000000003e7"
+      }
+    }
+  },
+  "testnet": {
+    "networks": {
+      "ethereum": {
+        "name": "Goerli",
+        "chainId": 5,
+        "rpcUrl": "https://goerli.infura.io/v3/YOUR_INFURA_KEY",
+        "explorer": "https://goerli.etherscan.io"
+      },
+      "bsc": {
+        "name": "BSC Testnet",
+        "chainId": 97,
+        "rpcUrl": "https://data-seed-prebsc-1-s1.binance.org:8545",
+        "explorer": "https://testnet.bscscan.com"
+      },
+      "polygon": {
+        "name": "Mumbai",
+        "chainId": 80001,
+        "rpcUrl": "https://rpc-mumbai.maticvigil.com",
+        "explorer": "https://mumbai.polygonscan.com"
+      }
+    },
+    "contracts": {
+      "uniswapRouter": {
+        "ethereum": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "polygon": "0x8954AfA98594b838bda56FE4C12a09D7739D179b"
+      },
+      "pancakeRouter": {
+        "bsc": "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3"
+      },
+      "usdt": {
+        "ethereum": "0x509Ee0d083DdF8AC028f2a56731412edD63223B9",
+        "bsc": "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd",
+        "polygon": "0xA02f6adc7926efeBBd59Fd43A84f4E0c0c91e832"
+      },
+      "usdc": {
+        "ethereum": "0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b",
+        "bsc": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+        "polygon": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+      },
+      "busd": {
+        "ethereum": "0x4Fabb145d64652a948d72533023f6E7A623C7C53",
+        "bsc": "0xeD24FC36d5Ee211Ea25A80239Fb8C4Cfd80f12Ee",
+        "polygon": "0xdAb529f40E671A1D4bF91361c21bf9f0C9712ab7"
+      }
+    }
+  },
+  "mainnet": {
+    "networks": {
+      "ethereum": {
+        "name": "Ethereum Mainnet",
+        "chainId": 1,
+        "rpcUrl": "https://mainnet.infura.io/v3/YOUR_INFURA_KEY",
+        "explorer": "https://etherscan.io"
+      },
+      "bsc": {
+        "name": "BSC Mainnet",
+        "chainId": 56,
+        "rpcUrl": "https://bsc-dataseed.binance.org",
+        "explorer": "https://bscscan.com"
+      },
+      "polygon": {
+        "name": "Polygon Mainnet",
+        "chainId": 137,
+        "rpcUrl": "https://polygon-rpc.com",
+        "explorer": "https://polygonscan.com"
+      }
+    },
+    "contracts": {
+      "uniswapRouter": {
+        "ethereum": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+      },
+      "pancakeRouter": {
+        "bsc": "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+      },
+      "quickswapRouter": {
+        "polygon": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+      },
+      "usdt": {
+        "ethereum": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        "bsc": "0x55d398326f99059fF775485246999027B3197955",
+        "polygon": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+      },
+      "usdc": {
+        "ethereum": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "bsc": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+        "polygon": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+      },
+      "busd": {
+        "ethereum": "0x4Fabb145d64652a948d72533023f6E7A623C7C53",
+        "bsc": "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
+        "polygon": "0xdAb529f40E671A1D4bF91361c21bf9f0C9712ab7"
+      },
+      "wP3D": {
+        "ethereum": "0x742d35Cc6634C0532925a3b8D9a4F8A6c4f0E4A7"
+      },
+      "wFIRE": {
+        "ethereum": "0x8F9B2e7D4A3C1F5E6B8A9D2C4E7F1A3B5C8D9E0F"
+      },
+      "wWATER": {
+        "ethereum": "0x1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7E8F9A0B"
+      },
+      "USDTImportWrapper": {
+        "3dpassEVMcontract": "0x6359F737F32BFd1862FfAfd9C2F888DfAdC8B7CF",
+        "SubstratedMappedAddress": "d7ammEVzvWWYoPrgSnBMPtKRjCan2oBuKVNa3p5N3HVz6p2YX"
+      },
+      "USDCImportWrapper": {
+        "3dpassEVMcontract": "0x14982dc69e62508b3e4848129a55d6B1960b4Db0",
+        "SubstratedMappedAddress": "d7e2LGhtHdz9ACw2BezgN854861NrGVzLAigutyHxZeC1aRit"
+      },
+      "BUSDImportWrapper": {
+        "3dpassEVMcontract": "0xAd913348E7B63f44185D5f6BACBD18d7189B2F1B",
+        "SubstratedMappedAddress": "d7fazud4HFAm9QGrkiaN1U3JqWeXPEqC2xKkiyebHjLAV1V6N"
+      },
+      "usdtImportWrapperAssistant": {
+        "3dpassEVMcontract": "0x0FAF9b7Cf0e62c6889486cE906d05A7a813a7cc5",
+        "SubstratedMappedAddress": "d7exAMhtcfKEqSRhzAgTfAS1bcK3tjbCPuTdonqqXJdKGYkea"
+      },
+      "usdcImportWrapperAssistant": {
+        "3dpassEVMcontract": "0xdf8D6962ADC7f29b6F9272376fE51D55B76B0fc5",
+         "SubstratedMappedAddress": "d7drG1rQt6PC1yFjKzUnVWnRVSYCZnoVLsML1wNNrTWArC5JC"
+      },
+      "busdImportWrapperAssistant": {
+        "3dpassEVMcontract": "0xA32ea7688b2937eeaf3f74804fbAFB70D0fc4FE3",
+        "SubstratedMappedAddress": "d7dfv6S3NzJ6qDicBkC1A6guhb7o3PMF3FHv1v5dh9PXBTrAS"
+      },
+      "p3dExportAssistant": {
+        "3dpassEVMcontract": "0x747B60493839a26E20d191F6dC960C8C79C159AE",
+        "SubstratedMappedAddress": "d7bVnKso7iux4kvMZfj4nYxJAtjLEbygtmD37Sbamjjot1HpV"
+      },
+      "fireExportAssistant": {
+        "3dpassEVMcontract": "0x8893d06fDfBd4B5696407413840bC2F333b33ca8",
+        "SubstratedMappedAddress": "d7asp7rLQoHDPXd3LydSFYSn5afbHdcpSx1fMrvLwv6LffdYU"
+      },
+      "waterExportAssistant": {
+        "3dpassEVMcontract": "0x18d62db034579BCAcfB1e527647658f1AbAD0536",
+        "SubstratedMappedAddress": "d7cPeFF4SLwY441JeNdR1H3mVctcTu6K5JA2Y62n8MqnVT8YD"
+      },
+      "P3DExport": {
+        "3dpassEVMcontract": "0x626D4E8c191c36B5937fD73A2A1B774C2361EA80",
+        "SubstratedMappedAddress": "d7g63CYN92yXegcY7mLRAFFCkki1bEarpEs5a9sPp5ZDFbHzW"
+      },
+      "FIREExport": {
+        "3dpassEVMcontract": "0xFaF7C72bE647BC86106993E861C48b6c24a3cAd6",
+        "SubstratedMappedAddress": "d7cbAhbWprsmQZHtb1X6g91bwCEEQFfpAxaK6D9HKGW1wNXHD"
+      },
+      "WATERExport": {
+        "3dpassEVMcontract": "0xeaeF21F2C0bcE1487Eaf9622b91600155B181a4b",
+        "SubstratedMappedAddress": "d7bBPzd32Vr7wHtTAdmL4zfs8SNDf7NzbRGZ8Qrz448YyLjye"
+      }
+    }
+  },
+  "bridgeConfig": {
+    "counterstake": {
+      "assistantReward": 0.01,
+      "challengePeriod": 259200,
+      "maxTransferAmount": "1000000",
+      "minTransferAmount": "10"
+    },
+    "fees": {
+      "bridgeFee": 0.001,
+      "gasReserve": "0.1"
+    },
+    "oracle": {
+      "blockConfirmations": 12,
+      "maxRetries": 3,
+      "retryDelay": 5000
+    }
+  }
+}

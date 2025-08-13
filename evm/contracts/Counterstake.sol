@@ -10,7 +10,6 @@ import "./VotedValueFactory.sol";
 import "./VotedValueUint.sol";
 import "./VotedValueUintArray.sol";
 import "./CounterstakeLibrary.sol";
-import "./IP3D.sol";
 
 
 interface CounterstakeReceiver {
@@ -20,9 +19,6 @@ interface CounterstakeReceiver {
 abstract contract Counterstake is ReentrancyGuard {
 
 	using SafeERC20 for IERC20;
-
-	// P3D precompile address constant
-	address public constant P3D_PRECOMPILE = 0x0000000000000000000000000000000000000802;
 
 	event NewClaim(uint indexed claim_num, address author_address, string sender_address, address recipient_address, string txid, uint32 txts, uint amount, int reward, uint stake, string data, uint32 expiry_ts);
 	event NewChallenge(uint indexed claim_num, address author_address, uint stake, CounterstakeLibrary.Side outcome, CounterstakeLibrary.Side current_outcome, uint yes_stake, uint no_stake, uint32 expiry_ts, uint challenging_target);
@@ -63,7 +59,6 @@ abstract contract Counterstake is ReentrancyGuard {
 		validateCounterstakeCoef(_counterstake_coef100);
 		validateChallengingPeriods(_challenging_periods);
 		validateChallengingPeriods(_large_challenging_periods);
-		validateTokenAddress(_tokenAddr);
 		settings = CounterstakeLibrary.Settings({
 			tokenAddress: _tokenAddr,
 			counterstake_coef100: _counterstake_coef100 > 100 ? _counterstake_coef100 : 150,
@@ -319,47 +314,10 @@ abstract contract Counterstake is ReentrancyGuard {
 		return success && abi.decode(result, (bool));
 	}
 
-	// Validation function for token addresses
-	function validateTokenAddress(address _tokenAddr) internal pure {
-		// Allow AddressZero (for native ETH on other networks)
-		if (_tokenAddr == address(0)) {
-			return;
-		}
-		// Allow P3D precompile address
-		if (_tokenAddr == P3D_PRECOMPILE) {
-			return;
-		}
-		// For other addresses, they should be valid contract addresses
-		require(_tokenAddr != address(0), "invalid token address");
-	}
-
-	// Helper functions for P3D handling
-	function isP3D(address token) internal pure returns (bool) {
-		return token == P3D_PRECOMPILE;
-	}
-
-	function isNativeToken(address token) internal pure returns (bool) {
-		return token == address(0) || token == P3D_PRECOMPILE;
-	}
-
-	// P3D-aware transfer functions
-	function transferTokens(address token, address to, uint256 amount) internal {
-		if (isP3D(token)) {
-			require(IP3D(P3D_PRECOMPILE).transfer(to, amount), "P3D transfer failed");
-		} else if (token == address(0)) {
-			payable(to).transfer(amount);
-		} else {
-			IERC20(token).safeTransfer(to, amount);
-		}
-	}
-
 	function receiveStakeAsset(uint stake_asset_amount) internal {
 		if (settings.tokenAddress == address(0))
 			require(msg.value == stake_asset_amount, "wrong amount received");
-		else if (isP3D(settings.tokenAddress)) {
-			require(msg.value == 0, "don't send ETH");
-			require(IP3D(P3D_PRECOMPILE).transferFrom(msg.sender, address(this), stake_asset_amount), "P3D transferFrom failed");
-		} else {
+		else {
 			require(msg.value == 0, "don't send ETH");
 			IERC20(settings.tokenAddress).safeTransferFrom(msg.sender, address(this), stake_asset_amount);
 		}

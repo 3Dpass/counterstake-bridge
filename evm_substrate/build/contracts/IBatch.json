@@ -1,0 +1,873 @@
+{
+  "contractName": "IBatch",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "SubcallFailed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "SubcallSucceeded",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "to",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "value",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bytes[]",
+          "name": "callData",
+          "type": "bytes[]"
+        },
+        {
+          "internalType": "uint64[]",
+          "name": "gasLimit",
+          "type": "uint64[]"
+        }
+      ],
+      "name": "batchSome",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "to",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "value",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bytes[]",
+          "name": "callData",
+          "type": "bytes[]"
+        },
+        {
+          "internalType": "uint64[]",
+          "name": "gasLimit",
+          "type": "uint64[]"
+        }
+      ],
+      "name": "batchSomeUntilFailure",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "to",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "value",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bytes[]",
+          "name": "callData",
+          "type": "bytes[]"
+        },
+        {
+          "internalType": "uint64[]",
+          "name": "gasLimit",
+          "type": "uint64[]"
+        }
+      ],
+      "name": "batchAll",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.8.13+commit.abaa5c0e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"SubcallFailed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"SubcallSucceeded\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"to\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"value\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes[]\",\"name\":\"callData\",\"type\":\"bytes[]\"},{\"internalType\":\"uint64[]\",\"name\":\"gasLimit\",\"type\":\"uint64[]\"}],\"name\":\"batchAll\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"to\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"value\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes[]\",\"name\":\"callData\",\"type\":\"bytes[]\"},{\"internalType\":\"uint64[]\",\"name\":\"gasLimit\",\"type\":\"uint64[]\"}],\"name\":\"batchSome\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"to\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"value\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes[]\",\"name\":\"callData\",\"type\":\"bytes[]\"},{\"internalType\":\"uint64[]\",\"name\":\"gasLimit\",\"type\":\"uint64[]\"}],\"name\":\"batchSomeUntilFailure\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"author\":\"The Moonbeam Team\",\"custom:address\":\"0x0000000000000000000000000000000000000808\",\"details\":\"Allows to perform multiple calls throught one call to the precompile. Can be used by EOA to do multiple calls in a single transaction.\",\"kind\":\"dev\",\"methods\":{\"batchAll(address[],uint256[],bytes[],uint64[])\":{\"custom:selector\":\"96e292b8\",\"details\":\"Batch multiple calls into a single transaction. All calls are performed from the address calling this precompile. In case of one subcall reverting, the entire batch will revert.\",\"params\":{\"callData\":\"Call data for each `to` address. If array is shorter than \\\"to\\\" then additional calls will be performed with an empty call data.\",\"gasLimit\":\"Gas limit for each `to` address. Use 0 to forward all the remaining gas. If array is shorter than \\\"to\\\" then the remaining gas available will be used.\",\"to\":\"List of addresses to call.\",\"value\":\"List of values for each subcall. If array is shorter than \\\"to\\\" then additional calls will be performed with a value of 0.\"}},\"batchSome(address[],uint256[],bytes[],uint64[])\":{\"custom:selector\":\"79df4b9c\",\"details\":\"Batch multiple calls into a single transaction. All calls are performed from the address calling this precompile. In case of one subcall reverting following subcalls will still be attempted.\",\"params\":{\"callData\":\"Call data for each `to` address. If array is shorter than \\\"to\\\" then additional calls will be performed with an empty call data.\",\"gasLimit\":\"Gas limit for each `to` address. Use 0 to forward all the remaining gas. If array is shorter than \\\"to\\\" then the remaining gas available will be used.\",\"to\":\"List of addresses to call.\",\"value\":\"List of values for each subcall. If array is shorter than \\\"to\\\" then additional calls will be performed with a value of 0.\"}},\"batchSomeUntilFailure(address[],uint256[],bytes[],uint64[])\":{\"custom:selector\":\"cf0491c7\",\"details\":\"Batch multiple calls into a single transaction. All calls are performed from the address calling this precompile. In case of one subcall reverting, no more subcalls will be executed but the batch transaction will succeed. Use batchAll to revert on any subcall revert.\",\"params\":{\"callData\":\"Call data for each `to` address. If array is shorter than \\\"to\\\" then additional calls will be performed with an empty call data.\",\"gasLimit\":\"Gas limit for each `to` address. Use 0 to forward all the remaining gas. If array is shorter than \\\"to\\\" then the remaining gas available will be used.\",\"to\":\"List of addresses to call.\",\"value\":\"List of values for each subcall. If array is shorter than \\\"to\\\" then additional calls will be performed with a value of 0.\"}}},\"title\":\"Batch precompile\",\"version\":1},\"userdoc\":{\"events\":{\"SubcallFailed(uint256)\":{\"notice\":\"Emitted when a subcall fails.\"},\"SubcallSucceeded(uint256)\":{\"notice\":\"Emitted when a subcall succeeds.\"}},\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/IBatch.sol\":\"IBatch\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":1},\"remappings\":[],\"viaIR\":true},\"sources\":{\"project:/contracts/IBatch.sol\":{\"keccak256\":\"0x8c1f78b9e10507d7ccc16c3d850d96622ab0cb614a08a38facd6fe289d54a514\",\"license\":\"GPL-3.0-only\",\"urls\":[\"bzz-raw://e74e1ffdd8a88ad8825b622c6f7bdbaef269f636968ba0024cb9a708d8a46c82\",\"dweb:/ipfs/QmdK5LcYptwznYBNMht7fWu4tAkHpYqRdm3M52SgMruhsP\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "immutableReferences": {},
+  "generatedSources": [],
+  "deployedGeneratedSources": [],
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "// SPDX-License-Identifier: GPL-3.0-only\npragma solidity >=0.8.3;\n\n/// @author The Moonbeam Team\n/// @title Batch precompile\n/// @dev Allows to perform multiple calls throught one call to the precompile.\n/// Can be used by EOA to do multiple calls in a single transaction.\n/// @custom:address 0x0000000000000000000000000000000000000808\ninterface IBatch {\n    /// @dev Batch multiple calls into a single transaction.\n    /// All calls are performed from the address calling this precompile.\n    ///\n    /// In case of one subcall reverting following subcalls will still be attempted.\n    ///\n    /// @param to List of addresses to call.\n    /// @param value List of values for each subcall. If array is shorter than \"to\" then additional\n    /// calls will be performed with a value of 0.\n    /// @param callData Call data for each `to` address. If array is shorter than \"to\" then\n    /// additional calls will be performed with an empty call data.\n    /// @param gasLimit Gas limit for each `to` address. Use 0 to forward all the remaining gas.\n    /// If array is shorter than \"to\" then the remaining gas available will be used.\n    /// @custom:selector 79df4b9c\n    function batchSome(\n        address[] memory to,\n        uint256[] memory value,\n        bytes[] memory callData,\n        uint64[] memory gasLimit\n    ) external;\n\n    /// @dev Batch multiple calls into a single transaction.\n    /// All calls are performed from the address calling this precompile.\n    ///\n    /// In case of one subcall reverting, no more subcalls will be executed but\n    /// the batch transaction will succeed. Use batchAll to revert on any subcall revert.\n    ///\n    /// @param to List of addresses to call.\n    /// @param value List of values for each subcall. If array is shorter than \"to\" then additional\n    /// calls will be performed with a value of 0.\n    /// @param callData Call data for each `to` address. If array is shorter than \"to\" then\n    /// additional calls will be performed with an empty call data.\n    /// @param gasLimit Gas limit for each `to` address. Use 0 to forward all the remaining gas.\n    /// If array is shorter than \"to\" then the remaining gas available will be used.\n    /// @custom:selector cf0491c7\n    function batchSomeUntilFailure(\n        address[] memory to,\n        uint256[] memory value,\n        bytes[] memory callData,\n        uint64[] memory gasLimit\n    ) external;\n\n    /// @dev Batch multiple calls into a single transaction.\n    /// All calls are performed from the address calling this precompile.\n    ///\n    /// In case of one subcall reverting, the entire batch will revert.\n    ///\n    /// @param to List of addresses to call.\n    /// @param value List of values for each subcall. If array is shorter than \"to\" then additional\n    /// calls will be performed with a value of 0.\n    /// @param callData Call data for each `to` address. If array is shorter than \"to\" then\n    /// additional calls will be performed with an empty call data.\n    /// @param gasLimit Gas limit for each `to` address. Use 0 to forward all the remaining gas.\n    /// If array is shorter than \"to\" then the remaining gas available will be used.\n    /// @custom:selector 96e292b8\n    function batchAll(\n        address[] memory to,\n        uint256[] memory value,\n        bytes[] memory callData,\n        uint64[] memory gasLimit\n    ) external;\n\n    /// Emitted when a subcall succeeds.\n    event SubcallSucceeded(uint256 index);\n\n    /// Emitted when a subcall fails.\n    event SubcallFailed(uint256 index);\n} ",
+  "sourcePath": "/Users/jm/3DP-bridge/counterstake-bridge/evm/contracts/IBatch.sol",
+  "ast": {
+    "absolutePath": "project:/contracts/IBatch.sol",
+    "exportedSymbols": {
+      "IBatch": [
+        9353
+      ]
+    },
+    "id": 9354,
+    "license": "GPL-3.0-only",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 9293,
+        "literals": [
+          "solidity",
+          ">=",
+          "0.8",
+          ".3"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "41:24:21"
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "IBatch",
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": {
+          "id": 9294,
+          "nodeType": "StructuredDocumentation",
+          "src": "67:269:21",
+          "text": "@author The Moonbeam Team\n @title Batch precompile\n @dev Allows to perform multiple calls throught one call to the precompile.\n Can be used by EOA to do multiple calls in a single transaction.\n @custom:address 0x0000000000000000000000000000000000000808"
+        },
+        "fullyImplemented": false,
+        "id": 9353,
+        "linearizedBaseContracts": [
+          9353
+        ],
+        "name": "IBatch",
+        "nameLocation": "346:6:21",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "documentation": {
+              "id": 9295,
+              "nodeType": "StructuredDocumentation",
+              "src": "359:803:21",
+              "text": "@dev Batch multiple calls into a single transaction.\n All calls are performed from the address calling this precompile.\n In case of one subcall reverting following subcalls will still be attempted.\n @param to List of addresses to call.\n @param value List of values for each subcall. If array is shorter than \"to\" then additional\n calls will be performed with a value of 0.\n @param callData Call data for each `to` address. If array is shorter than \"to\" then\n additional calls will be performed with an empty call data.\n @param gasLimit Gas limit for each `to` address. Use 0 to forward all the remaining gas.\n If array is shorter than \"to\" then the remaining gas available will be used.\n @custom:selector 79df4b9c"
+            },
+            "functionSelector": "79df4b9c",
+            "id": 9310,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "batchSome",
+            "nameLocation": "1176:9:21",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 9308,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 9298,
+                  "mutability": "mutable",
+                  "name": "to",
+                  "nameLocation": "1212:2:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9310,
+                  "src": "1195:19:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_address_$dyn_memory_ptr",
+                    "typeString": "address[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9296,
+                      "name": "address",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1195:7:21",
+                      "stateMutability": "nonpayable",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "id": 9297,
+                    "nodeType": "ArrayTypeName",
+                    "src": "1195:9:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+                      "typeString": "address[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9301,
+                  "mutability": "mutable",
+                  "name": "value",
+                  "nameLocation": "1241:5:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9310,
+                  "src": "1224:22:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint256_$dyn_memory_ptr",
+                    "typeString": "uint256[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9299,
+                      "name": "uint256",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1224:7:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "id": 9300,
+                    "nodeType": "ArrayTypeName",
+                    "src": "1224:9:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+                      "typeString": "uint256[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9304,
+                  "mutability": "mutable",
+                  "name": "callData",
+                  "nameLocation": "1271:8:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9310,
+                  "src": "1256:23:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_bytes_memory_ptr_$dyn_memory_ptr",
+                    "typeString": "bytes[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9302,
+                      "name": "bytes",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1256:5:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes_storage_ptr",
+                        "typeString": "bytes"
+                      }
+                    },
+                    "id": 9303,
+                    "nodeType": "ArrayTypeName",
+                    "src": "1256:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                      "typeString": "bytes[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9307,
+                  "mutability": "mutable",
+                  "name": "gasLimit",
+                  "nameLocation": "1305:8:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9310,
+                  "src": "1289:24:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint64_$dyn_memory_ptr",
+                    "typeString": "uint64[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9305,
+                      "name": "uint64",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1289:6:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint64",
+                        "typeString": "uint64"
+                      }
+                    },
+                    "id": 9306,
+                    "nodeType": "ArrayTypeName",
+                    "src": "1289:8:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint64_$dyn_storage_ptr",
+                      "typeString": "uint64[]"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1185:134:21"
+            },
+            "returnParameters": {
+              "id": 9309,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1328:0:21"
+            },
+            "scope": 9353,
+            "src": "1167:162:21",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 9311,
+              "nodeType": "StructuredDocumentation",
+              "src": "1335:888:21",
+              "text": "@dev Batch multiple calls into a single transaction.\n All calls are performed from the address calling this precompile.\n In case of one subcall reverting, no more subcalls will be executed but\n the batch transaction will succeed. Use batchAll to revert on any subcall revert.\n @param to List of addresses to call.\n @param value List of values for each subcall. If array is shorter than \"to\" then additional\n calls will be performed with a value of 0.\n @param callData Call data for each `to` address. If array is shorter than \"to\" then\n additional calls will be performed with an empty call data.\n @param gasLimit Gas limit for each `to` address. Use 0 to forward all the remaining gas.\n If array is shorter than \"to\" then the remaining gas available will be used.\n @custom:selector cf0491c7"
+            },
+            "functionSelector": "cf0491c7",
+            "id": 9326,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "batchSomeUntilFailure",
+            "nameLocation": "2237:21:21",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 9324,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 9314,
+                  "mutability": "mutable",
+                  "name": "to",
+                  "nameLocation": "2285:2:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9326,
+                  "src": "2268:19:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_address_$dyn_memory_ptr",
+                    "typeString": "address[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9312,
+                      "name": "address",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "2268:7:21",
+                      "stateMutability": "nonpayable",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "id": 9313,
+                    "nodeType": "ArrayTypeName",
+                    "src": "2268:9:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+                      "typeString": "address[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9317,
+                  "mutability": "mutable",
+                  "name": "value",
+                  "nameLocation": "2314:5:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9326,
+                  "src": "2297:22:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint256_$dyn_memory_ptr",
+                    "typeString": "uint256[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9315,
+                      "name": "uint256",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "2297:7:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "id": 9316,
+                    "nodeType": "ArrayTypeName",
+                    "src": "2297:9:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+                      "typeString": "uint256[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9320,
+                  "mutability": "mutable",
+                  "name": "callData",
+                  "nameLocation": "2344:8:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9326,
+                  "src": "2329:23:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_bytes_memory_ptr_$dyn_memory_ptr",
+                    "typeString": "bytes[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9318,
+                      "name": "bytes",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "2329:5:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes_storage_ptr",
+                        "typeString": "bytes"
+                      }
+                    },
+                    "id": 9319,
+                    "nodeType": "ArrayTypeName",
+                    "src": "2329:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                      "typeString": "bytes[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9323,
+                  "mutability": "mutable",
+                  "name": "gasLimit",
+                  "nameLocation": "2378:8:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9326,
+                  "src": "2362:24:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint64_$dyn_memory_ptr",
+                    "typeString": "uint64[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9321,
+                      "name": "uint64",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "2362:6:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint64",
+                        "typeString": "uint64"
+                      }
+                    },
+                    "id": 9322,
+                    "nodeType": "ArrayTypeName",
+                    "src": "2362:8:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint64_$dyn_storage_ptr",
+                      "typeString": "uint64[]"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2258:134:21"
+            },
+            "returnParameters": {
+              "id": 9325,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2401:0:21"
+            },
+            "scope": 9353,
+            "src": "2228:174:21",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "documentation": {
+              "id": 9327,
+              "nodeType": "StructuredDocumentation",
+              "src": "2408:790:21",
+              "text": "@dev Batch multiple calls into a single transaction.\n All calls are performed from the address calling this precompile.\n In case of one subcall reverting, the entire batch will revert.\n @param to List of addresses to call.\n @param value List of values for each subcall. If array is shorter than \"to\" then additional\n calls will be performed with a value of 0.\n @param callData Call data for each `to` address. If array is shorter than \"to\" then\n additional calls will be performed with an empty call data.\n @param gasLimit Gas limit for each `to` address. Use 0 to forward all the remaining gas.\n If array is shorter than \"to\" then the remaining gas available will be used.\n @custom:selector 96e292b8"
+            },
+            "functionSelector": "96e292b8",
+            "id": 9342,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "batchAll",
+            "nameLocation": "3212:8:21",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 9340,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 9330,
+                  "mutability": "mutable",
+                  "name": "to",
+                  "nameLocation": "3247:2:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9342,
+                  "src": "3230:19:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_address_$dyn_memory_ptr",
+                    "typeString": "address[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9328,
+                      "name": "address",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "3230:7:21",
+                      "stateMutability": "nonpayable",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "id": 9329,
+                    "nodeType": "ArrayTypeName",
+                    "src": "3230:9:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+                      "typeString": "address[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9333,
+                  "mutability": "mutable",
+                  "name": "value",
+                  "nameLocation": "3276:5:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9342,
+                  "src": "3259:22:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint256_$dyn_memory_ptr",
+                    "typeString": "uint256[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9331,
+                      "name": "uint256",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "3259:7:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "id": 9332,
+                    "nodeType": "ArrayTypeName",
+                    "src": "3259:9:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+                      "typeString": "uint256[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9336,
+                  "mutability": "mutable",
+                  "name": "callData",
+                  "nameLocation": "3306:8:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9342,
+                  "src": "3291:23:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_bytes_memory_ptr_$dyn_memory_ptr",
+                    "typeString": "bytes[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9334,
+                      "name": "bytes",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "3291:5:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_bytes_storage_ptr",
+                        "typeString": "bytes"
+                      }
+                    },
+                    "id": 9335,
+                    "nodeType": "ArrayTypeName",
+                    "src": "3291:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+                      "typeString": "bytes[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 9339,
+                  "mutability": "mutable",
+                  "name": "gasLimit",
+                  "nameLocation": "3340:8:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9342,
+                  "src": "3324:24:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint64_$dyn_memory_ptr",
+                    "typeString": "uint64[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 9337,
+                      "name": "uint64",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "3324:6:21",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint64",
+                        "typeString": "uint64"
+                      }
+                    },
+                    "id": 9338,
+                    "nodeType": "ArrayTypeName",
+                    "src": "3324:8:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint64_$dyn_storage_ptr",
+                      "typeString": "uint64[]"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3220:134:21"
+            },
+            "returnParameters": {
+              "id": 9341,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "3363:0:21"
+            },
+            "scope": 9353,
+            "src": "3203:161:21",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "anonymous": false,
+            "documentation": {
+              "id": 9343,
+              "nodeType": "StructuredDocumentation",
+              "src": "3370:36:21",
+              "text": "Emitted when a subcall succeeds."
+            },
+            "eventSelector": "bf855484633929c3d6688eb3caf8eff910fb4bef030a8d7dbc9390d26759714d",
+            "id": 9347,
+            "name": "SubcallSucceeded",
+            "nameLocation": "3417:16:21",
+            "nodeType": "EventDefinition",
+            "parameters": {
+              "id": 9346,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 9345,
+                  "indexed": false,
+                  "mutability": "mutable",
+                  "name": "index",
+                  "nameLocation": "3442:5:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9347,
+                  "src": "3434:13:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 9344,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3434:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3433:15:21"
+            },
+            "src": "3411:38:21"
+          },
+          {
+            "anonymous": false,
+            "documentation": {
+              "id": 9348,
+              "nodeType": "StructuredDocumentation",
+              "src": "3455:33:21",
+              "text": "Emitted when a subcall fails."
+            },
+            "eventSelector": "dbc5d06f4f877f959b1ff12d2161cdd693fa8e442ee53f1790b2804b24881f05",
+            "id": 9352,
+            "name": "SubcallFailed",
+            "nameLocation": "3499:13:21",
+            "nodeType": "EventDefinition",
+            "parameters": {
+              "id": 9351,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 9350,
+                  "indexed": false,
+                  "mutability": "mutable",
+                  "name": "index",
+                  "nameLocation": "3521:5:21",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 9352,
+                  "src": "3513:13:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 9349,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "3513:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "3512:15:21"
+            },
+            "src": "3493:35:21"
+          }
+        ],
+        "scope": 9354,
+        "src": "336:3194:21",
+        "usedErrors": []
+      }
+    ],
+    "src": "41:3490:21"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.8.13+commit.abaa5c0e.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.4.16",
+  "updatedAt": "2025-08-08T18:30:19.360Z",
+  "devdoc": {
+    "author": "The Moonbeam Team",
+    "custom:address": "0x0000000000000000000000000000000000000808",
+    "details": "Allows to perform multiple calls throught one call to the precompile. Can be used by EOA to do multiple calls in a single transaction.",
+    "kind": "dev",
+    "methods": {
+      "batchAll(address[],uint256[],bytes[],uint64[])": {
+        "custom:selector": "96e292b8",
+        "details": "Batch multiple calls into a single transaction. All calls are performed from the address calling this precompile. In case of one subcall reverting, the entire batch will revert.",
+        "params": {
+          "callData": "Call data for each `to` address. If array is shorter than \"to\" then additional calls will be performed with an empty call data.",
+          "gasLimit": "Gas limit for each `to` address. Use 0 to forward all the remaining gas. If array is shorter than \"to\" then the remaining gas available will be used.",
+          "to": "List of addresses to call.",
+          "value": "List of values for each subcall. If array is shorter than \"to\" then additional calls will be performed with a value of 0."
+        }
+      },
+      "batchSome(address[],uint256[],bytes[],uint64[])": {
+        "custom:selector": "79df4b9c",
+        "details": "Batch multiple calls into a single transaction. All calls are performed from the address calling this precompile. In case of one subcall reverting following subcalls will still be attempted.",
+        "params": {
+          "callData": "Call data for each `to` address. If array is shorter than \"to\" then additional calls will be performed with an empty call data.",
+          "gasLimit": "Gas limit for each `to` address. Use 0 to forward all the remaining gas. If array is shorter than \"to\" then the remaining gas available will be used.",
+          "to": "List of addresses to call.",
+          "value": "List of values for each subcall. If array is shorter than \"to\" then additional calls will be performed with a value of 0."
+        }
+      },
+      "batchSomeUntilFailure(address[],uint256[],bytes[],uint64[])": {
+        "custom:selector": "cf0491c7",
+        "details": "Batch multiple calls into a single transaction. All calls are performed from the address calling this precompile. In case of one subcall reverting, no more subcalls will be executed but the batch transaction will succeed. Use batchAll to revert on any subcall revert.",
+        "params": {
+          "callData": "Call data for each `to` address. If array is shorter than \"to\" then additional calls will be performed with an empty call data.",
+          "gasLimit": "Gas limit for each `to` address. Use 0 to forward all the remaining gas. If array is shorter than \"to\" then the remaining gas available will be used.",
+          "to": "List of addresses to call.",
+          "value": "List of values for each subcall. If array is shorter than \"to\" then additional calls will be performed with a value of 0."
+        }
+      }
+    },
+    "title": "Batch precompile",
+    "version": 1
+  },
+  "userdoc": {
+    "events": {
+      "SubcallFailed(uint256)": {
+        "notice": "Emitted when a subcall fails."
+      },
+      "SubcallSucceeded(uint256)": {
+        "notice": "Emitted when a subcall succeeds."
+      }
+    },
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  }
+}

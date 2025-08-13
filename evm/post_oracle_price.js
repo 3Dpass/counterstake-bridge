@@ -24,10 +24,6 @@ const evmProps = {
 		symbol: 'KAVA',
 		price: 1,
 	},
-	'3DPass': {
-		symbol: 'P3D',
-		price: 0.0012,
-	},
 };
 
 const oracleAddresses = process.env.testnet
@@ -36,17 +32,15 @@ const oracleAddresses = process.env.testnet
 		BSC: '0x3d2cd866b2e2e4fCE1dCcf662E71ea9611113344',
 		Polygon: '0x7A5b663D4Be50E415803176d9f473ee81db590b7',
 		Kava: '0x5e4E4eA9C780b6dF0087b0052A7A1ad039F398bB',
-		'3DPass': 'YOUR_3DPASS_TESTNET_ORACLE_ADDRESS',
 	}
 	: {
 		Ethereum: '0xAC4AA997A171A6CbbF5540D08537D5Cb1605E191',
 		BSC: '0xdD52899A001a4260CDc43307413A5014642f37A2',
 		Polygon: '0xdd603Fc2312A0E7Ab01dE2dA83e7776Af406DCeB',
 		Kava: '0x16f5E8ad38cf676a0a78436ED8F5C8c19dA3be3d',
-		'3DPass': 'YOUR_3DPASS_MAINNET_ORACLE_ADDRESS',
 	};
 
-const evmNetwork = '3DPass';
+const evmNetwork = 'Ethereum';
 //const evmNetwork = 'BSC';
 //const evmNetwork = 'Polygon';
 //const evmNetwork = 'Kava';

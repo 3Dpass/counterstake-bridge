@@ -1,0 +1,898 @@
+{
+  "contractName": "VotedValue",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "challenging_period_start_ts",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governance",
+      "outputs": [
+        {
+          "internalType": "contract Governance",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "hasVote",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "checkVoteChangeLock",
+      "outputs": [],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "checkChallengingPeriodExpiry",
+      "outputs": [],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.8.13+commit.abaa5c0e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"challenging_period_start_ts\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkChallengingPeriodExpiry\",\"outputs\":[],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkVoteChangeLock\",\"outputs\":[],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"governance\",\"outputs\":[{\"internalType\":\"contract Governance\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"hasVote\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/VotedValue.sol\":\"VotedValue\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":1},\"remappings\":[],\"viaIR\":true},\"sources\":{\"@openzeppelin/contracts/security/ReentrancyGuard.sol\":{\"keccak256\":\"0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34\",\"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1\"]},\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"keccak256\":\"0x287b55befed2961a7eabd7d7b1b2839cbca8a5b80ef8dcbb25ed3d4c2002c305\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://bd39944e8fc06be6dbe2dd1d8449b5336e23c6a7ba3e8e9ae5ae0f37f35283f5\",\"dweb:/ipfs/QmPV3FGYjVwvKSgAXKUN3r9T9GwniZz83CxBpM7vyj2G53\"]},\"@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol\":{\"keccak256\":\"0xb264c03a3442eb37a68ad620cefd1182766b58bee6cec40343480392d6b14d69\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://28879d01fd22c07b44f006612775f8577defbe459cb01685c5e25cd518c91a71\",\"dweb:/ipfs/QmVgfkwv2Fxw6hhTcDUZhE7NkoSKjab3ipM7UaRbt6uXb5\"]},\"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\":{\"keccak256\":\"0xabefac93435967b4d36a4fabcbdbb918d1f0b7ae3c3d85bc30923b326c927ed1\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://9d213d3befca47da33f6db0310826bcdb148299805c10d77175ecfe1d06a9a68\",\"dweb:/ipfs/QmRgCn6SP1hbBkExUADFuDo8xkT4UU47yjNF5FhCeRbQmS\"]},\"@openzeppelin/contracts/utils/Address.sol\":{\"keccak256\":\"0x006dd67219697fe68d7fbfdea512e7c4cb64a43565ed86171d67e844982da6fa\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://2455248c8ddd9cc6a7af76a13973cddf222072427e7b0e2a7d1aff345145e931\",\"dweb:/ipfs/QmfYjnjRbWqYpuxurqveE6HtzsY1Xx323J428AKQgtBJZm\"]},\"project:/contracts/Governance.sol\":{\"keccak256\":\"0x7e0a3412cf36f176183c0e20bb5cd8805e7ee076556d6f08cde8771eb261641f\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://1350e04d82a386141f875e0e86125289b80a686a7bc71a65e043be21979d30d7\",\"dweb:/ipfs/QmcTXhT4eDLpJ2qFsiA5LW3dAf4aXQwTbUdQSB1VzDbP5L\"]},\"project:/contracts/IP3D.sol\":{\"keccak256\":\"0xf68991adf869d641f33f8003dc62c1dda20cc1ba03d042b0e0573d862dcc38cd\",\"license\":\"GPL-3.0-only\",\"urls\":[\"bzz-raw://516ed7cded64079ef288669a5fb4370533e6be703691f530a9c376a4a225ea11\",\"dweb:/ipfs/QmdGJ7ad3fzQB3SCTZdkUXyKMu9GmPUkGT4Zzenx9BSydv\"]},\"project:/contracts/IPrecompileERC20.sol\":{\"keccak256\":\"0x64a78f2c68295a4b54ee456511171534fc6b0a6a76cad6b1c3a7979e631d52ab\",\"license\":\"GPL-3.0-only\",\"urls\":[\"bzz-raw://4dea82e0815f4962353665fa313df78a2fc201e51dde8e7ab33161b906e50725\",\"dweb:/ipfs/QmU6mTB2rJSvTLckvMgwvmDazaFsSpfBmWwKEpDpNbgGxz\"]},\"project:/contracts/VotedValue.sol\":{\"keccak256\":\"0xce18f4d6ccbc2fde3bdb4376b3a23e5e48701c446bbbd31c139495ae2974431c\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ebc8d5e858e0e3d49a62b26ed9bbadafcfcb0cfa4ce299672b9efff7eecb252f\",\"dweb:/ipfs/Qmd6ZzxhV63oDqvztUXfLt82yi4JxTRhNri2zXbN4noTVk\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "immutableReferences": {},
+  "generatedSources": [],
+  "deployedGeneratedSources": [],
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.3;\nimport \"@openzeppelin/contracts/security/ReentrancyGuard.sol\";\nimport \"./Governance.sol\";\n\nabstract contract VotedValue is ReentrancyGuard {\n\tGovernance public governance;\n\tuint public challenging_period_start_ts;\n\tmapping(address => bool) public hasVote;\n\n\tconstructor(Governance _governance){\n\t\tgovernance = _governance;\n\t}\n\n\tfunction checkVoteChangeLock() view public {\n\t\trequire(challenging_period_start_ts + governance.governance_challenging_period() + governance.governance_freeze_period() < block.timestamp, \"you cannot change your vote yet\");\n\t}\n\n\tfunction checkChallengingPeriodExpiry() view public {\n\t\trequire(block.timestamp > challenging_period_start_ts + governance.governance_challenging_period(), \"challenging period not expired yet\");\n\t}\n}\n\n",
+  "sourcePath": "/Users/jm/3DP-bridge/counterstake-bridge/evm/contracts/VotedValue.sol",
+  "ast": {
+    "absolutePath": "project:/contracts/VotedValue.sol",
+    "exportedSymbols": {
+      "Governance": [
+        8852
+      ],
+      "ReentrancyGuard": [
+        257
+      ],
+      "VotedValue": [
+        13221
+      ]
+    },
+    "id": 13222,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 13160,
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".3"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "32:23:31"
+      },
+      {
+        "absolutePath": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "file": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "id": 13161,
+        "nameLocation": "-1:-1:-1",
+        "nodeType": "ImportDirective",
+        "scope": 13222,
+        "sourceUnit": 258,
+        "src": "56:62:31",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "project:/contracts/Governance.sol",
+        "file": "./Governance.sol",
+        "id": 13162,
+        "nameLocation": "-1:-1:-1",
+        "nodeType": "ImportDirective",
+        "scope": 13222,
+        "sourceUnit": 8853,
+        "src": "119:26:31",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": true,
+        "baseContracts": [
+          {
+            "baseName": {
+              "id": 13163,
+              "name": "ReentrancyGuard",
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 257,
+              "src": "179:15:31"
+            },
+            "id": 13164,
+            "nodeType": "InheritanceSpecifier",
+            "src": "179:15:31"
+          }
+        ],
+        "canonicalName": "VotedValue",
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "id": 13221,
+        "linearizedBaseContracts": [
+          13221,
+          257
+        ],
+        "name": "VotedValue",
+        "nameLocation": "165:10:31",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "functionSelector": "5aa6e675",
+            "id": 13167,
+            "mutability": "mutable",
+            "name": "governance",
+            "nameLocation": "216:10:31",
+            "nodeType": "VariableDeclaration",
+            "scope": 13221,
+            "src": "198:28:31",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_Governance_$8852",
+              "typeString": "contract Governance"
+            },
+            "typeName": {
+              "id": 13166,
+              "nodeType": "UserDefinedTypeName",
+              "pathNode": {
+                "id": 13165,
+                "name": "Governance",
+                "nodeType": "IdentifierPath",
+                "referencedDeclaration": 8852,
+                "src": "198:10:31"
+              },
+              "referencedDeclaration": 8852,
+              "src": "198:10:31",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Governance_$8852",
+                "typeString": "contract Governance"
+              }
+            },
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "functionSelector": "27efa0aa",
+            "id": 13169,
+            "mutability": "mutable",
+            "name": "challenging_period_start_ts",
+            "nameLocation": "241:27:31",
+            "nodeType": "VariableDeclaration",
+            "scope": 13221,
+            "src": "229:39:31",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_uint256",
+              "typeString": "uint256"
+            },
+            "typeName": {
+              "id": 13168,
+              "name": "uint",
+              "nodeType": "ElementaryTypeName",
+              "src": "229:4:31",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            },
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "functionSelector": "2243b09a",
+            "id": 13173,
+            "mutability": "mutable",
+            "name": "hasVote",
+            "nameLocation": "303:7:31",
+            "nodeType": "VariableDeclaration",
+            "scope": 13221,
+            "src": "271:39:31",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+              "typeString": "mapping(address => bool)"
+            },
+            "typeName": {
+              "id": 13172,
+              "keyType": {
+                "id": 13170,
+                "name": "address",
+                "nodeType": "ElementaryTypeName",
+                "src": "279:7:31",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                }
+              },
+              "nodeType": "Mapping",
+              "src": "271:24:31",
+              "typeDescriptions": {
+                "typeIdentifier": "t_mapping$_t_address_$_t_bool_$",
+                "typeString": "mapping(address => bool)"
+              },
+              "valueType": {
+                "id": 13171,
+                "name": "bool",
+                "nodeType": "ElementaryTypeName",
+                "src": "290:4:31",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bool",
+                  "typeString": "bool"
+                }
+              }
+            },
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 13183,
+              "nodeType": "Block",
+              "src": "349:32:31",
+              "statements": [
+                {
+                  "expression": {
+                    "id": 13181,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "id": 13179,
+                      "name": "governance",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 13167,
+                      "src": "353:10:31",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Governance_$8852",
+                        "typeString": "contract Governance"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "id": 13180,
+                      "name": "_governance",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 13176,
+                      "src": "366:11:31",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Governance_$8852",
+                        "typeString": "contract Governance"
+                      }
+                    },
+                    "src": "353:24:31",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_Governance_$8852",
+                      "typeString": "contract Governance"
+                    }
+                  },
+                  "id": 13182,
+                  "nodeType": "ExpressionStatement",
+                  "src": "353:24:31"
+                }
+              ]
+            },
+            "id": 13184,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [],
+            "name": "",
+            "nameLocation": "-1:-1:-1",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 13177,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 13176,
+                  "mutability": "mutable",
+                  "name": "_governance",
+                  "nameLocation": "337:11:31",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 13184,
+                  "src": "326:22:31",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_contract$_Governance_$8852",
+                    "typeString": "contract Governance"
+                  },
+                  "typeName": {
+                    "id": 13175,
+                    "nodeType": "UserDefinedTypeName",
+                    "pathNode": {
+                      "id": 13174,
+                      "name": "Governance",
+                      "nodeType": "IdentifierPath",
+                      "referencedDeclaration": 8852,
+                      "src": "326:10:31"
+                    },
+                    "referencedDeclaration": 8852,
+                    "src": "326:10:31",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_Governance_$8852",
+                      "typeString": "contract Governance"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "325:24:31"
+            },
+            "returnParameters": {
+              "id": 13178,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "349:0:31"
+            },
+            "scope": 13221,
+            "src": "314:67:31",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 13203,
+              "nodeType": "Block",
+              "src": "427:182:31",
+              "statements": [
+                {
+                  "expression": {
+                    "arguments": [
+                      {
+                        "commonType": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "id": 13199,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "leftExpression": {
+                          "commonType": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          },
+                          "id": 13196,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftExpression": {
+                            "commonType": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            },
+                            "id": 13192,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "leftExpression": {
+                              "id": 13188,
+                              "name": "challenging_period_start_ts",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 13169,
+                              "src": "439:27:31",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                              }
+                            },
+                            "nodeType": "BinaryOperation",
+                            "operator": "+",
+                            "rightExpression": {
+                              "arguments": [],
+                              "expression": {
+                                "argumentTypes": [],
+                                "expression": {
+                                  "id": 13189,
+                                  "name": "governance",
+                                  "nodeType": "Identifier",
+                                  "overloadedDeclarations": [],
+                                  "referencedDeclaration": 13167,
+                                  "src": "469:10:31",
+                                  "typeDescriptions": {
+                                    "typeIdentifier": "t_contract$_Governance_$8852",
+                                    "typeString": "contract Governance"
+                                  }
+                                },
+                                "id": 13190,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "memberName": "governance_challenging_period",
+                                "nodeType": "MemberAccess",
+                                "referencedDeclaration": 8455,
+                                "src": "469:40:31",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_function_external_view$__$returns$_t_uint256_$",
+                                  "typeString": "function () view external returns (uint256)"
+                                }
+                              },
+                              "id": 13191,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": false,
+                              "kind": "functionCall",
+                              "lValueRequested": false,
+                              "names": [],
+                              "nodeType": "FunctionCall",
+                              "src": "469:42:31",
+                              "tryCall": false,
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                              }
+                            },
+                            "src": "439:72:31",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "nodeType": "BinaryOperation",
+                          "operator": "+",
+                          "rightExpression": {
+                            "arguments": [],
+                            "expression": {
+                              "argumentTypes": [],
+                              "expression": {
+                                "id": 13193,
+                                "name": "governance",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 13167,
+                                "src": "514:10:31",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_contract$_Governance_$8852",
+                                  "typeString": "contract Governance"
+                                }
+                              },
+                              "id": 13194,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "memberName": "governance_freeze_period",
+                              "nodeType": "MemberAccess",
+                              "referencedDeclaration": 8458,
+                              "src": "514:35:31",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_function_external_view$__$returns$_t_uint256_$",
+                                "typeString": "function () view external returns (uint256)"
+                              }
+                            },
+                            "id": 13195,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "kind": "functionCall",
+                            "lValueRequested": false,
+                            "names": [],
+                            "nodeType": "FunctionCall",
+                            "src": "514:37:31",
+                            "tryCall": false,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "src": "439:112:31",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "nodeType": "BinaryOperation",
+                        "operator": "<",
+                        "rightExpression": {
+                          "expression": {
+                            "id": 13197,
+                            "name": "block",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 4294967292,
+                            "src": "554:5:31",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_magic_block",
+                              "typeString": "block"
+                            }
+                          },
+                          "id": 13198,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "memberName": "timestamp",
+                          "nodeType": "MemberAccess",
+                          "src": "554:15:31",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "src": "439:130:31",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        }
+                      },
+                      {
+                        "hexValue": "796f752063616e6e6f74206368616e676520796f757220766f746520796574",
+                        "id": 13200,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "571:33:31",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_7ccbb5e67033988ab4869bdb8cb550491ef32298fa1c79443dbdec07996d9440",
+                          "typeString": "literal_string \"you cannot change your vote yet\""
+                        },
+                        "value": "you cannot change your vote yet"
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        },
+                        {
+                          "typeIdentifier": "t_stringliteral_7ccbb5e67033988ab4869bdb8cb550491ef32298fa1c79443dbdec07996d9440",
+                          "typeString": "literal_string \"you cannot change your vote yet\""
+                        }
+                      ],
+                      "id": 13187,
+                      "name": "require",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        4294967278,
+                        4294967278
+                      ],
+                      "referencedDeclaration": 4294967278,
+                      "src": "431:7:31",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (bool,string memory) pure"
+                      }
+                    },
+                    "id": 13201,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "431:174:31",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 13202,
+                  "nodeType": "ExpressionStatement",
+                  "src": "431:174:31"
+                }
+              ]
+            },
+            "functionSelector": "62df40ea",
+            "id": 13204,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "checkVoteChangeLock",
+            "nameLocation": "393:19:31",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 13185,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "412:2:31"
+            },
+            "returnParameters": {
+              "id": 13186,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "427:0:31"
+            },
+            "scope": 13221,
+            "src": "384:225:31",
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 13219,
+              "nodeType": "Block",
+              "src": "664:145:31",
+              "statements": [
+                {
+                  "expression": {
+                    "arguments": [
+                      {
+                        "commonType": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "id": 13215,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "leftExpression": {
+                          "expression": {
+                            "id": 13208,
+                            "name": "block",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 4294967292,
+                            "src": "676:5:31",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_magic_block",
+                              "typeString": "block"
+                            }
+                          },
+                          "id": 13209,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "memberName": "timestamp",
+                          "nodeType": "MemberAccess",
+                          "src": "676:15:31",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "nodeType": "BinaryOperation",
+                        "operator": ">",
+                        "rightExpression": {
+                          "commonType": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          },
+                          "id": 13214,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftExpression": {
+                            "id": 13210,
+                            "name": "challenging_period_start_ts",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 13169,
+                            "src": "694:27:31",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "nodeType": "BinaryOperation",
+                          "operator": "+",
+                          "rightExpression": {
+                            "arguments": [],
+                            "expression": {
+                              "argumentTypes": [],
+                              "expression": {
+                                "id": 13211,
+                                "name": "governance",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 13167,
+                                "src": "724:10:31",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_contract$_Governance_$8852",
+                                  "typeString": "contract Governance"
+                                }
+                              },
+                              "id": 13212,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "memberName": "governance_challenging_period",
+                              "nodeType": "MemberAccess",
+                              "referencedDeclaration": 8455,
+                              "src": "724:40:31",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_function_external_view$__$returns$_t_uint256_$",
+                                "typeString": "function () view external returns (uint256)"
+                              }
+                            },
+                            "id": 13213,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "kind": "functionCall",
+                            "lValueRequested": false,
+                            "names": [],
+                            "nodeType": "FunctionCall",
+                            "src": "724:42:31",
+                            "tryCall": false,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "src": "694:72:31",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "src": "676:90:31",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        }
+                      },
+                      {
+                        "hexValue": "6368616c6c656e67696e6720706572696f64206e6f74206578706972656420796574",
+                        "id": 13216,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "768:36:31",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_2375ab46489c44cb706ed855611c6095bdcefe1f056e88527f4b37f4d9d1ead8",
+                          "typeString": "literal_string \"challenging period not expired yet\""
+                        },
+                        "value": "challenging period not expired yet"
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        },
+                        {
+                          "typeIdentifier": "t_stringliteral_2375ab46489c44cb706ed855611c6095bdcefe1f056e88527f4b37f4d9d1ead8",
+                          "typeString": "literal_string \"challenging period not expired yet\""
+                        }
+                      ],
+                      "id": 13207,
+                      "name": "require",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        4294967278,
+                        4294967278
+                      ],
+                      "referencedDeclaration": 4294967278,
+                      "src": "668:7:31",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (bool,string memory) pure"
+                      }
+                    },
+                    "id": 13217,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "668:137:31",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 13218,
+                  "nodeType": "ExpressionStatement",
+                  "src": "668:137:31"
+                }
+              ]
+            },
+            "functionSelector": "bfb723b6",
+            "id": 13220,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "checkChallengingPeriodExpiry",
+            "nameLocation": "621:28:31",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 13205,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "649:2:31"
+            },
+            "returnParameters": {
+              "id": 13206,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "664:0:31"
+            },
+            "scope": 13221,
+            "src": "612:197:31",
+            "stateMutability": "view",
+            "virtual": false,
+            "visibility": "public"
+          }
+        ],
+        "scope": 13222,
+        "src": "147:664:31",
+        "usedErrors": []
+      }
+    ],
+    "src": "32:781:31"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.8.13+commit.abaa5c0e.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.4.16",
+  "updatedAt": "2025-08-11T16:27:16.856Z",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  }
+}

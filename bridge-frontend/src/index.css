@@ -26,6 +26,10 @@
     @apply bg-secondary-700 hover:bg-secondary-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 focus:ring-offset-dark-950;
   }
   
+  .btn-warning {
+    @apply bg-warning-600 hover:bg-warning-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-warning-500 focus:ring-offset-2 focus:ring-offset-dark-950;
+  }
+  
   .btn-sm {
     @apply py-1 px-3 text-sm;
   }

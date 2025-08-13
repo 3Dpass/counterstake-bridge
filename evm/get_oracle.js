@@ -6,9 +6,8 @@ const importJson = require('./build/contracts/Import.json');
 
 
 //const evmNetwork = 'Ethereum';
-//const evmNetwork = 'BSC';
+const evmNetwork = 'BSC';
 //const evmNetwork = 'Polygon';
-const evmNetwork = '3DPass';
 
 
 const provider = getProvider(evmNetwork);

@@ -105,16 +105,7 @@ if (process.env.devnet){
 		'v1.1': '',
 	};
 	// 3DPass devnet contract addresses
-	exports.threedpass_factory_contract_addresses = {
-		'v1.1': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168' // TODO: Replace with actual devnet contract address
-	};
-	exports.threedpass_assistant_factory_contract_addresses = {
-		'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0' // TODO: Replace with actual devnet contract address
-	};
-	exports.threedpass_oracle_addresses = {
-		'3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE' // TODO: Replace with actual devnet oracle address
-	};
-}
+	}
 else if (process.env.testnet) {
 	exports.ethereum_factory_contract_addresses = {
 		'v1': '0x13cF97EB9BF6245784f5FCfCC3Cb3Bd1B959A931',
@@ -146,7 +137,8 @@ else if (process.env.testnet) {
 	exports.kava_assistant_factory_contract_addresses = {
 		'v1.1': '0x192b3769709cA681e315848809cddad526D1ca08',
 	};
-}
+	// 3DPass testnet contract addresses
+	}
 else { // mainnet
 	exports.ethereum_factory_contract_addresses = {
 		'v1': '0x13C34d1b3928B13255F3619D3CA6645Fbadaf6BF',
@@ -204,18 +196,21 @@ exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 
 exports.webPort = process.env.testnet ? 7001 : 7000; // set to null in order to disable the web server
 
 
-// 3DPass Network Configuration (mainnet/testnet - devnet is configured above)
-if (!process.env.devnet) {
-	exports.threedpass_factory_contract_addresses = {
-		'v1.1': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
-	};
-	exports.threedpass_assistant_factory_contract_addresses = {
-		'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0'
-	};
-	exports.threedpass_oracle_addresses = {
-		'3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
-	};
-}
+exports.threedpass_bridge_registry_addresses = {
+    'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0'
+};
+
+
+// 3DPass Network Configuration
+exports.threedpass_factory_contract_addresses = {
+    'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0'
+};
+exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.1': '0x5b74685B32cdaA74a030DA14F15F56CcfB5cA1Bc'
+};
+exports.threedpass_oracle_addresses = {
+    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+};
 
 console.log('finished watchdog conf');
 

@@ -47,7 +47,12 @@ contract Export is Counterstake {
 
 	function sendWithdrawals(address payable to_address, uint paid_claimed_amount, uint won_stake) internal override {
 		uint total = won_stake + paid_claimed_amount;
-		transferTokens(settings.tokenAddress, to_address, total);
+		if (settings.tokenAddress == address(0)) {
+			to_address.transfer(total);
+		}
+		else {
+			IERC20(settings.tokenAddress).safeTransfer(to_address, total);
+		}
 	}
 
 	function receiveMoneyInClaim(uint stake, uint paid_amount) internal override {
@@ -55,7 +60,12 @@ contract Export is Counterstake {
 	}
 
 	function sendToClaimRecipient(address payable to_address, uint paid_amount) internal override {
-		transferTokens(settings.tokenAddress, to_address, paid_amount);
+		if (settings.tokenAddress == address(0)) {
+			to_address.transfer(paid_amount);
+		}
+		else {
+			IERC20(settings.tokenAddress).safeTransfer(to_address, paid_amount);
+		}
 	}
 
 }

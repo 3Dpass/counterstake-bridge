@@ -1,23 +1,38 @@
-unhandledRejection event Error: Ethereum disconnected before having caught up
-    at EventEmitter.<anonymous> (/Users/jm/counterstake-bridge/transfers.js:1128:10)
-    at EventEmitter.emit (node:events:517:28)
-    at Timeout._onTimeout (/Users/jm/counterstake-bridge/evm-chain.js:893:31)
-    at listOnTimeout (node:internal/timers:569:17)
-    at process.processTimers (node:internal/timers:512:7) Error: Ethereum disconnected before having caught up
-    at EventEmitter.<anonymous> (/Users/jm/counterstake-bridge/transfers.js:1128:10)
-    at EventEmitter.emit (node:events:517:28)
-    at Timeout._onTimeout (/Users/jm/counterstake-bridge/evm-chain.js:893:31)
-    at listOnTimeout (node:internal/timers:569:17)
-    at process.processTimers (node:internal/timers:512:7)
+unhandledRejection event Error: no history from https://api.bscscan.com for 0x91C79A253481bAa22E7E481f6509E70e5E6A883F: {"status":"0","message":"NOTOK","result":"Missing/Invalid API Key"}
+    at getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:70:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10) Error: no history from https://api.bscscan.com for 0x91C79A253481bAa22E7E481f6509E70e5E6A883F: {"status":"0","message":"NOTOK","result":"Missing/Invalid API Key"}
+    at getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:70:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
 /Users/jm/counterstake-bridge/run.js:40
 	throw up;
 	^
 
-Error: Ethereum disconnected before having caught up
-    at EventEmitter.<anonymous> (/Users/jm/counterstake-bridge/transfers.js:1128:10)
-    at EventEmitter.emit (node:events:517:28)
-    at Timeout._onTimeout (/Users/jm/counterstake-bridge/evm-chain.js:893:31)
-    at listOnTimeout (node:internal/timers:569:17)
-    at process.processTimers (node:internal/timers:512:7)
+Error: no history from https://api.bscscan.com for 0x91C79A253481bAa22E7E481f6509E70e5E6A883F: {"status":"0","message":"NOTOK","result":"Missing/Invalid API Key"}
+    at getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:70:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
+    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
 
 Node.js v18.20.2

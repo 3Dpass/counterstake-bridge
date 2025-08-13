@@ -64,13 +64,6 @@ contract Import is ERC20, Counterstake {
 		require(CounterstakeLibrary.isContract(oracleAddr), "bad oracle");
 		(uint num, uint den) = getOraclePrice(oracleAddr);
 		require(num > 0 || den > 0, "no price from oracle");
-		
-		// Additional validation for P3D-specific oracle requirements
-		if (isP3D(settings.tokenAddress)) {
-			// Verify that the oracle can provide P3D prices
-			(uint p3d_num, uint p3d_den) = IOracle(oracleAddr).getPrice("P3D", "_NATIVE_");
-			require(p3d_num > 0 || p3d_den > 0, "oracle must support P3D pricing");
-		}
 	}
 
 	function setOracle(address oracleAddr) onlyVotedValueContract external {
@@ -105,7 +98,10 @@ contract Import is ERC20, Counterstake {
 		if (paid_claimed_amount > 0){
 			_mint(to_address, paid_claimed_amount);
 		}
-		transferTokens(settings.tokenAddress, to_address, won_stake);
+		if (settings.tokenAddress == address(0))
+			to_address.transfer(won_stake);
+		else
+			IERC20(settings.tokenAddress).safeTransfer(to_address, won_stake);
 	}
 
 	function receiveMoneyInClaim(uint stake, uint paid_amount) internal override {
