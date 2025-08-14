@@ -1,38 +1,13 @@
-unhandledRejection event Error: no history from https://api.bscscan.com for 0x91C79A253481bAa22E7E481f6509E70e5E6A883F: {"status":"0","message":"NOTOK","result":"Missing/Invalid API Key"}
-    at getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:70:9)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10) Error: no history from https://api.bscscan.com for 0x91C79A253481bAa22E7E481f6509E70e5E6A883F: {"status":"0","message":"NOTOK","result":"Missing/Invalid API Key"}
-    at getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:70:9)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-/Users/jm/counterstake-bridge/run.js:40
-	throw up;
-	^
+/Users/jm/counterstake-bridge/node_modules/.pnpm/ocore@https+++codeload.github.com+byteball+ocore+tar.gz+9a4be38036ab30d8536c8d1bf7bcd7a_3bcf88a692034fe1a5ee64cd804cd413/node_modules/ocore/kvstore.js:25
+		throw Error("rocksdb open failed (is the app already running?): " + err);
+		      ^
 
-Error: no history from https://api.bscscan.com for 0x91C79A253481bAa22E7E481f6509E70e5E6A883F: {"status":"0","message":"NOTOK","result":"Missing/Invalid API Key"}
-    at getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:70:9)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
-    at async retry (/Users/jm/counterstake-bridge/etherscan.js:23:10)
-    at async getAddressHistory (/Users/jm/counterstake-bridge/etherscan.js:66:10)
+Error: rocksdb open failed (is the app already running?): OpenError: IO error: While lock file: /Users/jm/Library/Application Support/counterstake-bridge/rocksdb/LOCK: Resource temporarily unavailable
+    at /Users/jm/counterstake-bridge/node_modules/.pnpm/ocore@https+++codeload.github.com+byteball+ocore+tar.gz+9a4be38036ab30d8536c8d1bf7bcd7a_3bcf88a692034fe1a5ee64cd804cd413/node_modules/ocore/kvstore.js:25:9
+    at /Users/jm/counterstake-bridge/node_modules/.pnpm/levelup@5.1.1/node_modules/levelup/lib/levelup.js:127:14
+    at /Users/jm/counterstake-bridge/node_modules/.pnpm/abstract-leveldown@7.2.0/node_modules/abstract-leveldown/abstract-leveldown.js:41:14
+    at onopen (/Users/jm/counterstake-bridge/node_modules/.pnpm/deferred-leveldown@7.0.0/node_modules/deferred-leveldown/deferred-leveldown.js:49:14)
+    at /Users/jm/counterstake-bridge/node_modules/.pnpm/abstract-leveldown@7.2.0/node_modules/abstract-leveldown/abstract-leveldown.js:41:14
+    at /Users/jm/counterstake-bridge/node_modules/.pnpm/abstract-leveldown@7.2.0/node_modules/abstract-leveldown/abstract-leveldown.js:41:14
 
 Node.js v18.20.2

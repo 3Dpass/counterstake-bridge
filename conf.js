@@ -10,7 +10,7 @@
 //exports.myUrl = 'ws://127.0.0.1:' + exports.port;
 
 exports.bServeAsHub = false;
-exports.bLight = true;
+exports.bLight = false; // Use full mode - light mode rejected by network
 
 exports.storage = 'sqlite';
 
@@ -24,7 +24,7 @@ exports.bWantNewPeers = true;
 exports.KEYS_FILENAME = 'keys.json';
 
 // TOR
-exports.socksHost = '127.0.0.1';
+exports.socksHost = null; // Disable TOR for now
 exports.socksPort = 9050;
 
 exports.bNoPassphrase = true;
@@ -189,16 +189,13 @@ exports.bAttack = true; // whether to bite or just bark by emitting events (assu
 // Disable problematic networks for testing
 exports.disablePolygon = true;
 exports.disableKava = true;
-exports.disableBSC = false; // Re-enable BSC for testing
+exports.disableBSC = false; // Enable BSC monitoring
+exports.disableThreeDPass = false; // Re-enable 3DPass
+exports.disableObyte = false; // Disable Obyte to avoid light mode issues
 
 exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 0.5%
 
 exports.webPort = process.env.testnet ? 7001 : 7000; // set to null in order to disable the web server
-
-
-exports.threedpass_bridge_registry_addresses = {
-    'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0'
-};
 
 
 // 3DPass Network Configuration

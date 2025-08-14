@@ -20,31 +20,31 @@ const TOKEN_ADDRESSES = {
     wBusd3DPassAddress: "0xFbFBFBfA0000000000000000000000000000014D", // wBUSD on 3DPass
 };
 
-// 3DPass deployed contract addresses (from bridge-setup-test copy.log)
+// 3DPass deployed contract addresses (from bridge-setup-test.log)
 const DEPLOYED_CONTRACTS = {
     // Factory contracts
-    CounterstakeFactory: '0x7C7AFc2871E65B031F7834c4b6198Bf978c49Cc5',
-    AssistantFactory: '0x9B8D4F4a3cB8BCb8Cd4BEB0486D982F903Cb7761',
+    CounterstakeFactory: '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0',
+    AssistantFactory: '0x5b74685B32cdaA74a030DA14F15F56CcfB5cA1Bc',
     Oracle: '0xAc647d0caB27e912C844F27716154f54EDD519cE',
     P3DPrecompile: '0x0000000000000000000000000000000000000802',
     
     // Import bridges (External -> 3DPass)
-    ImportUsdt3DPass: '0xC6adD082A27eB0147497e128DbB0545430518656',
-    ImportUsdc3DPass: '0xcA0919befAb1Eab41Ace96aaf128471ad3CBc1E5',
-    ImportBusd3DPass: '0xA77a6A3E10551493d3A413f675b5CF8A51aD499d',
+    ImportUsdt3DPass: '0x6359F737F32BFd1862FfAfd9C2F888DfAdC8B7CF',
+    ImportUsdc3DPass: '0x14982dc69e62508b3e4848129a55d6B1960b4Db0',
+    ImportBusd3DPass: '0xAd913348E7B63f44185D5f6BACBD18d7189B2F1B',
     
     // Export bridges (3DPass -> External)
-    ExportWusdt3DPass: '0x1d7067acaC09C5fD08c5E1AA7443d845305dEf7e',
-    ExportWusdc3DPass: '0x629bF26eA38C0FbA89559BBa0a53370Fa3D58ed0',
-    ExportWbusd3DPass: '0xa5F10CE5Fe2520171A368bCd9F43AF017De7C177',
+    ExportP3d3DPass: '0x626D4E8c191c36B5937fD73A2A1B774C2361EA80',
+    ExportFire3DPass: '0xFaF7C72bE647BC86106993E861C48b6c24a3cAd6',
+    ExportWater3DPass: '0xeaeF21F2C0bcE1487Eaf9622b91600155B181a4b',
     
     // Assistant contracts
-    AssistantUsdtImport: '0xeD90443311331A397dFa0C2C57Cf344003781DEA',
-    AssistantUsdcImport: '0x748c69Ae51a6CFb9949E8F4E1400Ac9FF119B3AD',
-    AssistantBusdImport: '0x47bA3127Cf700A5120F10166436a5DE61174632C',
-    AssistantWusdtExport: '0x426D6672Fc2ec96113fB7bB520afc23bC9660D59',
-    AssistantWusdcExport: '0x48fEF1bCbb9b962A9970Fe6FB5d908c96A428F26',
-    AssistantWbusdExport: '0xA03aDFe015a163CCEca196d07a78248044607992'
+    AssistantUsdtImport: '0x0FAF9b7Cf0e62c6889486cE906d05A7a813a7cc5',
+    AssistantUsdcImport: '0xdf8D6962ADC7f29b6F9272376fE51D55B76B0fc5',
+    AssistantBusdImport: '0xA32ea7688b2937eeaf3f74804fbAFB70D0fc4FE3',
+    AssistantP3dExport: '0x747B60493839a26E20d191F6dC960C8C79C159AE',
+    AssistantFireExport: '0x8893d06fDfBd4B5696407413840bC2F333b33ca8',
+    AssistantWaterExport: '0x18d62db034579BCAcfB1e527647658f1AbAD0536'
 };
 
 async function init() {
@@ -93,7 +93,7 @@ async function setupCorrect3DPassBridges() {
         console.log('  ✓ All existing 3DPass bridges and related data removed');
     }
     
-    console.log('Setting up bridges from bridge-setup-test copy.log...');
+    console.log('Setting up bridges from bridge-setup-test.log...');
     
     // Import Bridges (External -> 3DPass)
     
@@ -150,8 +150,8 @@ async function setupCorrect3DPassBridges() {
     
     // Export Bridges (3DPass -> External)
     
-    // Bridge 4: wUSDT on 3DPass -> USDT on Ethereum
-    console.log('Setting up wUSDT on 3DPass -> USDT on Ethereum bridge...');
+    // Bridge 4: P3D on 3DPass -> wP3D on Ethereum
+    console.log('Setting up P3D on 3DPass -> wP3D on Ethereum bridge...');
     await db.query(`
         INSERT INTO bridges (
             home_network, home_asset, home_asset_decimals, home_symbol,
@@ -160,15 +160,15 @@ async function setupCorrect3DPassBridges() {
             stake_asset, import_aa, import_assistant_aa
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-        '3DPass', TOKEN_ADDRESSES.wUsdt3DPassAddress, 6, 'wUSDT',
-        DEPLOYED_CONTRACTS.ExportWusdt3DPass, DEPLOYED_CONTRACTS.AssistantWusdtExport,
-        'Ethereum', TOKEN_ADDRESSES.usdtEthAddress, 6, 'USDT',
+        '3DPass', DEPLOYED_CONTRACTS.P3DPrecompile, 18, 'P3D',
+        DEPLOYED_CONTRACTS.ExportP3d3DPass, DEPLOYED_CONTRACTS.AssistantP3dExport,
+        'Ethereum', '0x742d35Cc6634C0532925a3b8D9a4F8A6c4f0E4A7', 18, 'wP3D',
         DEPLOYED_CONTRACTS.P3DPrecompile, null, null
     ]);
-    console.log('  ✓ wUSDT on 3DPass -> USDT on Ethereum bridge added');
+    console.log('  ✓ P3D on 3DPass -> wP3D on Ethereum bridge added');
     
-    // Bridge 5: wUSDC on 3DPass -> USDC on Ethereum
-    console.log('Setting up wUSDC on 3DPass -> USDC on Ethereum bridge...');
+    // Bridge 5: FIRE on 3DPass -> wFIRE on Ethereum
+    console.log('Setting up FIRE on 3DPass -> wFIRE on Ethereum bridge...');
     await db.query(`
         INSERT INTO bridges (
             home_network, home_asset, home_asset_decimals, home_symbol,
@@ -177,15 +177,15 @@ async function setupCorrect3DPassBridges() {
             stake_asset, import_aa, import_assistant_aa
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-        '3DPass', TOKEN_ADDRESSES.wUsdc3DPassAddress, 6, 'wUSDC',
-        DEPLOYED_CONTRACTS.ExportWusdc3DPass, DEPLOYED_CONTRACTS.AssistantWusdcExport,
-        'Ethereum', TOKEN_ADDRESSES.usdcEthAddress, 6, 'USDC',
-        DEPLOYED_CONTRACTS.P3DPrecompile, null, null
+        '3DPass', '0xFbfBFBfA000000000000000000000000000001bC', 18, 'FIRE',
+        DEPLOYED_CONTRACTS.ExportFire3DPass, DEPLOYED_CONTRACTS.AssistantFireExport,
+        'Ethereum', '0x8F9B2e7D4A3C1F5E6B8A9D2C4E7F1A3B5C8D9E0F', 18, 'wFIRE',
+        '0xFbfBFBfA000000000000000000000000000001bC', null, null
     ]);
-    console.log('  ✓ wUSDC on 3DPass -> USDC on Ethereum bridge added');
+    console.log('  ✓ FIRE on 3DPass -> wFIRE on Ethereum bridge added');
     
-    // Bridge 6: wBUSD on 3DPass -> BUSD on BSC
-    console.log('Setting up wBUSD on 3DPass -> BUSD on BSC bridge...');
+    // Bridge 6: WATER on 3DPass -> wWATER on Ethereum
+    console.log('Setting up WATER on 3DPass -> wWATER on Ethereum bridge...');
     await db.query(`
         INSERT INTO bridges (
             home_network, home_asset, home_asset_decimals, home_symbol,
@@ -194,12 +194,12 @@ async function setupCorrect3DPassBridges() {
             stake_asset, import_aa, import_assistant_aa
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-        '3DPass', TOKEN_ADDRESSES.wBusd3DPassAddress, 18, 'wBUSD',
-        DEPLOYED_CONTRACTS.ExportWbusd3DPass, DEPLOYED_CONTRACTS.AssistantWbusdExport,
-        'BSC', TOKEN_ADDRESSES.busdBscAddress, 18, 'BUSD',
-        DEPLOYED_CONTRACTS.P3DPrecompile, null, null
+        '3DPass', '0xfBFBFBfa0000000000000000000000000000022b', 18, 'WATER',
+        DEPLOYED_CONTRACTS.ExportWater3DPass, DEPLOYED_CONTRACTS.AssistantWaterExport,
+        'Ethereum', '0x1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7E8F9A0B', 18, 'wWATER',
+        '0xfBFBFBfa0000000000000000000000000000022b', null, null
     ]);
-    console.log('  ✓ wBUSD on 3DPass -> BUSD on BSC bridge added');
+    console.log('  ✓ WATER on 3DPass -> wWATER on Ethereum bridge added');
     
     // Verify bridges were added
     const bridges = await db.query("SELECT * FROM bridges WHERE home_network='3DPass' OR foreign_network='3DPass'");
@@ -217,9 +217,9 @@ async function setupCorrect3DPassBridges() {
     console.log('ImportBusd3DPass:', DEPLOYED_CONTRACTS.ImportBusd3DPass);
     
     console.log('\n--- Export Bridges (3DPass -> External) ---');
-    console.log('ExportWusdt3DPass:', DEPLOYED_CONTRACTS.ExportWusdt3DPass);
-    console.log('ExportWusdc3DPass:', DEPLOYED_CONTRACTS.ExportWusdc3DPass);
-    console.log('ExportWbusd3DPass:', DEPLOYED_CONTRACTS.ExportWbusd3DPass);
+    console.log('ExportP3d3DPass:', DEPLOYED_CONTRACTS.ExportP3d3DPass);
+    console.log('ExportFire3DPass:', DEPLOYED_CONTRACTS.ExportFire3DPass);
+    console.log('ExportWater3DPass:', DEPLOYED_CONTRACTS.ExportWater3DPass);
     
     console.log('\n--- Import Assistants ---');
     console.log('AssistantUsdtImport:', DEPLOYED_CONTRACTS.AssistantUsdtImport);
@@ -227,9 +227,9 @@ async function setupCorrect3DPassBridges() {
     console.log('AssistantBusdImport:', DEPLOYED_CONTRACTS.AssistantBusdImport);
     
     console.log('\n--- Export Assistants ---');
-    console.log('AssistantWusdtExport:', DEPLOYED_CONTRACTS.AssistantWusdtExport);
-    console.log('AssistantWusdcExport:', DEPLOYED_CONTRACTS.AssistantWusdcExport);
-    console.log('AssistantWbusdExport:', DEPLOYED_CONTRACTS.AssistantWbusdExport);
+    console.log('AssistantP3dExport:', DEPLOYED_CONTRACTS.AssistantP3dExport);
+    console.log('AssistantFireExport:', DEPLOYED_CONTRACTS.AssistantFireExport);
+    console.log('AssistantWaterExport:', DEPLOYED_CONTRACTS.AssistantWaterExport);
     
     console.log('\n--- Token Addresses ---');
     console.log('USDT (Ethereum):', TOKEN_ADDRESSES.usdtEthAddress);
@@ -238,6 +238,9 @@ async function setupCorrect3DPassBridges() {
     console.log('wUSDT (3DPass):', TOKEN_ADDRESSES.wUsdt3DPassAddress);
     console.log('wUSDC (3DPass):', TOKEN_ADDRESSES.wUsdc3DPassAddress);
     console.log('wBUSD (3DPass):', TOKEN_ADDRESSES.wBusd3DPassAddress);
+    console.log('P3D (3DPass):', DEPLOYED_CONTRACTS.P3DPrecompile);
+    console.log('FIRE (3DPass):', '0xFbfBFBfA000000000000000000000000000001bC');
+    console.log('WATER (3DPass):', '0xfBFBFBfa0000000000000000000000000000022b');
     
     console.log('\n--- Database Bridges ---');
     for (let bridge of bridges) {

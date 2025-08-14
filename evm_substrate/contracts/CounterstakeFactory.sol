@@ -12,9 +12,7 @@ contract CounterstakeFactory {
 	event NewExport(address contractAddress, address tokenAddress, string foreign_network, string foreign_asset);
 	event NewImportWrapper(address contractAddress, string home_network, string home_asset, address precompileAddress, address stakeTokenAddress);
     
-	// The period has been reduced to 3 min for testing.
-	// uint[] private default_challenging_periods = [72 hours, 7 days, 30 days, 60 days];
-	uint[] private default_challenging_periods = [3 minutes, 3 minutes, 3 minutes, 60 days];
+	uint[] private default_challenging_periods = [72 hours, 7 days, 30 days, 60 days];
 	uint[] private default_large_challenging_periods = [1 weeks, 30 days, 60 days];
 
 	address public immutable exportMaster;

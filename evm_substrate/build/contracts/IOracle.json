@@ -40,20 +40,20 @@
   "sourceMap": "",
   "deployedSourceMap": "",
   "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.3;\n\ninterface IOracle {\n\t// returns a fraction num/den\n\tfunction getPrice(string memory base, string memory quote) external view returns (uint num, uint den);\n}\n",
-  "sourcePath": "/Users/jm/3DP-bridge/counterstake-bridge/evm/contracts/IOracle.sol",
+  "sourcePath": "/Users/jm/counterstake-bridge/evm_substrate/contracts/IOracle.sol",
   "ast": {
     "absolutePath": "project:/contracts/IOracle.sol",
     "exportedSymbols": {
       "IOracle": [
-        9015
+        9007
       ]
     },
-    "id": 9016,
+    "id": 9008,
     "license": "MIT",
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 9003,
+        "id": 8995,
         "literals": [
           "solidity",
           "^",
@@ -70,9 +70,9 @@
         "contractDependencies": [],
         "contractKind": "interface",
         "fullyImplemented": false,
-        "id": 9015,
+        "id": 9007,
         "linearizedBaseContracts": [
-          9015
+          9007
         ],
         "name": "IOracle",
         "nameLocation": "67:7:23",
@@ -80,7 +80,7 @@
         "nodes": [
           {
             "functionSelector": "3d0f34da",
-            "id": 9014,
+            "id": 9006,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -88,17 +88,17 @@
             "nameLocation": "118:8:23",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 9008,
+              "id": 9000,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 9005,
+                  "id": 8997,
                   "mutability": "mutable",
                   "name": "base",
                   "nameLocation": "141:4:23",
                   "nodeType": "VariableDeclaration",
-                  "scope": 9014,
+                  "scope": 9006,
                   "src": "127:18:23",
                   "stateVariable": false,
                   "storageLocation": "memory",
@@ -107,7 +107,7 @@
                     "typeString": "string"
                   },
                   "typeName": {
-                    "id": 9004,
+                    "id": 8996,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
                     "src": "127:6:23",
@@ -120,12 +120,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 9007,
+                  "id": 8999,
                   "mutability": "mutable",
                   "name": "quote",
                   "nameLocation": "161:5:23",
                   "nodeType": "VariableDeclaration",
-                  "scope": 9014,
+                  "scope": 9006,
                   "src": "147:19:23",
                   "stateVariable": false,
                   "storageLocation": "memory",
@@ -134,7 +134,7 @@
                     "typeString": "string"
                   },
                   "typeName": {
-                    "id": 9006,
+                    "id": 8998,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
                     "src": "147:6:23",
@@ -149,17 +149,17 @@
               "src": "126:41:23"
             },
             "returnParameters": {
-              "id": 9013,
+              "id": 9005,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 9010,
+                  "id": 9002,
                   "mutability": "mutable",
                   "name": "num",
                   "nameLocation": "196:3:23",
                   "nodeType": "VariableDeclaration",
-                  "scope": 9014,
+                  "scope": 9006,
                   "src": "191:8:23",
                   "stateVariable": false,
                   "storageLocation": "default",
@@ -168,7 +168,7 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 9009,
+                    "id": 9001,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
                     "src": "191:4:23",
@@ -181,12 +181,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 9012,
+                  "id": 9004,
                   "mutability": "mutable",
                   "name": "den",
                   "nameLocation": "206:3:23",
                   "nodeType": "VariableDeclaration",
-                  "scope": 9014,
+                  "scope": 9006,
                   "src": "201:8:23",
                   "stateVariable": false,
                   "storageLocation": "default",
@@ -195,7 +195,7 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 9011,
+                    "id": 9003,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
                     "src": "201:4:23",
@@ -209,14 +209,14 @@
               ],
               "src": "190:20:23"
             },
-            "scope": 9015,
+            "scope": 9007,
             "src": "109:102:23",
             "stateMutability": "view",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 9016,
+        "scope": 9008,
         "src": "57:156:23",
         "usedErrors": []
       }
@@ -229,7 +229,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-08-11T16:27:16.711Z",
+  "updatedAt": "2025-08-14T11:37:37.798Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},

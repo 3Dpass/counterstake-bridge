@@ -16,7 +16,6 @@ contract ImportWrapper is Counterstake {
 	using SafeERC20 for IERC20;
 
 	event NewRepatriation(address sender_address, uint amount, uint reward, string home_address, string data);
-	event AssistantTransferExecuted(address assistant, address user, uint stake_amount, uint image_amount);
 
 	address public oracleAddress;
 

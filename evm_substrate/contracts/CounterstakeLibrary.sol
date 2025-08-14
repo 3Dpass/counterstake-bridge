@@ -49,9 +49,7 @@ library CounterstakeLibrary {
 		uint16 counterstake_coef100;// = 150;
 		uint32 min_tx_age;
 		uint min_stake;
-		// The period has been reduced to 3 min for testing.
-		// uint[] challenging_periods;// = [12 hours, 3 days, 1 weeks, 30 days];
-		uint[] challenging_periods;// = [3 minutes, 3 minutes, 3 minutes, 30 days];
+		uint[] challenging_periods;// = [12 hours, 3 days, 1 weeks, 30 days];
 		uint[] large_challenging_periods;// = [3 days, 1 weeks, 30 days];
 		uint large_threshold;
 	}

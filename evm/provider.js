@@ -48,6 +48,9 @@ function getProvider(network, bFree) {
 		case 'Kava':
 		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava.io`);
 			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava-rpc.com`);
+		
+		case '3DPass':
+			return new ethers.providers.WebSocketProvider(process.env.testnet ? `ws://127.0.0.1:9944` : `ws://127.0.0.1:9944`);
 	}
 	throw Error(`unknown network ` + network);
 }

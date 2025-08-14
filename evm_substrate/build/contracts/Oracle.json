@@ -140,38 +140,38 @@
       "type": "function"
     }
   ],
-  "metadata": "{\"compiler\":{\"version\":\"0.8.13+commit.abaa5c0e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"base\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"quote\",\"type\":\"string\"}],\"name\":\"getPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"den\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"name\":\"prices\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"den\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"base\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"quote\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"den\",\"type\":\"uint256\"}],\"name\":\"setPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/Oracle.sol\":\"Oracle\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":1},\"remappings\":[],\"viaIR\":true},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"keccak256\":\"0xba43b97fba0d32eb4254f6a5a297b39a19a247082a02d6e69349e071e2946218\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://fc980984badf3984b6303b377711220e067722bbd6a135b24669ff5069ef9f32\",\"dweb:/ipfs/QmPHXMSXj99XjSVM21YsY6aNtLLjLVXDbyN76J5HQYvvrz\"]},\"@openzeppelin/contracts/utils/Context.sol\":{\"keccak256\":\"0xa92e4fa126feb6907daa0513ddd816b2eb91f30a808de54f63c17d0e162c3439\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://a367861093b74443b137564d3f3c472f70bcf114739e62059c939f25e315706c\",\"dweb:/ipfs/Qmd7JMpcxD9RuQjK3uM3EzJUgSqdN8vzp8eytEiuwxQJ6h\"]},\"project:/contracts/IOracle.sol\":{\"keccak256\":\"0xf577d9d8cbd2340302dd7e60f441037ac05560e314f061f3b3f711aa4d823272\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://0f0691b6c25012b624db5f82a84f3a93aba91c845736ee5d516ad929ac40acea\",\"dweb:/ipfs/QmRqRNdN8NnamGt9UaGEsWw4jR4FdgsCozKiMtaGW4tawd\"]},\"project:/contracts/Oracle.sol\":{\"keccak256\":\"0x1db4a4cbdc8abaf6cd84a8e0596600ae0299acfee5535464b712dab56167859a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://51e2b0afae1766244e61b9140cdb6702a1219e19de9ac3bbcf2d0628b59e8337\",\"dweb:/ipfs/QmcKUAVb9hGKMvw6c8gX83NemH9MVBACssYiGZyRT8ba5H\"]}},\"version\":1}",
-  "bytecode": "0x6080806040523461005b5760008054336001600160a01b0319821681178355916001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09084a361062e90816100618239f35b600080fdfe60806040526004361015610013575b600080fd5b6000803560e01c9081633d0f34da146101885781633edcd46c1461008557508063402b44301461007c578063715018a6146100735780638da5cb5b1461006a5763f2fde38b1461006257600080fd5b61000e610405565b5061000e6103db565b5061000e61038e565b5061000e610341565b34610185576080366003190112610185576001600160401b03600435818111610181576100b6903690600401610222565b90602435908111610181576100cf903690600401610222565b60443590606435926100df610497565b6101006040516020816100f281876102cc565b600181520301902082610324565b80541590811591610173575b5061014e57906101326101389261014995610125610213565b9586526020860152610307565b90610324565b906020600191805184550151910155565b604051f35b61013261013892610149959460405195610167876101c8565b86526020860152610307565b60019150015415158661010c565b8280fd5b80fd5b346101855761019f61019936610286565b90610529565b60408051928352602083019190915290f35b50634e487b7160e01b600052604160045260246000fd5b604081019081106001600160401b038211176101e357604052565b6101eb6101b1565b604052565b601f909101601f19168101906001600160401b038211908210176101e357604052565b60405190610220826101c8565b565b81601f8201121561000e578035906001600160401b038211610279575b60405192610257601f8401601f1916602001856101f0565b8284526020838301011161000e57816000926020809301838601378301015290565b6102816101b1565b61023f565b90604060031983011261000e576001600160401b0360043581811161000e57836102b291600401610222565b9260243591821161000e576102c991600401610222565b90565b90815180926000905b8282106102f05750116102e6570190565b6000828201520190565b9150806020809284010151818501520183916102d5565b602061031991604051928380926102cc565b600181520301902090565b60209061033792604051938480936102cc565b9081520301902090565b503461000e57610374602061036661035836610286565b9290604051928380926102cc565b600181520301902090610324565b805460019091015460408051928352602083019190915290f35b503461000e57600080600319360112610185576103a9610497565b80546001600160a01b0319811682556040519082906001600160a01b03166000805160206105d98339815191528284a3f35b503461000e57600036600319011261000e576000546040516001600160a01b039091168152602090f35b503461000e57602036600319011261000e576004356001600160a01b03811680820361000e57610433610497565b1561044357610441906104ef565b005b60405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201526564647265737360d01b6064820152608490fd5b6000546001600160a01b031633036104ab57565b606460405162461bcd60e51b815260206004820152602060248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152fd5b600080546001600160a01b039283166001600160a01b03198216811783556040519093909116916000805160206105d983398151915291a3565b919091604051602081018161053e82856102cc565b0391610552601f19938481018352826101f0565b5190209060405161057860208201928261056c858a6102cc565b039081018352826101f0565b519020146105cf5761059261058c82610307565b84610324565b805490816105c35750506101326105a99293610307565b90815491826105bb5750600091508190565b600101549190565b90935060019150015490565b5060019150819056fe8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0a2646970667358221220da1dc16a37171c67396d030a7589d520ccc5d7cdc13f4d76d272d725bc5c59bc64736f6c634300080d0033",
-  "deployedBytecode": "0x60806040526004361015610013575b600080fd5b6000803560e01c9081633d0f34da146101885781633edcd46c1461008557508063402b44301461007c578063715018a6146100735780638da5cb5b1461006a5763f2fde38b1461006257600080fd5b61000e610405565b5061000e6103db565b5061000e61038e565b5061000e610341565b34610185576080366003190112610185576001600160401b03600435818111610181576100b6903690600401610222565b90602435908111610181576100cf903690600401610222565b60443590606435926100df610497565b6101006040516020816100f281876102cc565b600181520301902082610324565b80541590811591610173575b5061014e57906101326101389261014995610125610213565b9586526020860152610307565b90610324565b906020600191805184550151910155565b604051f35b61013261013892610149959460405195610167876101c8565b86526020860152610307565b60019150015415158661010c565b8280fd5b80fd5b346101855761019f61019936610286565b90610529565b60408051928352602083019190915290f35b50634e487b7160e01b600052604160045260246000fd5b604081019081106001600160401b038211176101e357604052565b6101eb6101b1565b604052565b601f909101601f19168101906001600160401b038211908210176101e357604052565b60405190610220826101c8565b565b81601f8201121561000e578035906001600160401b038211610279575b60405192610257601f8401601f1916602001856101f0565b8284526020838301011161000e57816000926020809301838601378301015290565b6102816101b1565b61023f565b90604060031983011261000e576001600160401b0360043581811161000e57836102b291600401610222565b9260243591821161000e576102c991600401610222565b90565b90815180926000905b8282106102f05750116102e6570190565b6000828201520190565b9150806020809284010151818501520183916102d5565b602061031991604051928380926102cc565b600181520301902090565b60209061033792604051938480936102cc565b9081520301902090565b503461000e57610374602061036661035836610286565b9290604051928380926102cc565b600181520301902090610324565b805460019091015460408051928352602083019190915290f35b503461000e57600080600319360112610185576103a9610497565b80546001600160a01b0319811682556040519082906001600160a01b03166000805160206105d98339815191528284a3f35b503461000e57600036600319011261000e576000546040516001600160a01b039091168152602090f35b503461000e57602036600319011261000e576004356001600160a01b03811680820361000e57610433610497565b1561044357610441906104ef565b005b60405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201526564647265737360d01b6064820152608490fd5b6000546001600160a01b031633036104ab57565b606460405162461bcd60e51b815260206004820152602060248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152fd5b600080546001600160a01b039283166001600160a01b03198216811783556040519093909116916000805160206105d983398151915291a3565b919091604051602081018161053e82856102cc565b0391610552601f19938481018352826101f0565b5190209060405161057860208201928261056c858a6102cc565b039081018352826101f0565b519020146105cf5761059261058c82610307565b84610324565b805490816105c35750506101326105a99293610307565b90815491826105bb5750600091508190565b600101549190565b90935060019150015490565b5060019150819056fe8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0a2646970667358221220da1dc16a37171c67396d030a7589d520ccc5d7cdc13f4d76d272d725bc5c59bc64736f6c634300080d0033",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.13+commit.abaa5c0e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"base\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"quote\",\"type\":\"string\"}],\"name\":\"getPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"den\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"name\":\"prices\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"den\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"base\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"quote\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"den\",\"type\":\"uint256\"}],\"name\":\"setPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/Oracle.sol\":\"Oracle\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":1},\"remappings\":[],\"viaIR\":true},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"keccak256\":\"0xba43b97fba0d32eb4254f6a5a297b39a19a247082a02d6e69349e071e2946218\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://fc980984badf3984b6303b377711220e067722bbd6a135b24669ff5069ef9f32\",\"dweb:/ipfs/QmPHXMSXj99XjSVM21YsY6aNtLLjLVXDbyN76J5HQYvvrz\"]},\"@openzeppelin/contracts/utils/Context.sol\":{\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://6df0ddf21ce9f58271bdfaa85cde98b200ef242a05a3f85c2bc10a8294800a92\",\"dweb:/ipfs/QmRK2Y5Yc6BK7tGKkgsgn3aJEQGi5aakeSPZvS65PV8Xp3\"]},\"project:/contracts/IOracle.sol\":{\"keccak256\":\"0xf577d9d8cbd2340302dd7e60f441037ac05560e314f061f3b3f711aa4d823272\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://0f0691b6c25012b624db5f82a84f3a93aba91c845736ee5d516ad929ac40acea\",\"dweb:/ipfs/QmRqRNdN8NnamGt9UaGEsWw4jR4FdgsCozKiMtaGW4tawd\"]},\"project:/contracts/Oracle.sol\":{\"keccak256\":\"0x1db4a4cbdc8abaf6cd84a8e0596600ae0299acfee5535464b712dab56167859a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://51e2b0afae1766244e61b9140cdb6702a1219e19de9ac3bbcf2d0628b59e8337\",\"dweb:/ipfs/QmcKUAVb9hGKMvw6c8gX83NemH9MVBACssYiGZyRT8ba5H\"]}},\"version\":1}",
+  "bytecode": "0x6080806040523461005b5760008054336001600160a01b0319821681178355916001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09084a361062e90816100618239f35b600080fdfe60806040526004361015610013575b600080fd5b6000803560e01c9081633d0f34da146101885781633edcd46c1461008557508063402b44301461007c578063715018a6146100735780638da5cb5b1461006a5763f2fde38b1461006257600080fd5b61000e610405565b5061000e6103db565b5061000e61038e565b5061000e610341565b34610185576080366003190112610185576001600160401b03600435818111610181576100b6903690600401610222565b90602435908111610181576100cf903690600401610222565b60443590606435926100df610497565b6101006040516020816100f281876102cc565b600181520301902082610324565b80541590811591610173575b5061014e57906101326101389261014995610125610213565b9586526020860152610307565b90610324565b906020600191805184550151910155565b604051f35b61013261013892610149959460405195610167876101c8565b86526020860152610307565b60019150015415158661010c565b8280fd5b80fd5b346101855761019f61019936610286565b90610529565b60408051928352602083019190915290f35b50634e487b7160e01b600052604160045260246000fd5b604081019081106001600160401b038211176101e357604052565b6101eb6101b1565b604052565b601f909101601f19168101906001600160401b038211908210176101e357604052565b60405190610220826101c8565b565b81601f8201121561000e578035906001600160401b038211610279575b60405192610257601f8401601f1916602001856101f0565b8284526020838301011161000e57816000926020809301838601378301015290565b6102816101b1565b61023f565b90604060031983011261000e576001600160401b0360043581811161000e57836102b291600401610222565b9260243591821161000e576102c991600401610222565b90565b90815180926000905b8282106102f05750116102e6570190565b6000828201520190565b9150806020809284010151818501520183916102d5565b602061031991604051928380926102cc565b600181520301902090565b60209061033792604051938480936102cc565b9081520301902090565b503461000e57610374602061036661035836610286565b9290604051928380926102cc565b600181520301902090610324565b805460019091015460408051928352602083019190915290f35b503461000e57600080600319360112610185576103a9610497565b80546001600160a01b0319811682556040519082906001600160a01b03166000805160206105d98339815191528284a3f35b503461000e57600036600319011261000e576000546040516001600160a01b039091168152602090f35b503461000e57602036600319011261000e576004356001600160a01b03811680820361000e57610433610497565b1561044357610441906104ef565b005b60405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201526564647265737360d01b6064820152608490fd5b6000546001600160a01b031633036104ab57565b606460405162461bcd60e51b815260206004820152602060248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152fd5b600080546001600160a01b039283166001600160a01b03198216811783556040519093909116916000805160206105d983398151915291a3565b919091604051602081018161053e82856102cc565b0391610552601f19938481018352826101f0565b5190209060405161057860208201928261056c858a6102cc565b039081018352826101f0565b519020146105cf5761059261058c82610307565b84610324565b805490816105c35750506101326105a99293610307565b90815491826105bb5750600091508190565b600101549190565b90935060019150015490565b5060019150819056fe8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0a26469706673582212205e0ce28ec0ba0b7120992875024933ce696367c11aa6c980a498fd101b090a1b64736f6c634300080d0033",
+  "deployedBytecode": "0x60806040526004361015610013575b600080fd5b6000803560e01c9081633d0f34da146101885781633edcd46c1461008557508063402b44301461007c578063715018a6146100735780638da5cb5b1461006a5763f2fde38b1461006257600080fd5b61000e610405565b5061000e6103db565b5061000e61038e565b5061000e610341565b34610185576080366003190112610185576001600160401b03600435818111610181576100b6903690600401610222565b90602435908111610181576100cf903690600401610222565b60443590606435926100df610497565b6101006040516020816100f281876102cc565b600181520301902082610324565b80541590811591610173575b5061014e57906101326101389261014995610125610213565b9586526020860152610307565b90610324565b906020600191805184550151910155565b604051f35b61013261013892610149959460405195610167876101c8565b86526020860152610307565b60019150015415158661010c565b8280fd5b80fd5b346101855761019f61019936610286565b90610529565b60408051928352602083019190915290f35b50634e487b7160e01b600052604160045260246000fd5b604081019081106001600160401b038211176101e357604052565b6101eb6101b1565b604052565b601f909101601f19168101906001600160401b038211908210176101e357604052565b60405190610220826101c8565b565b81601f8201121561000e578035906001600160401b038211610279575b60405192610257601f8401601f1916602001856101f0565b8284526020838301011161000e57816000926020809301838601378301015290565b6102816101b1565b61023f565b90604060031983011261000e576001600160401b0360043581811161000e57836102b291600401610222565b9260243591821161000e576102c991600401610222565b90565b90815180926000905b8282106102f05750116102e6570190565b6000828201520190565b9150806020809284010151818501520183916102d5565b602061031991604051928380926102cc565b600181520301902090565b60209061033792604051938480936102cc565b9081520301902090565b503461000e57610374602061036661035836610286565b9290604051928380926102cc565b600181520301902090610324565b805460019091015460408051928352602083019190915290f35b503461000e57600080600319360112610185576103a9610497565b80546001600160a01b0319811682556040519082906001600160a01b03166000805160206105d98339815191528284a3f35b503461000e57600036600319011261000e576000546040516001600160a01b039091168152602090f35b503461000e57602036600319011261000e576004356001600160a01b03811680820361000e57610433610497565b1561044357610441906104ef565b005b60405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201526564647265737360d01b6064820152608490fd5b6000546001600160a01b031633036104ab57565b606460405162461bcd60e51b815260206004820152602060248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152fd5b600080546001600160a01b039283166001600160a01b03198216811783556040519093909116916000805160206105d983398151915291a3565b919091604051602081018161053e82856102cc565b0391610552601f19938481018352826101f0565b5190209060405161057860208201928261056c858a6102cc565b039081018352826101f0565b519020146105cf5761059261058c82610307565b84610324565b805490816105c35750506101326105a99293610307565b90815491826105bb5750600091508190565b600101549190565b90935060019150015490565b5060019150819056fe8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0a26469706673582212205e0ce28ec0ba0b7120992875024933ce696367c11aa6c980a498fd101b090a1b64736f6c634300080d0033",
   "immutableReferences": {},
   "generatedSources": [],
   "deployedGeneratedSources": [],
-  "sourceMap": "134:1065:29:-:0;;;;;;;2518:6:0;134:1065:29;;734:10:7;-1:-1:-1;;;;;;134:1065:29;;;;;;734:10:7;-1:-1:-1;;;;;134:1065:29;;;;2566:40:0;;;;134:1065:29;;;;;;;;;;",
-  "deployedSourceMap": "134:1065:29:-:0;;;;;;;;;-1:-1:-1;134:1065:29;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::i;:::-;;;;:::i;:::-;;;;:::i;:::-;;;;:::i;:::-;;;;;;-1:-1:-1;;134:1065:29;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;;;:::i;:::-;;;;;;;;;;;;;;;;:::i;:::-;;;;;;1063:62:0;;;:::i;:::-;134:1065:29;;;;;;;;;:::i;:::-;;;;;;;;;;:::i;:::-;;;995:21;;;;:46;;;134:1065;-1:-1:-1;1050:21:29;;134:1065;;;;;;;;:::i;:::-;;;;;1098:30;;134:1065;;:::i;:::-;;;:::i;:::-;;;;;;;;;;;;;;;;;;;1046:146;134:1065;;;;;;;;;;;;:::i;:::-;;;;1162:30;;134:1065;;:::i;995:46::-;134:1065;1020:17;;;134:1065;1020:21;;995:46;;;134:1065;;;;;;;;;;;;;;;:::i;:::-;;;:::i;:::-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;:::o;:::-;;;:::i;:::-;;;:::o;:::-;;;;;-1:-1:-1;;134:1065:29;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;:::o;:::-;;;;;;;:::i;:::-;:::o;:::-;;;;;;;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;-1:-1:-1;;134:1065:29;;;;;:::i;:::-;;;;;;;;;;;;;-1:-1:-1;134:1065:29;;;;;;;;;;;;;;:::o;:::-;;;:::i;:::-;;;;;;-1:-1:-1;;134:1065:29;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;;:::i;:::-;;;;;;;;;;;;;;:::i;:::-;;:::o;:::-;;;;;;;;;;;;;;;;;;;;:::o;:::-;;;;;;;;:::o;:::-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::i;:::-;943:6;134:1065;;;;;;;:::o;:::-;;;;;;;;;;;;:::i;:::-;;;;;;;;;:::o;:::-;;;;;;;;;;;:::i;:::-;;;;;;;;;;:::i;:::-;221:60;134:1065;;;;;;;;:::i;:::-;;;221:60;;;;134:1065;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1063:62:0;;:::i;:::-;134:1065:29;;-1:-1:-1;;;;;;134:1065:29;;;;;;;;;-1:-1:-1;;;;;134:1065:29;-1:-1:-1;;;;;;;;;;;134:1065:29;;2566:40:0;134:1065:29;;;;;;;;-1:-1:-1;;134:1065:29;;;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;;;;-1:-1:-1;;134:1065:29;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;1063:62:0;;:::i;:::-;2162:22;134:1065:29;;2256:8:0;;;:::i;:::-;134:1065:29;;;;-1:-1:-1;;;134:1065:29;;;;;;;;;;;;;;;;;-1:-1:-1;;;134:1065:29;;;;;;;1359:130:0;1273:6;134:1065:29;-1:-1:-1;;;;;134:1065:29;734:10:7;1422:23:0;134:1065:29;;1359:130:0:o;134:1065:29:-;;;;;;;;;;;;;;;;;;;;;;;;;2426:187:0;2518:6;134:1065:29;;-1:-1:-1;;;;;134:1065:29;;;-1:-1:-1;;;;;;134:1065:29;;;;;;;;;;;;;;-1:-1:-1;;;;;;;;;;;2566:40:0;;2426:187::o;285:444:29:-;;;;134:1065;;412:22;;;134:1065;;;;;:::i;:::-;412:22;134:1065;412:22;134:1065;;412:22;;;;;;;;:::i;:::-;134:1065;402:33;;134:1065;;;449:23;412:22;449:23;;134:1065;;;;;;:::i;:::-;449:23;;;;;;;;:::i;:::-;134:1065;439:34;;402:71;398:93;;134:1065;;;;:::i;:::-;;;:::i;:::-;;;547:13;;543:51;;134:1065;;;;;;;:::i;:::-;;;;661:13;;657:51;;-1:-1:-1;;;;;;285:444:29:o;657:51::-;520:6;687:9;134:1065;679:29;;:::o;543:51::-;584:9;;;520:6;584:9;;;134:1065;565:29;:::o;398:93::-;-1:-1:-1;486:1:29;;-1:-1:-1;486:1:29;;478:13::o",
+  "sourceMap": "134:1065:29:-:0;;;;;;;2518:6:0;134:1065:29;;719:10:7;-1:-1:-1;;;;;;134:1065:29;;;;;;719:10:7;-1:-1:-1;;;;;134:1065:29;;;;2566:40:0;;;;134:1065:29;;;;;;;;;;",
+  "deployedSourceMap": "134:1065:29:-:0;;;;;;;;;-1:-1:-1;134:1065:29;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::i;:::-;;;;:::i;:::-;;;;:::i;:::-;;;;:::i;:::-;;;;;;-1:-1:-1;;134:1065:29;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;;;:::i;:::-;;;;;;;;;;;;;;;;:::i;:::-;;;;;;1063:62:0;;;:::i;:::-;134:1065:29;;;;;;;;;:::i;:::-;;;;;;;;;;:::i;:::-;;;995:21;;;;:46;;;134:1065;-1:-1:-1;1050:21:29;;134:1065;;;;;;;;:::i;:::-;;;;;1098:30;;134:1065;;:::i;:::-;;;:::i;:::-;;;;;;;;;;;;;;;;;;;1046:146;134:1065;;;;;;;;;;;;:::i;:::-;;;;1162:30;;134:1065;;:::i;995:46::-;134:1065;1020:17;;;134:1065;1020:21;;995:46;;;134:1065;;;;;;;;;;;;;;;:::i;:::-;;;:::i;:::-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;:::o;:::-;;;:::i;:::-;;;:::o;:::-;;;;;-1:-1:-1;;134:1065:29;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;:::o;:::-;;;;;;;:::i;:::-;:::o;:::-;;;;;;;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;-1:-1:-1;;134:1065:29;;;;;:::i;:::-;;;;;;;;;;;;;-1:-1:-1;134:1065:29;;;;;;;;;;;;;;:::o;:::-;;;:::i;:::-;;;;;;-1:-1:-1;;134:1065:29;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;;:::i;:::-;;;;;;;;;;;;;;:::i;:::-;;:::o;:::-;;;;;;;;;;;;;;;;;;;;:::o;:::-;;;;;;;;:::o;:::-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::i;:::-;943:6;134:1065;;;;;;;:::o;:::-;;;;;;;;;;;;:::i;:::-;;;;;;;;;:::o;:::-;;;;;;;;;;;:::i;:::-;;;;;;;;;;:::i;:::-;221:60;134:1065;;;;;;;;:::i;:::-;;;221:60;;;;134:1065;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1063:62:0;;:::i;:::-;134:1065:29;;-1:-1:-1;;;;;;134:1065:29;;;;;;;;;-1:-1:-1;;;;;134:1065:29;-1:-1:-1;;;;;;;;;;;134:1065:29;;2566:40:0;134:1065:29;;;;;;;;-1:-1:-1;;134:1065:29;;;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;;;;;;;;;-1:-1:-1;;134:1065:29;;;;;;-1:-1:-1;;;;;134:1065:29;;;;;;;1063:62:0;;:::i;:::-;2162:22;134:1065:29;;2256:8:0;;;:::i;:::-;134:1065:29;;;;-1:-1:-1;;;134:1065:29;;;;;;;;;;;;;;;;;-1:-1:-1;;;134:1065:29;;;;;;;1359:130:0;1273:6;134:1065:29;-1:-1:-1;;;;;134:1065:29;719:10:7;1422:23:0;134:1065:29;;1359:130:0:o;134:1065:29:-;;;;;;;;;;;;;;;;;;;;;;;;;2426:187:0;2518:6;134:1065:29;;-1:-1:-1;;;;;134:1065:29;;;-1:-1:-1;;;;;;134:1065:29;;;;;;;;;;;;;;-1:-1:-1;;;;;;;;;;;2566:40:0;;2426:187::o;285:444:29:-;;;;134:1065;;412:22;;;134:1065;;;;;:::i;:::-;412:22;134:1065;412:22;134:1065;;412:22;;;;;;;;:::i;:::-;134:1065;402:33;;134:1065;;;449:23;412:22;449:23;;134:1065;;;;;;:::i;:::-;449:23;;;;;;;;:::i;:::-;134:1065;439:34;;402:71;398:93;;134:1065;;;;:::i;:::-;;;:::i;:::-;;;547:13;;543:51;;134:1065;;;;;;;:::i;:::-;;;;661:13;;657:51;;-1:-1:-1;;;;;;285:444:29:o;657:51::-;520:6;687:9;134:1065;679:29;;:::o;543:51::-;584:9;;;520:6;584:9;;;134:1065;565:29;:::o;398:93::-;-1:-1:-1;486:1:29;;-1:-1:-1;486:1:29;;478:13::o",
   "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.3;\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\nimport \"./IOracle.sol\";\n\ncontract Oracle is IOracle, Ownable {\n\tstruct Fraction {\n\t\tuint num;\n\t\tuint den;\n\t}\n\t\n\tmapping(string => mapping(string => Fraction)) public prices;\n\n\tfunction getPrice(string memory base, string memory quote) public override view returns (uint num, uint den) {\n\t\tif (keccak256(abi.encodePacked(base)) == keccak256(abi.encodePacked(quote)))\n\t\t\treturn (1, 1);\n\t\tFraction storage price = prices[base][quote];\n\t\tif (price.num > 0)\n\t\t\treturn (price.num, price.den);\n\t\t// try a reverse fraction\n\t\tprice = prices[quote][base];\n\t\tif (price.num > 0)\n\t\t\treturn (price.den, price.num);\n\t\treturn (0, 0);\n\t}\n\n\t// zero den is ok - infinite price\n\t// both zeros: stopped trading, no price\n\tfunction setPrice(string memory base, string memory quote, uint num, uint den) onlyOwner public {\n\t\tFraction storage reverse_price = prices[quote][base];\n\t\tbool reverse_price_exists = (reverse_price.num > 0 || reverse_price.den > 0);\n\t\tif (!reverse_price_exists)\n\t\t\tprices[base][quote] = Fraction({num: num, den: den});\n\t\telse\n\t\t\tprices[quote][base] = Fraction({num: den, den: num});\n\t}\n\n}\n",
-  "sourcePath": "/Users/jm/3DP-bridge/counterstake-bridge/evm/contracts/Oracle.sol",
+  "sourcePath": "/Users/jm/counterstake-bridge/evm_substrate/contracts/Oracle.sol",
   "ast": {
     "absolutePath": "project:/contracts/Oracle.sol",
     "exportedSymbols": {
       "Context": [
-        1107
+        1099
       ],
       "IOracle": [
-        9015
+        9007
       ],
       "Oracle": [
-        13127
+        13109
       ],
       "Ownable": [
         112
       ]
     },
-    "id": 13128,
+    "id": 13110,
     "license": "MIT",
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 12973,
+        "id": 12955,
         "literals": [
           "solidity",
           "^",
@@ -184,10 +184,10 @@
       {
         "absolutePath": "@openzeppelin/contracts/access/Ownable.sol",
         "file": "@openzeppelin/contracts/access/Ownable.sol",
-        "id": 12974,
+        "id": 12956,
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
-        "scope": 13128,
+        "scope": 13110,
         "sourceUnit": 113,
         "src": "56:52:29",
         "symbolAliases": [],
@@ -196,11 +196,11 @@
       {
         "absolutePath": "project:/contracts/IOracle.sol",
         "file": "./IOracle.sol",
-        "id": 12975,
+        "id": 12957,
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
-        "scope": 13128,
-        "sourceUnit": 9016,
+        "scope": 13110,
+        "sourceUnit": 9008,
         "src": "109:23:29",
         "symbolAliases": [],
         "unitAlias": ""
@@ -210,25 +210,25 @@
         "baseContracts": [
           {
             "baseName": {
-              "id": 12976,
+              "id": 12958,
               "name": "IOracle",
               "nodeType": "IdentifierPath",
-              "referencedDeclaration": 9015,
+              "referencedDeclaration": 9007,
               "src": "153:7:29"
             },
-            "id": 12977,
+            "id": 12959,
             "nodeType": "InheritanceSpecifier",
             "src": "153:7:29"
           },
           {
             "baseName": {
-              "id": 12978,
+              "id": 12960,
               "name": "Ownable",
               "nodeType": "IdentifierPath",
               "referencedDeclaration": 112,
               "src": "162:7:29"
             },
-            "id": 12979,
+            "id": 12961,
             "nodeType": "InheritanceSpecifier",
             "src": "162:7:29"
           }
@@ -237,12 +237,12 @@
         "contractDependencies": [],
         "contractKind": "contract",
         "fullyImplemented": true,
-        "id": 13127,
+        "id": 13109,
         "linearizedBaseContracts": [
-          13127,
+          13109,
           112,
-          1107,
-          9015
+          1099,
+          9007
         ],
         "name": "Oracle",
         "nameLocation": "143:6:29",
@@ -250,16 +250,16 @@
         "nodes": [
           {
             "canonicalName": "Oracle.Fraction",
-            "id": 12984,
+            "id": 12966,
             "members": [
               {
                 "constant": false,
-                "id": 12981,
+                "id": 12963,
                 "mutability": "mutable",
                 "name": "num",
                 "nameLocation": "198:3:29",
                 "nodeType": "VariableDeclaration",
-                "scope": 12984,
+                "scope": 12966,
                 "src": "193:8:29",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -268,7 +268,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 12980,
+                  "id": 12962,
                   "name": "uint",
                   "nodeType": "ElementaryTypeName",
                   "src": "193:4:29",
@@ -281,12 +281,12 @@
               },
               {
                 "constant": false,
-                "id": 12983,
+                "id": 12965,
                 "mutability": "mutable",
                 "name": "den",
                 "nameLocation": "210:3:29",
                 "nodeType": "VariableDeclaration",
-                "scope": 12984,
+                "scope": 12966,
                 "src": "205:8:29",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -295,7 +295,7 @@
                   "typeString": "uint256"
                 },
                 "typeName": {
-                  "id": 12982,
+                  "id": 12964,
                   "name": "uint",
                   "nodeType": "ElementaryTypeName",
                   "src": "205:4:29",
@@ -310,30 +310,30 @@
             "name": "Fraction",
             "nameLocation": "180:8:29",
             "nodeType": "StructDefinition",
-            "scope": 13127,
+            "scope": 13109,
             "src": "173:44:29",
             "visibility": "public"
           },
           {
             "constant": false,
             "functionSelector": "402b4430",
-            "id": 12991,
+            "id": 12973,
             "mutability": "mutable",
             "name": "prices",
             "nameLocation": "275:6:29",
             "nodeType": "VariableDeclaration",
-            "scope": 13127,
+            "scope": 13109,
             "src": "221:60:29",
             "stateVariable": true,
             "storageLocation": "default",
             "typeDescriptions": {
-              "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$_$",
+              "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$_$",
               "typeString": "mapping(string => mapping(string => struct Oracle.Fraction))"
             },
             "typeName": {
-              "id": 12990,
+              "id": 12972,
               "keyType": {
-                "id": 12985,
+                "id": 12967,
                 "name": "string",
                 "nodeType": "ElementaryTypeName",
                 "src": "229:6:29",
@@ -345,13 +345,13 @@
               "nodeType": "Mapping",
               "src": "221:46:29",
               "typeDescriptions": {
-                "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$_$",
+                "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$_$",
                 "typeString": "mapping(string => mapping(string => struct Oracle.Fraction))"
               },
               "valueType": {
-                "id": 12989,
+                "id": 12971,
                 "keyType": {
-                  "id": 12986,
+                  "id": 12968,
                   "name": "string",
                   "nodeType": "ElementaryTypeName",
                   "src": "247:6:29",
@@ -363,23 +363,23 @@
                 "nodeType": "Mapping",
                 "src": "239:27:29",
                 "typeDescriptions": {
-                  "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$",
+                  "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$",
                   "typeString": "mapping(string => struct Oracle.Fraction)"
                 },
                 "valueType": {
-                  "id": 12988,
+                  "id": 12970,
                   "nodeType": "UserDefinedTypeName",
                   "pathNode": {
-                    "id": 12987,
+                    "id": 12969,
                     "name": "Fraction",
                     "nodeType": "IdentifierPath",
-                    "referencedDeclaration": 12984,
+                    "referencedDeclaration": 12966,
                     "src": "257:8:29"
                   },
-                  "referencedDeclaration": 12984,
+                  "referencedDeclaration": 12966,
                   "src": "257:8:29",
                   "typeDescriptions": {
-                    "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                    "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                     "typeString": "struct Oracle.Fraction"
                   }
                 }
@@ -389,10 +389,10 @@
           },
           {
             "baseFunctions": [
-              9014
+              9006
             ],
             "body": {
-              "id": 13064,
+              "id": 13046,
               "nodeType": "Block",
               "src": "394:335:29",
               "statements": [
@@ -402,7 +402,7 @@
                       "typeIdentifier": "t_bytes32",
                       "typeString": "bytes32"
                     },
-                    "id": 13015,
+                    "id": 12997,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
@@ -412,11 +412,11 @@
                         {
                           "arguments": [
                             {
-                              "id": 13006,
+                              "id": 12988,
                               "name": "base",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
-                              "referencedDeclaration": 12993,
+                              "referencedDeclaration": 12975,
                               "src": "429:4:29",
                               "typeDescriptions": {
                                 "typeIdentifier": "t_string_memory_ptr",
@@ -432,7 +432,7 @@
                               }
                             ],
                             "expression": {
-                              "id": 13004,
+                              "id": 12986,
                               "name": "abi",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
@@ -443,7 +443,7 @@
                                 "typeString": "abi"
                               }
                             },
-                            "id": 13005,
+                            "id": 12987,
                             "isConstant": false,
                             "isLValue": false,
                             "isPure": true,
@@ -456,7 +456,7 @@
                               "typeString": "function () pure returns (bytes memory)"
                             }
                           },
-                          "id": 13007,
+                          "id": 12989,
                           "isConstant": false,
                           "isLValue": false,
                           "isPure": false,
@@ -479,7 +479,7 @@
                             "typeString": "bytes memory"
                           }
                         ],
-                        "id": 13003,
+                        "id": 12985,
                         "name": "keccak256",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
@@ -490,7 +490,7 @@
                           "typeString": "function (bytes memory) pure returns (bytes32)"
                         }
                       },
-                      "id": 13008,
+                      "id": 12990,
                       "isConstant": false,
                       "isLValue": false,
                       "isPure": false,
@@ -512,11 +512,11 @@
                         {
                           "arguments": [
                             {
-                              "id": 13012,
+                              "id": 12994,
                               "name": "quote",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
-                              "referencedDeclaration": 12995,
+                              "referencedDeclaration": 12977,
                               "src": "466:5:29",
                               "typeDescriptions": {
                                 "typeIdentifier": "t_string_memory_ptr",
@@ -532,7 +532,7 @@
                               }
                             ],
                             "expression": {
-                              "id": 13010,
+                              "id": 12992,
                               "name": "abi",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
@@ -543,7 +543,7 @@
                                 "typeString": "abi"
                               }
                             },
-                            "id": 13011,
+                            "id": 12993,
                             "isConstant": false,
                             "isLValue": false,
                             "isPure": true,
@@ -556,7 +556,7 @@
                               "typeString": "function () pure returns (bytes memory)"
                             }
                           },
-                          "id": 13013,
+                          "id": 12995,
                           "isConstant": false,
                           "isLValue": false,
                           "isPure": false,
@@ -579,7 +579,7 @@
                             "typeString": "bytes memory"
                           }
                         ],
-                        "id": 13009,
+                        "id": 12991,
                         "name": "keccak256",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
@@ -590,7 +590,7 @@
                           "typeString": "function (bytes memory) pure returns (bytes32)"
                         }
                       },
-                      "id": 13014,
+                      "id": 12996,
                       "isConstant": false,
                       "isLValue": false,
                       "isPure": false,
@@ -611,7 +611,7 @@
                       "typeString": "bool"
                     }
                   },
-                  "id": 13020,
+                  "id": 13002,
                   "nodeType": "IfStatement",
                   "src": "398:93:29",
                   "trueBody": {
@@ -619,7 +619,7 @@
                       "components": [
                         {
                           "hexValue": "31",
-                          "id": 13016,
+                          "id": 12998,
                           "isConstant": false,
                           "isLValue": false,
                           "isPure": true,
@@ -635,7 +635,7 @@
                         },
                         {
                           "hexValue": "31",
-                          "id": 13017,
+                          "id": 12999,
                           "isConstant": false,
                           "isLValue": false,
                           "isPure": true,
@@ -650,7 +650,7 @@
                           "value": "1"
                         }
                       ],
-                      "id": 13018,
+                      "id": 13000,
                       "isConstant": false,
                       "isInlineArray": false,
                       "isLValue": false,
@@ -663,74 +663,74 @@
                         "typeString": "tuple(int_const 1,int_const 1)"
                       }
                     },
-                    "functionReturnParameters": 13002,
-                    "id": 13019,
+                    "functionReturnParameters": 12984,
+                    "id": 13001,
                     "nodeType": "Return",
                     "src": "478:13:29"
                   }
                 },
                 {
                   "assignments": [
-                    13023
+                    13005
                   ],
                   "declarations": [
                     {
                       "constant": false,
-                      "id": 13023,
+                      "id": 13005,
                       "mutability": "mutable",
                       "name": "price",
                       "nameLocation": "512:5:29",
                       "nodeType": "VariableDeclaration",
-                      "scope": 13064,
+                      "scope": 13046,
                       "src": "495:22:29",
                       "stateVariable": false,
                       "storageLocation": "storage",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                        "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                         "typeString": "struct Oracle.Fraction"
                       },
                       "typeName": {
-                        "id": 13022,
+                        "id": 13004,
                         "nodeType": "UserDefinedTypeName",
                         "pathNode": {
-                          "id": 13021,
+                          "id": 13003,
                           "name": "Fraction",
                           "nodeType": "IdentifierPath",
-                          "referencedDeclaration": 12984,
+                          "referencedDeclaration": 12966,
                           "src": "495:8:29"
                         },
-                        "referencedDeclaration": 12984,
+                        "referencedDeclaration": 12966,
                         "src": "495:8:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                           "typeString": "struct Oracle.Fraction"
                         }
                       },
                       "visibility": "internal"
                     }
                   ],
-                  "id": 13029,
+                  "id": 13011,
                   "initialValue": {
                     "baseExpression": {
                       "baseExpression": {
-                        "id": 13024,
+                        "id": 13006,
                         "name": "prices",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 12991,
+                        "referencedDeclaration": 12973,
                         "src": "520:6:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$_$",
+                          "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$_$",
                           "typeString": "mapping(string memory => mapping(string memory => struct Oracle.Fraction storage ref))"
                         }
                       },
-                      "id": 13026,
+                      "id": 13008,
                       "indexExpression": {
-                        "id": 13025,
+                        "id": 13007,
                         "name": "base",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 12993,
+                        "referencedDeclaration": 12975,
                         "src": "527:4:29",
                         "typeDescriptions": {
                           "typeIdentifier": "t_string_memory_ptr",
@@ -744,17 +744,17 @@
                       "nodeType": "IndexAccess",
                       "src": "520:12:29",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$",
+                        "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$",
                         "typeString": "mapping(string memory => struct Oracle.Fraction storage ref)"
                       }
                     },
-                    "id": 13028,
+                    "id": 13010,
                     "indexExpression": {
-                      "id": 13027,
+                      "id": 13009,
                       "name": "quote",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 12995,
+                      "referencedDeclaration": 12977,
                       "src": "533:5:29",
                       "typeDescriptions": {
                         "typeIdentifier": "t_string_memory_ptr",
@@ -768,7 +768,7 @@
                     "nodeType": "IndexAccess",
                     "src": "520:19:29",
                     "typeDescriptions": {
-                      "typeIdentifier": "t_struct$_Fraction_$12984_storage",
+                      "typeIdentifier": "t_struct$_Fraction_$12966_storage",
                       "typeString": "struct Oracle.Fraction storage ref"
                     }
                   },
@@ -781,32 +781,32 @@
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
                     },
-                    "id": 13033,
+                    "id": 13015,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
                     "leftExpression": {
                       "expression": {
-                        "id": 13030,
+                        "id": 13012,
                         "name": "price",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 13023,
+                        "referencedDeclaration": 13005,
                         "src": "547:5:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                           "typeString": "struct Oracle.Fraction storage pointer"
                         }
                       },
-                      "id": 13031,
+                      "id": 13013,
                       "isConstant": false,
                       "isLValue": true,
                       "isPure": false,
                       "lValueRequested": false,
                       "memberName": "num",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 12981,
+                      "referencedDeclaration": 12963,
                       "src": "547:9:29",
                       "typeDescriptions": {
                         "typeIdentifier": "t_uint256",
@@ -817,7 +817,7 @@
                     "operator": ">",
                     "rightExpression": {
                       "hexValue": "30",
-                      "id": 13032,
+                      "id": 13014,
                       "isConstant": false,
                       "isLValue": false,
                       "isPure": true,
@@ -837,7 +837,7 @@
                       "typeString": "bool"
                     }
                   },
-                  "id": 13040,
+                  "id": 13022,
                   "nodeType": "IfStatement",
                   "src": "543:51:29",
                   "trueBody": {
@@ -845,25 +845,25 @@
                       "components": [
                         {
                           "expression": {
-                            "id": 13034,
+                            "id": 13016,
                             "name": "price",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13023,
+                            "referencedDeclaration": 13005,
                             "src": "573:5:29",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                              "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                               "typeString": "struct Oracle.Fraction storage pointer"
                             }
                           },
-                          "id": 13035,
+                          "id": 13017,
                           "isConstant": false,
                           "isLValue": true,
                           "isPure": false,
                           "lValueRequested": false,
                           "memberName": "num",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 12981,
+                          "referencedDeclaration": 12963,
                           "src": "573:9:29",
                           "typeDescriptions": {
                             "typeIdentifier": "t_uint256",
@@ -872,25 +872,25 @@
                         },
                         {
                           "expression": {
-                            "id": 13036,
+                            "id": 13018,
                             "name": "price",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13023,
+                            "referencedDeclaration": 13005,
                             "src": "584:5:29",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                              "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                               "typeString": "struct Oracle.Fraction storage pointer"
                             }
                           },
-                          "id": 13037,
+                          "id": 13019,
                           "isConstant": false,
                           "isLValue": true,
                           "isPure": false,
                           "lValueRequested": false,
                           "memberName": "den",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 12983,
+                          "referencedDeclaration": 12965,
                           "src": "584:9:29",
                           "typeDescriptions": {
                             "typeIdentifier": "t_uint256",
@@ -898,7 +898,7 @@
                           }
                         }
                       ],
-                      "id": 13038,
+                      "id": 13020,
                       "isConstant": false,
                       "isInlineArray": false,
                       "isLValue": false,
@@ -911,28 +911,28 @@
                         "typeString": "tuple(uint256,uint256)"
                       }
                     },
-                    "functionReturnParameters": 13002,
-                    "id": 13039,
+                    "functionReturnParameters": 12984,
+                    "id": 13021,
                     "nodeType": "Return",
                     "src": "565:29:29"
                   }
                 },
                 {
                   "expression": {
-                    "id": 13047,
+                    "id": 13029,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
                     "leftHandSide": {
-                      "id": 13041,
+                      "id": 13023,
                       "name": "price",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 13023,
+                      "referencedDeclaration": 13005,
                       "src": "626:5:29",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                        "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                         "typeString": "struct Oracle.Fraction storage pointer"
                       }
                     },
@@ -941,24 +941,24 @@
                     "rightHandSide": {
                       "baseExpression": {
                         "baseExpression": {
-                          "id": 13042,
+                          "id": 13024,
                           "name": "prices",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 12991,
+                          "referencedDeclaration": 12973,
                           "src": "634:6:29",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$_$",
+                            "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$_$",
                             "typeString": "mapping(string memory => mapping(string memory => struct Oracle.Fraction storage ref))"
                           }
                         },
-                        "id": 13044,
+                        "id": 13026,
                         "indexExpression": {
-                          "id": 13043,
+                          "id": 13025,
                           "name": "quote",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 12995,
+                          "referencedDeclaration": 12977,
                           "src": "641:5:29",
                           "typeDescriptions": {
                             "typeIdentifier": "t_string_memory_ptr",
@@ -972,17 +972,17 @@
                         "nodeType": "IndexAccess",
                         "src": "634:13:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$",
+                          "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$",
                           "typeString": "mapping(string memory => struct Oracle.Fraction storage ref)"
                         }
                       },
-                      "id": 13046,
+                      "id": 13028,
                       "indexExpression": {
-                        "id": 13045,
+                        "id": 13027,
                         "name": "base",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 12993,
+                        "referencedDeclaration": 12975,
                         "src": "648:4:29",
                         "typeDescriptions": {
                           "typeIdentifier": "t_string_memory_ptr",
@@ -996,17 +996,17 @@
                       "nodeType": "IndexAccess",
                       "src": "634:19:29",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_struct$_Fraction_$12984_storage",
+                        "typeIdentifier": "t_struct$_Fraction_$12966_storage",
                         "typeString": "struct Oracle.Fraction storage ref"
                       }
                     },
                     "src": "626:27:29",
                     "typeDescriptions": {
-                      "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                      "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                       "typeString": "struct Oracle.Fraction storage pointer"
                     }
                   },
-                  "id": 13048,
+                  "id": 13030,
                   "nodeType": "ExpressionStatement",
                   "src": "626:27:29"
                 },
@@ -1016,32 +1016,32 @@
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
                     },
-                    "id": 13052,
+                    "id": 13034,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
                     "leftExpression": {
                       "expression": {
-                        "id": 13049,
+                        "id": 13031,
                         "name": "price",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 13023,
+                        "referencedDeclaration": 13005,
                         "src": "661:5:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                           "typeString": "struct Oracle.Fraction storage pointer"
                         }
                       },
-                      "id": 13050,
+                      "id": 13032,
                       "isConstant": false,
                       "isLValue": true,
                       "isPure": false,
                       "lValueRequested": false,
                       "memberName": "num",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 12981,
+                      "referencedDeclaration": 12963,
                       "src": "661:9:29",
                       "typeDescriptions": {
                         "typeIdentifier": "t_uint256",
@@ -1052,7 +1052,7 @@
                     "operator": ">",
                     "rightExpression": {
                       "hexValue": "30",
-                      "id": 13051,
+                      "id": 13033,
                       "isConstant": false,
                       "isLValue": false,
                       "isPure": true,
@@ -1072,7 +1072,7 @@
                       "typeString": "bool"
                     }
                   },
-                  "id": 13059,
+                  "id": 13041,
                   "nodeType": "IfStatement",
                   "src": "657:51:29",
                   "trueBody": {
@@ -1080,25 +1080,25 @@
                       "components": [
                         {
                           "expression": {
-                            "id": 13053,
+                            "id": 13035,
                             "name": "price",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13023,
+                            "referencedDeclaration": 13005,
                             "src": "687:5:29",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                              "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                               "typeString": "struct Oracle.Fraction storage pointer"
                             }
                           },
-                          "id": 13054,
+                          "id": 13036,
                           "isConstant": false,
                           "isLValue": true,
                           "isPure": false,
                           "lValueRequested": false,
                           "memberName": "den",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 12983,
+                          "referencedDeclaration": 12965,
                           "src": "687:9:29",
                           "typeDescriptions": {
                             "typeIdentifier": "t_uint256",
@@ -1107,25 +1107,25 @@
                         },
                         {
                           "expression": {
-                            "id": 13055,
+                            "id": 13037,
                             "name": "price",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13023,
+                            "referencedDeclaration": 13005,
                             "src": "698:5:29",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                              "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                               "typeString": "struct Oracle.Fraction storage pointer"
                             }
                           },
-                          "id": 13056,
+                          "id": 13038,
                           "isConstant": false,
                           "isLValue": true,
                           "isPure": false,
                           "lValueRequested": false,
                           "memberName": "num",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 12981,
+                          "referencedDeclaration": 12963,
                           "src": "698:9:29",
                           "typeDescriptions": {
                             "typeIdentifier": "t_uint256",
@@ -1133,7 +1133,7 @@
                           }
                         }
                       ],
-                      "id": 13057,
+                      "id": 13039,
                       "isConstant": false,
                       "isInlineArray": false,
                       "isLValue": false,
@@ -1146,8 +1146,8 @@
                         "typeString": "tuple(uint256,uint256)"
                       }
                     },
-                    "functionReturnParameters": 13002,
-                    "id": 13058,
+                    "functionReturnParameters": 12984,
+                    "id": 13040,
                     "nodeType": "Return",
                     "src": "679:29:29"
                   }
@@ -1157,7 +1157,7 @@
                     "components": [
                       {
                         "hexValue": "30",
-                        "id": 13060,
+                        "id": 13042,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": true,
@@ -1173,7 +1173,7 @@
                       },
                       {
                         "hexValue": "30",
-                        "id": 13061,
+                        "id": 13043,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": true,
@@ -1188,7 +1188,7 @@
                         "value": "0"
                       }
                     ],
-                    "id": 13062,
+                    "id": 13044,
                     "isConstant": false,
                     "isInlineArray": false,
                     "isLValue": false,
@@ -1201,15 +1201,15 @@
                       "typeString": "tuple(int_const 0,int_const 0)"
                     }
                   },
-                  "functionReturnParameters": 13002,
-                  "id": 13063,
+                  "functionReturnParameters": 12984,
+                  "id": 13045,
                   "nodeType": "Return",
                   "src": "712:13:29"
                 }
               ]
             },
             "functionSelector": "3d0f34da",
-            "id": 13065,
+            "id": 13047,
             "implemented": true,
             "kind": "function",
             "modifiers": [],
@@ -1217,23 +1217,23 @@
             "nameLocation": "294:8:29",
             "nodeType": "FunctionDefinition",
             "overrides": {
-              "id": 12997,
+              "id": 12979,
               "nodeType": "OverrideSpecifier",
               "overrides": [],
               "src": "351:8:29"
             },
             "parameters": {
-              "id": 12996,
+              "id": 12978,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 12993,
+                  "id": 12975,
                   "mutability": "mutable",
                   "name": "base",
                   "nameLocation": "317:4:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13065,
+                  "scope": 13047,
                   "src": "303:18:29",
                   "stateVariable": false,
                   "storageLocation": "memory",
@@ -1242,7 +1242,7 @@
                     "typeString": "string"
                   },
                   "typeName": {
-                    "id": 12992,
+                    "id": 12974,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
                     "src": "303:6:29",
@@ -1255,12 +1255,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 12995,
+                  "id": 12977,
                   "mutability": "mutable",
                   "name": "quote",
                   "nameLocation": "337:5:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13065,
+                  "scope": 13047,
                   "src": "323:19:29",
                   "stateVariable": false,
                   "storageLocation": "memory",
@@ -1269,7 +1269,7 @@
                     "typeString": "string"
                   },
                   "typeName": {
-                    "id": 12994,
+                    "id": 12976,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
                     "src": "323:6:29",
@@ -1284,17 +1284,17 @@
               "src": "302:41:29"
             },
             "returnParameters": {
-              "id": 13002,
+              "id": 12984,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 12999,
+                  "id": 12981,
                   "mutability": "mutable",
                   "name": "num",
                   "nameLocation": "379:3:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13065,
+                  "scope": 13047,
                   "src": "374:8:29",
                   "stateVariable": false,
                   "storageLocation": "default",
@@ -1303,7 +1303,7 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 12998,
+                    "id": 12980,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
                     "src": "374:4:29",
@@ -1316,12 +1316,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 13001,
+                  "id": 12983,
                   "mutability": "mutable",
                   "name": "den",
                   "nameLocation": "389:3:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13065,
+                  "scope": 13047,
                   "src": "384:8:29",
                   "stateVariable": false,
                   "storageLocation": "default",
@@ -1330,7 +1330,7 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 13000,
+                    "id": 12982,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
                     "src": "384:4:29",
@@ -1344,7 +1344,7 @@
               ],
               "src": "373:20:29"
             },
-            "scope": 13127,
+            "scope": 13109,
             "src": "285:444:29",
             "stateMutability": "view",
             "virtual": false,
@@ -1352,72 +1352,72 @@
           },
           {
             "body": {
-              "id": 13125,
+              "id": 13107,
               "nodeType": "Block",
               "src": "906:290:29",
               "statements": [
                 {
                   "assignments": [
-                    13080
+                    13062
                   ],
                   "declarations": [
                     {
                       "constant": false,
-                      "id": 13080,
+                      "id": 13062,
                       "mutability": "mutable",
                       "name": "reverse_price",
                       "nameLocation": "927:13:29",
                       "nodeType": "VariableDeclaration",
-                      "scope": 13125,
+                      "scope": 13107,
                       "src": "910:30:29",
                       "stateVariable": false,
                       "storageLocation": "storage",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                        "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                         "typeString": "struct Oracle.Fraction"
                       },
                       "typeName": {
-                        "id": 13079,
+                        "id": 13061,
                         "nodeType": "UserDefinedTypeName",
                         "pathNode": {
-                          "id": 13078,
+                          "id": 13060,
                           "name": "Fraction",
                           "nodeType": "IdentifierPath",
-                          "referencedDeclaration": 12984,
+                          "referencedDeclaration": 12966,
                           "src": "910:8:29"
                         },
-                        "referencedDeclaration": 12984,
+                        "referencedDeclaration": 12966,
                         "src": "910:8:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                           "typeString": "struct Oracle.Fraction"
                         }
                       },
                       "visibility": "internal"
                     }
                   ],
-                  "id": 13086,
+                  "id": 13068,
                   "initialValue": {
                     "baseExpression": {
                       "baseExpression": {
-                        "id": 13081,
+                        "id": 13063,
                         "name": "prices",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 12991,
+                        "referencedDeclaration": 12973,
                         "src": "943:6:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$_$",
+                          "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$_$",
                           "typeString": "mapping(string memory => mapping(string memory => struct Oracle.Fraction storage ref))"
                         }
                       },
-                      "id": 13083,
+                      "id": 13065,
                       "indexExpression": {
-                        "id": 13082,
+                        "id": 13064,
                         "name": "quote",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 13069,
+                        "referencedDeclaration": 13051,
                         "src": "950:5:29",
                         "typeDescriptions": {
                           "typeIdentifier": "t_string_memory_ptr",
@@ -1431,17 +1431,17 @@
                       "nodeType": "IndexAccess",
                       "src": "943:13:29",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$",
+                        "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$",
                         "typeString": "mapping(string memory => struct Oracle.Fraction storage ref)"
                       }
                     },
-                    "id": 13085,
+                    "id": 13067,
                     "indexExpression": {
-                      "id": 13084,
+                      "id": 13066,
                       "name": "base",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 13067,
+                      "referencedDeclaration": 13049,
                       "src": "957:4:29",
                       "typeDescriptions": {
                         "typeIdentifier": "t_string_memory_ptr",
@@ -1455,7 +1455,7 @@
                     "nodeType": "IndexAccess",
                     "src": "943:19:29",
                     "typeDescriptions": {
-                      "typeIdentifier": "t_struct$_Fraction_$12984_storage",
+                      "typeIdentifier": "t_struct$_Fraction_$12966_storage",
                       "typeString": "struct Oracle.Fraction storage ref"
                     }
                   },
@@ -1464,17 +1464,17 @@
                 },
                 {
                   "assignments": [
-                    13088
+                    13070
                   ],
                   "declarations": [
                     {
                       "constant": false,
-                      "id": 13088,
+                      "id": 13070,
                       "mutability": "mutable",
                       "name": "reverse_price_exists",
                       "nameLocation": "971:20:29",
                       "nodeType": "VariableDeclaration",
-                      "scope": 13125,
+                      "scope": 13107,
                       "src": "966:25:29",
                       "stateVariable": false,
                       "storageLocation": "default",
@@ -1483,7 +1483,7 @@
                         "typeString": "bool"
                       },
                       "typeName": {
-                        "id": 13087,
+                        "id": 13069,
                         "name": "bool",
                         "nodeType": "ElementaryTypeName",
                         "src": "966:4:29",
@@ -1495,7 +1495,7 @@
                       "visibility": "internal"
                     }
                   ],
-                  "id": 13099,
+                  "id": 13081,
                   "initialValue": {
                     "components": [
                       {
@@ -1503,7 +1503,7 @@
                           "typeIdentifier": "t_bool",
                           "typeString": "bool"
                         },
-                        "id": 13097,
+                        "id": 13079,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": false,
@@ -1513,32 +1513,32 @@
                             "typeIdentifier": "t_uint256",
                             "typeString": "uint256"
                           },
-                          "id": 13092,
+                          "id": 13074,
                           "isConstant": false,
                           "isLValue": false,
                           "isPure": false,
                           "lValueRequested": false,
                           "leftExpression": {
                             "expression": {
-                              "id": 13089,
+                              "id": 13071,
                               "name": "reverse_price",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
-                              "referencedDeclaration": 13080,
+                              "referencedDeclaration": 13062,
                               "src": "995:13:29",
                               "typeDescriptions": {
-                                "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                                "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                                 "typeString": "struct Oracle.Fraction storage pointer"
                               }
                             },
-                            "id": 13090,
+                            "id": 13072,
                             "isConstant": false,
                             "isLValue": true,
                             "isPure": false,
                             "lValueRequested": false,
                             "memberName": "num",
                             "nodeType": "MemberAccess",
-                            "referencedDeclaration": 12981,
+                            "referencedDeclaration": 12963,
                             "src": "995:17:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_uint256",
@@ -1549,7 +1549,7 @@
                           "operator": ">",
                           "rightExpression": {
                             "hexValue": "30",
-                            "id": 13091,
+                            "id": 13073,
                             "isConstant": false,
                             "isLValue": false,
                             "isPure": true,
@@ -1576,32 +1576,32 @@
                             "typeIdentifier": "t_uint256",
                             "typeString": "uint256"
                           },
-                          "id": 13096,
+                          "id": 13078,
                           "isConstant": false,
                           "isLValue": false,
                           "isPure": false,
                           "lValueRequested": false,
                           "leftExpression": {
                             "expression": {
-                              "id": 13093,
+                              "id": 13075,
                               "name": "reverse_price",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
-                              "referencedDeclaration": 13080,
+                              "referencedDeclaration": 13062,
                               "src": "1020:13:29",
                               "typeDescriptions": {
-                                "typeIdentifier": "t_struct$_Fraction_$12984_storage_ptr",
+                                "typeIdentifier": "t_struct$_Fraction_$12966_storage_ptr",
                                 "typeString": "struct Oracle.Fraction storage pointer"
                               }
                             },
-                            "id": 13094,
+                            "id": 13076,
                             "isConstant": false,
                             "isLValue": true,
                             "isPure": false,
                             "lValueRequested": false,
                             "memberName": "den",
                             "nodeType": "MemberAccess",
-                            "referencedDeclaration": 12983,
+                            "referencedDeclaration": 12965,
                             "src": "1020:17:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_uint256",
@@ -1612,7 +1612,7 @@
                           "operator": ">",
                           "rightExpression": {
                             "hexValue": "30",
-                            "id": 13095,
+                            "id": 13077,
                             "isConstant": false,
                             "isLValue": false,
                             "isPure": true,
@@ -1639,7 +1639,7 @@
                         }
                       }
                     ],
-                    "id": 13098,
+                    "id": 13080,
                     "isConstant": false,
                     "isInlineArray": false,
                     "isLValue": false,
@@ -1657,7 +1657,7 @@
                 },
                 {
                   "condition": {
-                    "id": 13101,
+                    "id": 13083,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
@@ -1667,11 +1667,11 @@
                     "prefix": true,
                     "src": "1050:21:29",
                     "subExpression": {
-                      "id": 13100,
+                      "id": 13082,
                       "name": "reverse_price_exists",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 13088,
+                      "referencedDeclaration": 13070,
                       "src": "1051:20:29",
                       "typeDescriptions": {
                         "typeIdentifier": "t_bool",
@@ -1685,7 +1685,7 @@
                   },
                   "falseBody": {
                     "expression": {
-                      "id": 13122,
+                      "id": 13104,
                       "isConstant": false,
                       "isLValue": false,
                       "isPure": false,
@@ -1693,24 +1693,24 @@
                       "leftHandSide": {
                         "baseExpression": {
                           "baseExpression": {
-                            "id": 13113,
+                            "id": 13095,
                             "name": "prices",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 12991,
+                            "referencedDeclaration": 12973,
                             "src": "1140:6:29",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$_$",
+                              "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$_$",
                               "typeString": "mapping(string memory => mapping(string memory => struct Oracle.Fraction storage ref))"
                             }
                           },
-                          "id": 13116,
+                          "id": 13098,
                           "indexExpression": {
-                            "id": 13114,
+                            "id": 13096,
                             "name": "quote",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13069,
+                            "referencedDeclaration": 13051,
                             "src": "1147:5:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_string_memory_ptr",
@@ -1724,17 +1724,17 @@
                           "nodeType": "IndexAccess",
                           "src": "1140:13:29",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$",
+                            "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$",
                             "typeString": "mapping(string memory => struct Oracle.Fraction storage ref)"
                           }
                         },
-                        "id": 13117,
+                        "id": 13099,
                         "indexExpression": {
-                          "id": 13115,
+                          "id": 13097,
                           "name": "base",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 13067,
+                          "referencedDeclaration": 13049,
                           "src": "1154:4:29",
                           "typeDescriptions": {
                             "typeIdentifier": "t_string_memory_ptr",
@@ -1748,7 +1748,7 @@
                         "nodeType": "IndexAccess",
                         "src": "1140:19:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_storage",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_storage",
                           "typeString": "struct Oracle.Fraction storage ref"
                         }
                       },
@@ -1757,11 +1757,11 @@
                       "rightHandSide": {
                         "arguments": [
                           {
-                            "id": 13119,
+                            "id": 13101,
                             "name": "den",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13073,
+                            "referencedDeclaration": 13055,
                             "src": "1177:3:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_uint256",
@@ -1769,11 +1769,11 @@
                             }
                           },
                           {
-                            "id": 13120,
+                            "id": 13102,
                             "name": "num",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13071,
+                            "referencedDeclaration": 13053,
                             "src": "1187:3:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_uint256",
@@ -1792,18 +1792,18 @@
                               "typeString": "uint256"
                             }
                           ],
-                          "id": 13118,
+                          "id": 13100,
                           "name": "Fraction",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 12984,
+                          "referencedDeclaration": 12966,
                           "src": "1162:8:29",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_type$_t_struct$_Fraction_$12984_storage_ptr_$",
+                            "typeIdentifier": "t_type$_t_struct$_Fraction_$12966_storage_ptr_$",
                             "typeString": "type(struct Oracle.Fraction storage pointer)"
                           }
                         },
-                        "id": 13121,
+                        "id": 13103,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": false,
@@ -1817,26 +1817,26 @@
                         "src": "1162:30:29",
                         "tryCall": false,
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_memory_ptr",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_memory_ptr",
                           "typeString": "struct Oracle.Fraction memory"
                         }
                       },
                       "src": "1140:52:29",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_struct$_Fraction_$12984_storage",
+                        "typeIdentifier": "t_struct$_Fraction_$12966_storage",
                         "typeString": "struct Oracle.Fraction storage ref"
                       }
                     },
-                    "id": 13123,
+                    "id": 13105,
                     "nodeType": "ExpressionStatement",
                     "src": "1140:52:29"
                   },
-                  "id": 13124,
+                  "id": 13106,
                   "nodeType": "IfStatement",
                   "src": "1046:146:29",
                   "trueBody": {
                     "expression": {
-                      "id": 13111,
+                      "id": 13093,
                       "isConstant": false,
                       "isLValue": false,
                       "isPure": false,
@@ -1844,24 +1844,24 @@
                       "leftHandSide": {
                         "baseExpression": {
                           "baseExpression": {
-                            "id": 13102,
+                            "id": 13084,
                             "name": "prices",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 12991,
+                            "referencedDeclaration": 12973,
                             "src": "1076:6:29",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$_$",
+                              "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$_$",
                               "typeString": "mapping(string memory => mapping(string memory => struct Oracle.Fraction storage ref))"
                             }
                           },
-                          "id": 13105,
+                          "id": 13087,
                           "indexExpression": {
-                            "id": 13103,
+                            "id": 13085,
                             "name": "base",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13067,
+                            "referencedDeclaration": 13049,
                             "src": "1083:4:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_string_memory_ptr",
@@ -1875,17 +1875,17 @@
                           "nodeType": "IndexAccess",
                           "src": "1076:12:29",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12984_storage_$",
+                            "typeIdentifier": "t_mapping$_t_string_memory_ptr_$_t_struct$_Fraction_$12966_storage_$",
                             "typeString": "mapping(string memory => struct Oracle.Fraction storage ref)"
                           }
                         },
-                        "id": 13106,
+                        "id": 13088,
                         "indexExpression": {
-                          "id": 13104,
+                          "id": 13086,
                           "name": "quote",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 13069,
+                          "referencedDeclaration": 13051,
                           "src": "1089:5:29",
                           "typeDescriptions": {
                             "typeIdentifier": "t_string_memory_ptr",
@@ -1899,7 +1899,7 @@
                         "nodeType": "IndexAccess",
                         "src": "1076:19:29",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_storage",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_storage",
                           "typeString": "struct Oracle.Fraction storage ref"
                         }
                       },
@@ -1908,11 +1908,11 @@
                       "rightHandSide": {
                         "arguments": [
                           {
-                            "id": 13108,
+                            "id": 13090,
                             "name": "num",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13071,
+                            "referencedDeclaration": 13053,
                             "src": "1113:3:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_uint256",
@@ -1920,11 +1920,11 @@
                             }
                           },
                           {
-                            "id": 13109,
+                            "id": 13091,
                             "name": "den",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 13073,
+                            "referencedDeclaration": 13055,
                             "src": "1123:3:29",
                             "typeDescriptions": {
                               "typeIdentifier": "t_uint256",
@@ -1943,18 +1943,18 @@
                               "typeString": "uint256"
                             }
                           ],
-                          "id": 13107,
+                          "id": 13089,
                           "name": "Fraction",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 12984,
+                          "referencedDeclaration": 12966,
                           "src": "1098:8:29",
                           "typeDescriptions": {
-                            "typeIdentifier": "t_type$_t_struct$_Fraction_$12984_storage_ptr_$",
+                            "typeIdentifier": "t_type$_t_struct$_Fraction_$12966_storage_ptr_$",
                             "typeString": "type(struct Oracle.Fraction storage pointer)"
                           }
                         },
-                        "id": 13110,
+                        "id": 13092,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": false,
@@ -1968,17 +1968,17 @@
                         "src": "1098:30:29",
                         "tryCall": false,
                         "typeDescriptions": {
-                          "typeIdentifier": "t_struct$_Fraction_$12984_memory_ptr",
+                          "typeIdentifier": "t_struct$_Fraction_$12966_memory_ptr",
                           "typeString": "struct Oracle.Fraction memory"
                         }
                       },
                       "src": "1076:52:29",
                       "typeDescriptions": {
-                        "typeIdentifier": "t_struct$_Fraction_$12984_storage",
+                        "typeIdentifier": "t_struct$_Fraction_$12966_storage",
                         "typeString": "struct Oracle.Fraction storage ref"
                       }
                     },
-                    "id": 13112,
+                    "id": 13094,
                     "nodeType": "ExpressionStatement",
                     "src": "1076:52:29"
                   }
@@ -1986,15 +1986,15 @@
               ]
             },
             "functionSelector": "3edcd46c",
-            "id": 13126,
+            "id": 13108,
             "implemented": true,
             "kind": "function",
             "modifiers": [
               {
-                "id": 13076,
+                "id": 13058,
                 "kind": "modifierInvocation",
                 "modifierName": {
-                  "id": 13075,
+                  "id": 13057,
                   "name": "onlyOwner",
                   "nodeType": "IdentifierPath",
                   "referencedDeclaration": 31,
@@ -2008,17 +2008,17 @@
             "nameLocation": "819:8:29",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 13074,
+              "id": 13056,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 13067,
+                  "id": 13049,
                   "mutability": "mutable",
                   "name": "base",
                   "nameLocation": "842:4:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13126,
+                  "scope": 13108,
                   "src": "828:18:29",
                   "stateVariable": false,
                   "storageLocation": "memory",
@@ -2027,7 +2027,7 @@
                     "typeString": "string"
                   },
                   "typeName": {
-                    "id": 13066,
+                    "id": 13048,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
                     "src": "828:6:29",
@@ -2040,12 +2040,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 13069,
+                  "id": 13051,
                   "mutability": "mutable",
                   "name": "quote",
                   "nameLocation": "862:5:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13126,
+                  "scope": 13108,
                   "src": "848:19:29",
                   "stateVariable": false,
                   "storageLocation": "memory",
@@ -2054,7 +2054,7 @@
                     "typeString": "string"
                   },
                   "typeName": {
-                    "id": 13068,
+                    "id": 13050,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
                     "src": "848:6:29",
@@ -2067,12 +2067,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 13071,
+                  "id": 13053,
                   "mutability": "mutable",
                   "name": "num",
                   "nameLocation": "874:3:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13126,
+                  "scope": 13108,
                   "src": "869:8:29",
                   "stateVariable": false,
                   "storageLocation": "default",
@@ -2081,7 +2081,7 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 13070,
+                    "id": 13052,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
                     "src": "869:4:29",
@@ -2094,12 +2094,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 13073,
+                  "id": 13055,
                   "mutability": "mutable",
                   "name": "den",
                   "nameLocation": "884:3:29",
                   "nodeType": "VariableDeclaration",
-                  "scope": 13126,
+                  "scope": 13108,
                   "src": "879:8:29",
                   "stateVariable": false,
                   "storageLocation": "default",
@@ -2108,7 +2108,7 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 13072,
+                    "id": 13054,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
                     "src": "879:4:29",
@@ -2123,19 +2123,19 @@
               "src": "827:61:29"
             },
             "returnParameters": {
-              "id": 13077,
+              "id": 13059,
               "nodeType": "ParameterList",
               "parameters": [],
               "src": "906:0:29"
             },
-            "scope": 13127,
+            "scope": 13109,
             "src": "810:386:29",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "public"
           }
         ],
-        "scope": 13128,
+        "scope": 13110,
         "src": "134:1065:29",
         "usedErrors": []
       }
@@ -2148,7 +2148,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-08-11T16:27:16.828Z",
+  "updatedAt": "2025-08-14T11:37:37.890Z",
   "devdoc": {
     "kind": "dev",
     "methods": {

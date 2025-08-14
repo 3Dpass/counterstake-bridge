@@ -207,7 +207,7 @@
   "sourceMap": "",
   "deployedSourceMap": "",
   "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.3;\nimport \"@openzeppelin/contracts/token/ERC20/IERC20.sol\";\n\ninterface IERC20WithSymbol is IERC20 {\n\tfunction symbol() external view returns (string memory);\n}\n",
-  "sourcePath": "/Users/jm/3DP-bridge/counterstake-bridge/evm/contracts/IERC20WithSymbol.sol",
+  "sourcePath": "/Users/jm/counterstake-bridge/evm_substrate/contracts/IERC20WithSymbol.sol",
   "ast": {
     "absolutePath": "project:/contracts/IERC20WithSymbol.sol",
     "exportedSymbols": {
@@ -215,15 +215,15 @@
         335
       ],
       "IERC20WithSymbol": [
-        8911
+        8903
       ]
     },
-    "id": 8912,
+    "id": 8904,
     "license": "MIT",
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 8902,
+        "id": 8894,
         "literals": [
           "solidity",
           "^",
@@ -236,10 +236,10 @@
       {
         "absolutePath": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "file": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "id": 8903,
+        "id": 8895,
         "nameLocation": "-1:-1:-1",
         "nodeType": "ImportDirective",
-        "scope": 8912,
+        "scope": 8904,
         "sourceUnit": 336,
         "src": "56:56:21",
         "symbolAliases": [],
@@ -250,13 +250,13 @@
         "baseContracts": [
           {
             "baseName": {
-              "id": 8904,
+              "id": 8896,
               "name": "IERC20",
               "nodeType": "IdentifierPath",
               "referencedDeclaration": 335,
               "src": "144:6:21"
             },
-            "id": 8905,
+            "id": 8897,
             "nodeType": "InheritanceSpecifier",
             "src": "144:6:21"
           }
@@ -265,9 +265,9 @@
         "contractDependencies": [],
         "contractKind": "interface",
         "fullyImplemented": false,
-        "id": 8911,
+        "id": 8903,
         "linearizedBaseContracts": [
-          8911,
+          8903,
           335
         ],
         "name": "IERC20WithSymbol",
@@ -276,7 +276,7 @@
         "nodes": [
           {
             "functionSelector": "95d89b41",
-            "id": 8910,
+            "id": 8902,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
@@ -284,23 +284,23 @@
             "nameLocation": "163:6:21",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 8906,
+              "id": 8898,
               "nodeType": "ParameterList",
               "parameters": [],
               "src": "169:2:21"
             },
             "returnParameters": {
-              "id": 8909,
+              "id": 8901,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 8908,
+                  "id": 8900,
                   "mutability": "mutable",
                   "name": "",
                   "nameLocation": "-1:-1:-1",
                   "nodeType": "VariableDeclaration",
-                  "scope": 8910,
+                  "scope": 8902,
                   "src": "195:13:21",
                   "stateVariable": false,
                   "storageLocation": "memory",
@@ -309,7 +309,7 @@
                     "typeString": "string"
                   },
                   "typeName": {
-                    "id": 8907,
+                    "id": 8899,
                     "name": "string",
                     "nodeType": "ElementaryTypeName",
                     "src": "195:6:21",
@@ -323,14 +323,14 @@
               ],
               "src": "194:15:21"
             },
-            "scope": 8911,
+            "scope": 8903,
             "src": "154:56:21",
             "stateMutability": "view",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 8912,
+        "scope": 8904,
         "src": "114:98:21",
         "usedErrors": []
       }
@@ -343,7 +343,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-08-11T16:27:16.707Z",
+  "updatedAt": "2025-08-14T11:37:37.794Z",
   "devdoc": {
     "kind": "dev",
     "methods": {
