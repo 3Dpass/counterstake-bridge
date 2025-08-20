@@ -93,30 +93,6 @@ contract ImportWrapper is Counterstake {
 		min_price20 = _min_price20;
 	}
 
-	// Function to set up this contract as Issuer and Admin for the precompile
-	function setupPrecompileRoles() external {
-		require(msg.sender == address(governance), "only governance");
-		require(precompileAddress != address(0), "precompile not set");
-		require(precompileAddress != CounterstakeLibrary.P3D_PRECOMPILE, "cannot manage P3D roles");
-		
-		// Set this contract as both Issuer and Admin
-		// Issuer can mint, Admin can burn
-		ILocalAsset(precompileAddress).setTeam(
-			address(this), // issuer - can mint
-			address(this), // admin - can burn
-			address(this)  // freezer - can freeze/unfreeze
-		);
-	}
-
-	// Function to set metadata for the precompile (optional)
-	function setPrecompileMetadata(string memory name, string memory symbol, uint8 decimals) external {
-		require(msg.sender == address(governance), "only governance");
-		require(precompileAddress != address(0), "precompile not set");
-		require(precompileAddress != CounterstakeLibrary.P3D_PRECOMPILE, "cannot modify P3D metadata");
-		
-		ILocalAsset(precompileAddress).setMetadata(name, symbol, decimals);
-	}
-
 	// repatriate
 	function transferToHomeChain(string memory home_address, string memory data, uint amount, uint reward) external {
 		// Burn tokens from the precompile

@@ -6,6 +6,7 @@ import "./ImportWrapperAssistant.sol";
 import "./ImportWrapper.sol";
 import "./CounterstakeLibrary.sol";
 import "./VotedValueFactory.sol";
+import "./BridgesRegistry.sol";
 
 
 contract AssistantFactory {
@@ -18,12 +19,14 @@ contract AssistantFactory {
 
 	GovernanceFactory private immutable governanceFactory;
 	VotedValueFactory private immutable votedValueFactory;
+	BridgesRegistry public immutable bridgesRegistry;
 
-	constructor(address _exportAssistantMaster, address _importWrapperAssistantMaster, GovernanceFactory _governanceFactory, VotedValueFactory _votedValueFactory) {
+	constructor(address _exportAssistantMaster, address _importWrapperAssistantMaster, GovernanceFactory _governanceFactory, VotedValueFactory _votedValueFactory, BridgesRegistry _bridgesRegistry) {
 		exportAssistantMaster = _exportAssistantMaster;
 		importWrapperAssistantMaster = _importWrapperAssistantMaster;
 		governanceFactory = _governanceFactory;
 		votedValueFactory = _votedValueFactory;
+		bridgesRegistry = _bridgesRegistry;
 	}
 
 	function createExportAssistant(
@@ -32,6 +35,10 @@ contract AssistantFactory {
 		exportAssistant = ExportAssistant(payable(Clones.clone(exportAssistantMaster)));
 		exportAssistant.initExportAssistant(bridgeAddr, managerAddr, _management_fee10000, _success_fee10000, oracleAddr, _exponent, name, symbol);
 		exportAssistant.setupGovernance(governanceFactory, votedValueFactory);
+		
+		// Register the assistant in the registry
+		bridgesRegistry.registerAssistant(address(exportAssistant), BridgesRegistry.AssistantType.Export);
+		
 		emit NewExportAssistant(address(exportAssistant), bridgeAddr, managerAddr, symbol);
 	}
 
@@ -48,6 +55,9 @@ contract AssistantFactory {
 		ImportWrapperAssistant assistant = ImportWrapperAssistant(payable(Clones.clone(importWrapperAssistantMaster)));
 		assistant.initImportWrapperAssistant(bridgeAddress, managerAddress, management_fee10000, success_fee10000, swap_fee10000, exponent, name, symbol);
 		assistant.setupGovernance(governanceFactory, votedValueFactory);
+		
+		// Register the assistant in the registry
+		bridgesRegistry.registerAssistant(address(assistant), BridgesRegistry.AssistantType.Import);
 		
 		// Get the precompile address from the bridge
 		address precompileAddress = ImportWrapper(bridgeAddress).precompileAddress();

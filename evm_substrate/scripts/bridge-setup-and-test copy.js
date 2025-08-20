@@ -39,8 +39,8 @@ const TEST_CONFIG = {
 // Centralized challenging periods configuration
 const CHALLENGING_PERIODS_CONFIG = {
     // Small claims challenging periods (in seconds)
-    // First period is 3 minutes for testing, others are longer for production
     // challenging_periods: [14*3600, 3*24*3600, 7*24*3600, 30*24*3600], // [14h, 3d, 7d, 30d] - original challenging_periods
+    // First period is 3 minutes for testing, others are longer for production
     challenging_periods: [3*60, 3*60, 3*60, 60*24*3600], // [3min, 3min, 3min, 60days] - testing challenging_periods
     
     // Large claims challenging periods (in seconds)
@@ -611,7 +611,21 @@ async function setupBridgeTest() {
                 { gasLimit: 5000000 }
             );
             const importWrapperReceipt = await importWrapperTx.wait();
-            importWrapperUsdtAddress = importWrapperReceipt.events[0].args.contractAddress;
+            // Find the NewImportWrapper event in the logs
+            const newImportWrapperEvent = importWrapperReceipt.logs.find(log => {
+                try {
+                    const parsedLog = factory.interface.parseLog(log);
+                    return parsedLog.name === 'NewImportWrapper';
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (newImportWrapperEvent) {
+                const parsedEvent = factory.interface.parseLog(newImportWrapperEvent);
+                importWrapperUsdtAddress = parsedEvent.args.contractAddress;
+            } else {
+                throw new Error('NewImportWrapper event not found in transaction receipt');
+            }
             log(`  ✓ USDT Import Wrapper bridge created: ${importWrapperUsdtAddress}`);
             log(`  ✓ Using existing precompile: ${TEST_CONFIG.wUsdt3DPassAddress}`);
             
@@ -640,7 +654,21 @@ async function setupBridgeTest() {
                 { gasLimit: 5000000 }
             );
             const importWrapperUsdcReceipt = await importWrapperUsdcTx.wait();
-            importWrapperUsdcAddress = importWrapperUsdcReceipt.events[0].args.contractAddress;
+            // Find the NewImportWrapper event in the logs
+            const newImportWrapperUsdcEvent = importWrapperUsdcReceipt.logs.find(log => {
+                try {
+                    const parsedLog = factory.interface.parseLog(log);
+                    return parsedLog.name === 'NewImportWrapper';
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (newImportWrapperUsdcEvent) {
+                const parsedEvent = factory.interface.parseLog(newImportWrapperUsdcEvent);
+                importWrapperUsdcAddress = parsedEvent.args.contractAddress;
+            } else {
+                throw new Error('NewImportWrapper event not found in transaction receipt');
+            }
             log(`  ✓ USDC Import Wrapper bridge created: ${importWrapperUsdcAddress}`);
             log(`  ✓ Using existing precompile: ${TEST_CONFIG.wUsdc3DPassAddress}`);
             
@@ -668,7 +696,21 @@ async function setupBridgeTest() {
                 { gasLimit: 5000000 }
             );
             const importWrapperBusdReceipt = await importWrapperBusdTx.wait();
-            importWrapperBusdAddress = importWrapperBusdReceipt.events[0].args.contractAddress;
+            // Find the NewImportWrapper event in the logs
+            const newImportWrapperBusdEvent = importWrapperBusdReceipt.logs.find(log => {
+                try {
+                    const parsedLog = factory.interface.parseLog(log);
+                    return parsedLog.name === 'NewImportWrapper';
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (newImportWrapperBusdEvent) {
+                const parsedEvent = factory.interface.parseLog(newImportWrapperBusdEvent);
+                importWrapperBusdAddress = parsedEvent.args.contractAddress;
+            } else {
+                throw new Error('NewImportWrapper event not found in transaction receipt');
+            }
             log(`  ✓ BUSD Import Wrapper bridge created: ${importWrapperBusdAddress}`);
             log(`  ✓ Using existing precompile: ${TEST_CONFIG.wBusd3DPassAddress}`);
             
@@ -764,7 +806,21 @@ async function setupBridgeTest() {
                 { gasLimit: 9000000 }
             );
             const exportP3DReceipt = await exportP3DTx.wait();
-            exportP3DAddress = exportP3DReceipt.events[0].args.contractAddress;
+            // Find the NewExport event in the logs
+            const newExportP3DEvent = exportP3DReceipt.logs.find(log => {
+                try {
+                    const parsedLog = factory.interface.parseLog(log);
+                    return parsedLog.name === 'NewExport';
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (newExportP3DEvent) {
+                const parsedEvent = factory.interface.parseLog(newExportP3DEvent);
+                exportP3DAddress = parsedEvent.args.contractAddress;
+            } else {
+                throw new Error('NewExport event not found in transaction receipt');
+            }
             log(`  ✓ P3D Export bridge created: ${exportP3DAddress}`);
         } catch (err) {
             log(`  ✗ Failed to create P3D Export bridge: ${err.message}`);
@@ -787,7 +843,21 @@ async function setupBridgeTest() {
                 { gasLimit: 9000000 }
             );
             const exportFIREReceipt = await exportFIRETx.wait();
-            exportFIREAddress = exportFIREReceipt.events[0].args.contractAddress;
+            // Find the NewExport event in the logs
+            const newExportFIREEvent = exportFIREReceipt.logs.find(log => {
+                try {
+                    const parsedLog = factory.interface.parseLog(log);
+                    return parsedLog.name === 'NewExport';
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (newExportFIREEvent) {
+                const parsedEvent = factory.interface.parseLog(newExportFIREEvent);
+                exportFIREAddress = parsedEvent.args.contractAddress;
+            } else {
+                throw new Error('NewExport event not found in transaction receipt');
+            }
             log(`  ✓ FIRE Export bridge created: ${exportFIREAddress}`);
         } catch (err) {
             log(`  ✗ Failed to create FIRE Export bridge: ${err.message}`);
@@ -810,7 +880,21 @@ async function setupBridgeTest() {
                 { gasLimit: 9000000 }
             );
             const exportWATERReceipt = await exportWATERTx.wait();
-            exportWATERAddress = exportWATERReceipt.events[0].args.contractAddress;
+            // Find the NewExport event in the logs
+            const newExportWATEREvent = exportWATERReceipt.logs.find(log => {
+                try {
+                    const parsedLog = factory.interface.parseLog(log);
+                    return parsedLog.name === 'NewExport';
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (newExportWATEREvent) {
+                const parsedEvent = factory.interface.parseLog(newExportWATEREvent);
+                exportWATERAddress = parsedEvent.args.contractAddress;
+            } else {
+                throw new Error('NewExport event not found in transaction receipt');
+            }
             log(`  ✓ WATER Export bridge created: ${exportWATERAddress}`);
         } catch (err) {
             log(`  ✗ Failed to create WATER Export bridge: ${err.message}`);

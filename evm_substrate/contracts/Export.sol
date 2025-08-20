@@ -8,7 +8,6 @@ contract Export is Counterstake {
 	using SafeERC20 for IERC20;
 
 	event NewExpatriation(address sender_address, uint amount, int reward, string foreign_address, string data);
-	event AssistantTransferExecuted(address assistant, address recipient, uint stake, uint paid_amount);
 
 	// Batch precompile address (inherited from Counterstake)
 

@@ -94,16 +94,6 @@ The foreign assets (wrapped tokens on foreign networks) are handled off-chain an
 
 ### 3. Updated Contracts
 
-#### `Export.sol`
-- **Purpose:** Bridge contract for exporting 3DPass tokens to foreign networks
-- **Inheritance:** `Counterstake`
-- **Key Features:**
-  - Supports P3D precompile as stake token (`0x0000000000000000000000000000000000000802`)
-  - Supports any `poscan-assets-erc20` precompile as stake token
-  - Uses `IPrecompileERC20` interface for token operations
-  - Validates precompile addresses using `CounterstakeLibrary.is3DPassERC20Precompile()`
-  - Handles token transfers via precompile interfaces
-
 #### `CounterstakeFactory.sol`
 - **Changes:**
   - Removed `createImport()` function

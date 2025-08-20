@@ -111,13 +111,39 @@ cd 3DP-bridge
     │    ├── Bridge Infrastructure
     │    │    ├── Export/ImportWraper Contracts
     │    │    ├── Assistant Contracts
-    │    │    └── Factory Contracts
+    │    │    ├── Factory Contracts
+    │    │    └── BridgesRegistry // Central registry for tracking
     │    ├── Oracle System
     │    └── Governance Contracts
     ├── balances-erc20 evm precompile // P3D interaction (Native)
     │   └── P3D ERC20 Address (Native): `0x0000000000000000000000000000000000000802`
     └── assets-erc20 precompile // Assets interaction
 ```
+
+### BridgesRegistry Overview
+
+The `BridgesRegistry` contract serves as a centralized registry for tracking all deployed bridge and assistant contracts. It provides:
+
+**Key Features:**
+- **Automatic Registration**: New bridges and assistants are automatically registered upon creation
+- **Type Classification**: Distinguishes between Export/Import bridges and Import/Export assistants
+- **Creation Tracking**: Records timestamps for audit and monitoring purposes
+- **Easy Lookup**: Multiple query functions for different use cases
+- **Event Logging**: All registrations logged for external monitoring
+
+**Registry Functions:**
+- `registerBridge(address bridge, BridgeType type)` - Called by factories
+- `registerAssistant(address assistant, AssistantType type)` - Called by factories
+- `getBridgeCount()` / `getAssistantCount()` - Get total counts
+- `getAllBridges()` / `getAllAssistants()` - Get all addresses
+- `getBridgesByType(type)` / `getAssistantsByType(type)` - Filter by type
+- `getBridge(address)` / `getAssistant(address)` - Get detailed info
+- `isBridgeRegistered(address)` / `isAssistantRegistered(address)` - Check registration
+
+**Integration:**
+- Deployed before factory contracts to avoid circular dependencies
+- Factory addresses set via `setFactories()` after deployment
+- Factories automatically call registry functions when creating new contracts
 ### Native currency. Important!!! 
 
 Although P3D is a natinve currency in 3dpass, it represents ERC20 token in opposed to other Ethereum-kind-of-systems leveraging the address zero  `0x0000000000000000000000000000000000000000`. 
@@ -144,9 +170,10 @@ In `ImportWrapper.sol` the stake tokens must be either P3D (via `balances-erc20`
 2. **Oracle** - Price feed management
 3. **VotedValue Contracts** - Governance parameter storage
 4. **Governance** - Administrative functions
-5. **Export/ImportWrapper** - Bridge core contracts
-6. **Assistant Contracts** - Gas optimization
-7. **Factory Contracts** - Contract deployment management
+5. **BridgesRegistry** - Central registry for bridge and assistant tracking
+6. **Export/ImportWrapper** - Bridge core contracts
+7. **Assistant Contracts** - Gas optimization
+8. **Factory Contracts** - Contract deployment management
 
 
 ## Deployment Process
@@ -281,9 +308,12 @@ The factory pattern allows efficient creation of multiple bridge instances witho
 ```javascript
 // 3DPass Network Configuration
 exports.threedpass_factory_contract_addresses = {
-    'v1.0': '0x943e8fcbA7C432D0C1adf61dC43C33273111e168'
+    'v1.0': '0x1445f694117d847522b81A97881850DbB965db9A'
 };
 exports.threedpass_assistant_factory_contract_addresses = {
+    'v1.0': '0x20bc80863d472aBafE45a6c6Fad87236960f6ac2'
+};
+exports.threedpass_bridges_registry_addresses = {
     'v1.0': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0'
 };
 exports.threedpass_oracle_addresses = {
@@ -336,10 +366,11 @@ The `deploy-and-configure-counterstake.js` script deploys contracts in this spec
 6. **GovernanceFactory** - Factory for creating governance instances
 7. **Export Master Contract** - Template for export bridge contracts (P3D-integrated)
 8. **Import Wrapper Master Contract** - Template for import bridge contracts (P3D-assets-precompiles integrated)
-9. **CounterstakeFactory** - Factory for creating Export/Import bridge contracts
-10. **ExportAssistant** - Gas optimization template for exports
-11. **ImportWrapperAssistant** - Gas optimization template for imports
-12. **AssistantFactory** - Factory for creating assistant contract instances
+9. **BridgesRegistry** - Central registry for tracking all bridges and assistants
+10. **CounterstakeFactory** - Factory for creating Export/Import bridge contracts (with registry integration)
+11. **ExportAssistant** - Gas optimization template for exports
+12. **ImportWrapperAssistant** - Gas optimization template for imports
+13. **AssistantFactory** - Factory for creating assistant contract instances (with registry integration)
 
 ### Phase 2: Bridge Instance Creation
 
@@ -442,12 +473,16 @@ const importWrapperMaster = await deployContract(ImportWrapper, signer,
     { gasLimit: 5000000 }
 );
 
-// Deploy CounterstakeFactory
+// Deploy BridgesRegistry
+const bridgesRegistry = await deployContract(BridgesRegistry, signer);
+
+// Deploy CounterstakeFactory with registry integration
 const counterstakeFactory = await deployContract(CounterstakeFactory, signer,
     exportMaster.address,
     importWrapperMaster.address,
     governanceFactory.address,
-    votedValueFactory.address
+    votedValueFactory.address,
+    bridgesRegistry.address
 );
 
 // Deploy Assistant contracts
@@ -475,13 +510,17 @@ const importWrapperAssistant = await deployContract(ImportWrapperAssistant, sign
     { gasLimit: 119990000 }
 );
 
-// Deploy AssistantFactory
+// Deploy AssistantFactory with registry integration
 const assistantFactory = await deployContract(AssistantFactory, signer,
     exportAssistant.address,
     importWrapperAssistant.address,
     governanceFactory.address,
-    votedValueFactory.address
+    votedValueFactory.address,
+    bridgesRegistry.address
 );
+
+// Set factory addresses in BridgesRegistry
+await bridgesRegistry.setFactories(counterstakeFactory.address, assistantFactory.address);
 ```
 
 **Key Features:**
@@ -489,6 +528,7 @@ const assistantFactory = await deployContract(AssistantFactory, signer,
 - **Wrapped Token Support**: Integrates with existing wUSDT, wUSDC, wBUSD precompiles
 - **Oracle Price Configuration**: Sets up comprehensive price feeds for all token pairs
 - **Library Linking**: Links CounterstakeLibrary into Export, ImportWrapper, and ExportAssistant contracts
+- **BridgesRegistry Integration**: Centralized tracking of all bridges and assistants with automatic registration
 - **Configuration Management**: Updates `conf.js` with deployed contract addresses
 - **Gas Optimization**: Uses appropriate gas limits for complex deployments
 
@@ -705,6 +745,7 @@ async function createAssistants(assistantFactory, importWrappers, exports) {
 - **Comprehensive Bridge Creation**: Creates Import Wrapper and Export bridges for USDT, USDC, and BUSD
 - **Existing Precompile Integration**: Uses existing wUSDT, wUSDC, wBUSD precompiles without creating duplicates
 - **Assistant Contract Creation**: Creates Import Wrapper Assistants and Export Assistants for automated processing
+- **Automatic Registry Registration**: All new bridges and assistants are automatically registered in the BridgesRegistry
 - **Oracle Price Configuration**: Sets up comprehensive price feeds for all token pairs
 - **Cross-Chain Support**: Supports Ethereum, BSC, and 3DPass networks
 - **Gas Optimization**: Uses appropriate gas limits for complex bridge deployments
@@ -781,6 +822,9 @@ curl -X POST -H "Content-Type: application/json" \
 curl -X POST -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"address":"FACTORY_ADDRESS","topics":["0x..."]}],"id":1}' \
   http://localhost:9978
+
+# Verify BridgesRegistry registration
+node scripts/test-bridges-registry-simple.js
 ```
 
 ## Troubleshooting
@@ -864,6 +908,9 @@ node scripts/verify-network-config.js
 
 # Verify P3D precompile integration
 node scripts/verify-p3d-integration.js
+
+# Verify BridgesRegistry integration
+node scripts/test-bridges-registry-simple.js
 ```
 
 ### Debug Commands
@@ -892,6 +939,9 @@ node scripts/verify-bridge-instances.js
 
 # Verify P3D precompile integration
 node scripts/verify-p3d-integration.js
+
+# Verify BridgesRegistry functionality
+node scripts/test-bridges-registry-simple.js
 ```
 
 ## Security Considerations
@@ -943,6 +993,15 @@ node scripts/monitor-balances.js
 ```bash
 # Analyze bridge activity
 node scripts/analyze-activity.js
+```
+
+#### 5. Registry Monitoring
+```bash
+# Monitor BridgesRegistry
+node scripts/monitor-registry.js
+
+# Check registry statistics
+node scripts/registry-stats.js
 ```
 
 ### Backup and Recovery
@@ -1021,6 +1080,9 @@ pm2 save
 - ✅ Governance contracts using P3D precompile for voting
 - ✅ Assistant contracts with proper P3D token validation
 - ✅ Production-ready oracle validation (no temporary workarounds)
+- ✅ BridgesRegistry for centralized bridge and assistant tracking
+- ✅ Automatic registration of new bridges and assistants
+- ✅ Factory integration with registry for seamless management
 
 **Version**: 1.1  
 **Last Updated**: July 22, 2025  

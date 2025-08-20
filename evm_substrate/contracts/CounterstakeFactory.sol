@@ -5,6 +5,7 @@ import "./Export.sol";
 import "./ImportWrapper.sol";
 import "./CounterstakeLibrary.sol";
 import "./VotedValueFactory.sol";
+import "./BridgesRegistry.sol";
 
 
 contract CounterstakeFactory {
@@ -20,12 +21,14 @@ contract CounterstakeFactory {
 
 	GovernanceFactory private immutable governanceFactory;
 	VotedValueFactory private immutable votedValueFactory;
+	BridgesRegistry public immutable bridgesRegistry;
 
-	constructor(address _exportMaster, address _importWrapperMaster, GovernanceFactory _governanceFactory, VotedValueFactory _votedValueFactory) {
+	constructor(address _exportMaster, address _importWrapperMaster, GovernanceFactory _governanceFactory, VotedValueFactory _votedValueFactory, BridgesRegistry _bridgesRegistry) {
 		exportMaster = _exportMaster;
 		importWrapperMaster = _importWrapperMaster;
 		governanceFactory = _governanceFactory;
 		votedValueFactory = _votedValueFactory;
+		bridgesRegistry = _bridgesRegistry;
 	}
 
 	function createExport(
@@ -49,6 +52,10 @@ contract CounterstakeFactory {
 		);
 		export.initExport(foreign_network, foreign_asset);
 		export.setupGovernance(governanceFactory, votedValueFactory);
+		
+		// Register the bridge in the registry
+		bridgesRegistry.registerBridge(address(export), BridgesRegistry.BridgeType.Export);
+		
 		emit NewExport(address(export), address(tokenAddr), foreign_network, foreign_asset);
 		return export;
 	}
@@ -76,6 +83,10 @@ contract CounterstakeFactory {
 		);
 		wrapper.initImportWrapper(home_network, home_asset, precompileAddress, oracleAddr);
 		wrapper.setupGovernance(governanceFactory, votedValueFactory);
+		
+		// Register the bridge in the registry
+		bridgesRegistry.registerBridge(address(wrapper), BridgesRegistry.BridgeType.Import);
+		
 		emit NewImportWrapper(address(wrapper), home_network, home_asset, precompileAddress, stakeTokenAddr);
 		return wrapper;
 	}

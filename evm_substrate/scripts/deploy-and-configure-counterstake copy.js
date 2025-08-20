@@ -6,6 +6,7 @@ const desktopApp = require('ocore/desktop_app.js');
 // Import contract ABIs and bytecodes from Truffle build artifacts
 const CounterstakeFactory = require('../../counterstake-bridge/evm/build/contracts/CounterstakeFactory.json');
 const AssistantFactory = require('../../counterstake-bridge/evm/build/contracts/AssistantFactory.json');
+const BridgesRegistry = require('../../counterstake-bridge/evm/build/contracts/BridgesRegistry.json');
 const Oracle = require('../../counterstake-bridge/evm/build/contracts/Oracle.json');
 const Export = require('../../counterstake-bridge/evm/build/contracts/Export.json');
 const ImportWrapper = require('../../counterstake-bridge/evm/build/contracts/ImportWrapper.json');
@@ -38,8 +39,8 @@ const usdtEthAddress = testConfig.mainnet.contracts.usdt.ethereum; // USDT on Et
 const CHALLENGING_PERIODS_CONFIG = {
     // Small claims challenging periods (in seconds)
     // First period is 3 minutes for testing, others are longer for production
-    // challenging_periods: [14*3600, 3*24*3600, 7*24*3600, 30*24*3600], // [14h, 3d, 7d, 30d] - original challenging_periods
-    challenging_periods: [3*60, 3*60, 3*60, 60*24*3600], // [3min, 3min, 3min, 60days] - testing challenging_periods
+    challenging_periods: [14*3600, 3*24*3600, 7*24*3600, 30*24*3600], // [14h, 3d, 7d, 30d] - original challenging_periods
+    // challenging_periods: [3*60, 3*60, 3*60, 60*24*3600], // [3min, 3min, 3min, 60days] - testing challenging_periods
     
     // Large claims challenging periods (in seconds)
     large_challenging_periods: [1*7*24*3600, 30*24*3600, 60*24*3600] // [1week, 30days, 60days]
@@ -99,8 +100,12 @@ async function deployContract(contractJson, signer, ...args) {
     const factory = new ethers.ContractFactory(contractJson.abi, contractJson.bytecode, signer);
     log(`Deploying ${contractJson.contractName}...`);
     
-    const deployOptions = gasLimit ? { gasLimit } : {};
-    const contract = await factory.deploy(...constructorArgs, deployOptions);
+    let contract;
+    if (gasLimit) {
+        contract = await factory.deploy(...constructorArgs, { gasLimit });
+    } else {
+        contract = await factory.deploy(...constructorArgs);
+    }
     await contract.deployed();
     log(`  ${colors.green}✓ Deployed ${contractJson.contractName} to: ${contract.address}${colors.reset}`);
     return contract;
@@ -170,6 +175,9 @@ console.log('finished watchdog conf');
     // Remove existing threedpass_oracle_addresses sections
     cleanedContent = cleanedContent.replace(/exports\.threedpass_oracle_addresses\s*=\s*\{[^}]*\};?\s*/g, '');
     
+    // Remove existing threedpass_bridges_registry_addresses sections
+    cleanedContent = cleanedContent.replace(/exports\.threedpass_bridges_registry_addresses\s*=\s*\{[^}]*\};?\s*/g, '');
+    
     // Remove any "3DPass Network Configuration" comment blocks
     cleanedContent = cleanedContent.replace(/\/\/ 3DPass Network Configuration\s*/g, '');
 
@@ -181,6 +189,9 @@ exports.threedpass_factory_contract_addresses = {
 };
 exports.threedpass_assistant_factory_contract_addresses = {
     'v1.1': '${newConfig.assistantFactory}'
+};
+exports.threedpass_bridges_registry_addresses = {
+    'v1.1': '${newConfig.bridgesRegistry}'
 };
 exports.threedpass_oracle_addresses = {
     '3DPass': '${newConfig.oracle}'
@@ -397,15 +408,23 @@ async function main() {
             { gasLimit: 9000000 } // High gas limit for complex constructor
         );
 
-        // 8. Deploy CounterstakeFactory with required constructor arguments
+        // 8. Deploy BridgesRegistry first (needed by factories)
+        log('Deploying BridgesRegistry...');
+        log(`BridgesRegistry contract: ${BridgesRegistry ? 'loaded' : 'NOT LOADED'}`);
+        log(`BridgesRegistry contractName: ${BridgesRegistry?.contractName || 'undefined'}`);
+        const bridgesRegistry = await deployContract(BridgesRegistry, signer);
+
+        // 9. Deploy CounterstakeFactory with required constructor arguments including registry
         log('Deploying CounterstakeFactory...');
+        log(`bridgesRegistry.address: ${bridgesRegistry.address}`);
         const counterstakeFactory = await deployContract(
             CounterstakeFactory,
             signer,
             exportMaster.address,
             importWrapperMaster.address,
             governanceFactory.address,
-            votedValueFactory.address
+            votedValueFactory.address,
+            bridgesRegistry.address
         );
 
         // 9. Deploy Assistant contracts (following official procedure)
@@ -455,22 +474,36 @@ async function main() {
             { gasLimit: 119990000 } // Gas limit for assistant deployment
         );
 
-        // 10. Deploy AssistantFactory with required constructor arguments
+        // 11. Deploy AssistantFactory with required constructor arguments including registry
         log('Deploying AssistantFactory...');
         const assistantFactory = await deployContract(AssistantFactory, signer,
             exportAssistant.address,
             importWrapperAssistant.address,
             governanceFactory.address,
-            votedValueFactory.address
+            votedValueFactory.address,
+            bridgesRegistry.address
         );
+
+        // 12. Set factory addresses in the registry
+        log('Setting factory addresses in BridgesRegistry...');
+        try {
+            const tx = await bridgesRegistry.setFactories(counterstakeFactory.address, assistantFactory.address);
+            await tx.wait();
+            log('  ✓ Factory addresses set in BridgesRegistry');
+        } catch (err) {
+            log('  ✗ Failed to set factory addresses in BridgesRegistry', err);
+            throw err;
+        }
 
         const deployedAddresses = {
             counterstakeFactory: counterstakeFactory.address,
             assistantFactory: assistantFactory.address,
+            bridgesRegistry: bridgesRegistry.address,
             oracle: oracle.address
         };
 
         log('\n--- Deployment Summary ---', colors.cyan);
+        log(`BridgesRegistry:     ${deployedAddresses.bridgesRegistry}`);
         log(`CounterstakeFactory: ${deployedAddresses.counterstakeFactory}`);
         log(`AssistantFactory:    ${deployedAddresses.assistantFactory}`);
         log(`Oracle:              ${deployedAddresses.oracle}`);
@@ -481,6 +514,7 @@ async function main() {
         const newConfig = {
             counterstakeFactory: deployedAddresses.counterstakeFactory,
             assistantFactory: deployedAddresses.assistantFactory,
+            bridgesRegistry: deployedAddresses.bridgesRegistry,
             oracle: deployedAddresses.oracle
         };
 
