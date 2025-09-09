@@ -16,8 +16,12 @@ contract ImportWrapper is Counterstake {
 	using SafeERC20 for IERC20;
 
 	event NewRepatriation(address sender_address, uint amount, uint reward, string home_address, string data);
+	event BridgeEnacted(address bridgeAddress, address precompileAddress);
 
 	address public oracleAddress;
+	
+	// Bridge enactment status - once enacted, it can never be changed
+	bool public enacted;
 
 	// min price of imported asset in terms of stake asset, to protect against malicious oracles
 	// The price is multiplied by 1e20
@@ -93,10 +97,46 @@ contract ImportWrapper is Counterstake {
 		min_price20 = _min_price20;
 	}
 
+	/**
+	 * @dev Enacts the bridge by performing all required security checks
+	 * Once enacted, the bridge status can never be changed again
+	 * This function must be called before any mint/burn operations
+	 */
+	function enactImportWrapper() external {
+		require(!enacted, "Bridge already enacted");
+		require(precompileAddress != address(0), "Precompile address not set");
+		
+		// Check 1: Contract must be the owner of the asset
+		require(LocalAsset(precompileAddress).isOwner(address(this)), "Bridge is not owner of asset");
+		
+		// Check 2: Contract must be the issuer of the asset
+		require(LocalAsset(precompileAddress).isIssuer(address(this)), "Bridge is not issuer of asset");
+		
+		// Check 3: Contract must be the admin of the asset
+		require(LocalAsset(precompileAddress).isAdmin(address(this)), "Bridge is not admin of asset");
+		
+		// Check 4: Contract must be the freezer of the asset
+		require(LocalAsset(precompileAddress).isFreezer(address(this)), "Bridge is not freezer of asset");
+		
+		// Check 5: Asset status must be "Live"
+		string memory assetStatus = LocalAsset(precompileAddress).status();
+		require(keccak256(abi.encodePacked(assetStatus)) == keccak256(abi.encodePacked("Live")), "Asset status is not Live");
+		
+		// Check 6: Bridge balance must equal minBalance
+		uint256 minBalance = LocalAsset(precompileAddress).minBalance();
+		uint256 bridgeBalance = IPrecompileERC20(precompileAddress).balanceOf(address(this));
+		require(bridgeBalance == minBalance, "Bridge balance does not equal minBalance");
+		
+		// All checks passed - enact the bridge
+		enacted = true;
+		emit BridgeEnacted(address(this), precompileAddress);
+	}
+
 	// repatriate
 	function transferToHomeChain(string memory home_address, string memory data, uint amount, uint reward) external {
+		require(enacted, "Bridge must be enacted before operations");
 		// Burn tokens from the precompile
-		require(ILocalAsset(precompileAddress).burn(msg.sender, amount), "burn from precompile failed");
+		require(LocalAsset(precompileAddress).burn(msg.sender, amount), "burn from precompile failed");
 		emit NewRepatriation(msg.sender, amount, reward, home_address, data);
 	}
 
@@ -109,23 +149,26 @@ contract ImportWrapper is Counterstake {
 	}
 
 	function sendWithdrawals(address payable to_address, uint paid_claimed_amount, uint won_stake) internal override {
+		require(enacted, "Bridge must be enacted before operations");
 		if (paid_claimed_amount > 0){
 			// Mint tokens to the user via precompile
-			require(ILocalAsset(precompileAddress).mint(to_address, paid_claimed_amount), "mint to precompile failed");
+			require(LocalAsset(precompileAddress).mint(to_address, paid_claimed_amount), "mint to precompile failed");
 		}
 		transferTokens(settings.tokenAddress, to_address, won_stake);
 	}
      
     function receiveMoneyInClaim(uint stake, uint paid_amount) internal override {
+        require(enacted, "Bridge must be enacted before operations");
          if (paid_amount > 0)
 		    // Burn image tokens from the assistant account
-            require(ILocalAsset(precompileAddress).burn(msg.sender, paid_amount), "burn from precompile failed");
+            require(LocalAsset(precompileAddress).burn(msg.sender, paid_amount), "burn from precompile failed");
         receiveStakeAsset(stake);
     }
 
     function sendToClaimRecipient(address payable to_address, uint paid_amount) internal override {
+        require(enacted, "Bridge must be enacted before operations");
             // Mint image tokens to the user after assistant calim
-            require(ILocalAsset(precompileAddress).mint(to_address, paid_amount), "mint to precompile failed");
+            require(LocalAsset(precompileAddress).mint(to_address, paid_amount), "mint to precompile failed");
     }
 
 } 

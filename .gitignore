@@ -60,3 +60,5 @@ evm/flat
 
 evm-v1.0/build
 evm-v1.0/flat
+
+evm_substrate/build

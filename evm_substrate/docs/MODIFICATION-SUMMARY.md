@@ -72,8 +72,8 @@ The foreign assets (wrapped tokens on foreign networks) are handled off-chain an
 - **Key Features:**
   - Stores `precompileAddress` for the target precompile
   - Calls `mint()` and `burn()` directly on precompiles
-  - Includes `setupPrecompileRoles()` and `setPrecompileMetadata()` functions
   - Validates precompile addresses using `CounterstakeLibrary.is3DPassERC20Precompile()`
+  - **Critical Security Function:** `enactImportWrapper()` - performs comprehensive security checks before bridge activation
 
 #### `ImportWrapperAssistant.sol`
 - **Purpose:** Assistant contract for `ImportWrapper` operations
@@ -152,7 +152,7 @@ The foreign assets (wrapped tokens on foreign networks) are handled off-chain an
 - **Changes:**
   - Updated to call `createImportWrapper()` instead of `createImport()`
   - Added calls to `createExport()` for export bridges
-  - Added calls to `setupPrecompileRoles()` and `setPrecompileMetadata()`
+  - Added calls to configure precompile roles and metadata
   - Updated assistant creation to use `ImportWrapperAssistant` and `ExportAssistant`
   - Added comprehensive testing for both import and export flows
 
@@ -162,17 +162,45 @@ The foreign assets (wrapped tokens on foreign networks) are handled off-chain an
 
 #### Import Wrapper Precompile Integration
 
-1. **Role Management:**
+1. **Bridge Enactment Security Checks:**
    ```solidity
-   function setupPrecompileRoles() external {
-       require(msg.sender == address(governance), "only governance");
-       ILocalAsset(precompileAddress).setTeam(
-           address(this), // issuer - can mint
-           address(this), // admin - can burn
-           address(this)  // freezer - can freeze/unfreeze
-       );
+   function enactImportWrapper() external {
+       require(!enacted, "Bridge already enacted");
+       require(precompileAddress != address(0), "Precompile address not set");
+       
+       // Check 1: Contract must be the owner of the asset
+       require(LocalAsset(precompileAddress).isOwner(address(this)), "Bridge is not owner of asset");
+       
+       // Check 2: Contract must be the issuer of the asset
+       require(LocalAsset(precompileAddress).isIssuer(address(this)), "Bridge is not issuer of asset");
+       
+       // Check 3: Contract must be the admin of the asset
+       require(LocalAsset(precompileAddress).isAdmin(address(this)), "Bridge is not admin of asset");
+       
+       // Check 4: Contract must be the freezer of the asset
+       require(LocalAsset(precompileAddress).isFreezer(address(this)), "Bridge is not freezer of asset");
+       
+       // Check 5: Asset status must be "Live"
+       string memory assetStatus = LocalAsset(precompileAddress).status();
+       require(keccak256(abi.encodePacked(assetStatus)) == keccak256(abi.encodePacked("Live")), "Asset status is not Live");
+       
+       // Check 6: Bridge balance must equal minBalance
+       uint256 minBalance = LocalAsset(precompileAddress).minBalance();
+       uint256 bridgeBalance = IPrecompileERC20(precompileAddress).balanceOf(address(this));
+       require(bridgeBalance == minBalance, "Bridge balance does not equal minBalance");
+       
+       // All checks passed - enact the bridge
+       enacted = true;
+       emit BridgeEnacted(address(this), precompileAddress);
    }
    ```
+
+   **Security Checks Explained:**
+   - **Check 1-4 (Role Verification):** Ensures the bridge contract has complete control over the asset (owner, issuer, admin, freezer roles)
+   - **Check 5 (Asset Status):** Verifies the asset is in "Live" status and operational
+   - **Check 6 (Balance Verification):** Confirms the bridge holds the minimum required balance for the asset
+   - **Enactment State:** Once enacted, the bridge status cannot be changed, ensuring security
+
 
 2. **Mint/Burn Operations:**
    ```solidity
@@ -342,7 +370,14 @@ if (CounterstakeLibrary.is3DPassERC20Precompile(precompileAddress)) {
 - Standardized precompile interfaces
 - Reduced code duplication
 
-### 6. Assistant Benefits
+### 6. Security
+- **Comprehensive Enactment Checks:** The `enactImportWrapper()` function performs 6 critical security validations before bridge activation
+- **Role-Based Access Control:** Ensures bridge has complete control (owner, issuer, admin, freezer) over the asset
+- **Asset Status Verification:** Confirms asset is in "Live" status and operational
+- **Balance Validation:** Verifies bridge holds minimum required balance
+- **Immutable Enactment:** Once enacted, bridge status cannot be changed, preventing security vulnerabilities
+
+### 7. Assistant Benefits
 - **Callback-based claim finalization**: No manual withdrawal needed
 - **Automatic profit/loss tracking**: Real-time accounting updates
 - **Fallback mechanisms**: Robust error handling
@@ -354,17 +389,22 @@ if (CounterstakeLibrary.is3DPassERC20Precompile(precompileAddress)) {
 ### For Existing Bridges
 1. Deploy new `ImportWrapper` with precompile address
 2. Deploy new `Export` with precompile stake token
-3. Set up roles using `setupPrecompileRoles()`
-4. Configure metadata using `setPrecompileMetadata()`
-5. Deploy `ImportWrapperAssistant` and `ExportAssistant`
-6. Update any external integrations to use new contract addresses
+3. Set up roles and configure metadata for the precompile
+4. **Transfer asset ownership to bridge contracts** (critical for enactment)
+5. **Fund bridge contracts with minimum required balance** (for `minBalance` requirement)
+6. **Call `enactImportWrapper()` to activate the bridge** (performs all security checks)
+7. Deploy `ImportWrapperAssistant` and `ExportAssistant`
+8. Update any external integrations to use new contract addresses
 
 ### For New Bridges
 1. Use `CounterstakeFactory.createImportWrapper()` with precompile address
 2. Use `CounterstakeFactory.createExport()` with precompile stake token
-3. Use `AssistantFactory.createImportWrapperAssistant()` for import assistant
-4. Use `AssistantFactory.createExportAssistant()` for export assistant
-5. Configure roles and metadata as needed
+3. **Transfer asset ownership to bridge contracts** (critical for enactment)
+4. **Fund bridge contracts with minimum required balance** (for `minBalance` requirement)
+5. **Call `enactImportWrapper()` to activate the bridge** (performs all security checks)
+6. Use `AssistantFactory.createImportWrapperAssistant()` for import assistant
+7. Use `AssistantFactory.createExportAssistant()` for export assistant
+8. Configure roles and metadata as needed
 
 ## Testing
 
@@ -377,6 +417,9 @@ The new architecture has been tested with:
 - ✅ Library updates for precompile support
 - ✅ Oracle integration and price feeds
 - ✅ Bridge setup and configuration
+- ✅ **Bridge enactment process with all 6 security checks**
+- ✅ **Asset ownership transfer to bridge contracts**
+- ✅ **Bridge funding with minimum balance requirements**
 - ✅ Assistant claim and callback operations
 - ✅ Precompile token transfers
 - ✅ Share token operations

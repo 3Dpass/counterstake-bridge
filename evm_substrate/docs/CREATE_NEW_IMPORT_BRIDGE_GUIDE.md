@@ -50,8 +50,9 @@ The foreign assets (wrapped tokens, e.g. wUSDT on LoT) must be `poscan-assets-er
 6. [Oracle Price Feed Setup](#oracle-price-feed-setup)
 7. [Bridge Creation](#bridge-creation)
 8. [Assistant Creation](#assistant-creation)
-9. [Verification and Testing](#verification-and-testing)
-10. [Troubleshooting](#troubleshooting)
+9. [Bridge Enactment](#bridge-enactment)
+10. [Verification and Testing](#verification-and-testing)
+11. [Troubleshooting](#troubleshooting)
 
 
 ## Prerequisites
@@ -63,6 +64,8 @@ Before creating a new Import bridge, ensure you have:
 - **Network Configuration**: RPC endpoints and network details
 - **Account Setup**: Signer account with sufficient funds for gas fees
 - **Token Information**: Home network token address and 3DPass precompile address
+- **Asset Ownership**: Ability to transfer ownership of the precompile asset to the bridge contract
+- **Asset Funding**: Ability to fund the bridge contract with the minimum required balance
 
 ## Understanding Import Bridges
 
@@ -414,7 +417,7 @@ const setupPriceFeeds = async () => {
 ### Complete Bridge Creation Function
 
 ```javascript
-const createImportBridge = async (tokenConfig, bridgeParams) => {
+const createImportBridge = async (tokenConfig, bridgeParams, assetId, bridgeSubstrateAddress) => {
     try {
         // 1. Setup Oracle price feeds
         await setupOraclePriceFeeds(tokenConfig);
@@ -425,12 +428,17 @@ const createImportBridge = async (tokenConfig, bridgeParams) => {
         // 3. Create Import Wrapper Assistant
         const assistantAddress = await createImportWrapperAssistant(importWrapperAddress, tokenConfig);
         
-        // 4. Verify bridge configuration
+        // 4. Enact the bridge (CRITICAL STEP)
+        await completeBridgeEnactment(importWrapperAddress, tokenConfig.precompileAddress, assetId, bridgeSubstrateAddress);
+        
+        // 5. Verify bridge configuration and enactment
         await verifyBridgeConfiguration(importWrapperAddress);
+        await verifyBridgeEnactment(importWrapperAddress);
         
         return {
             importWrapperAddress,
             assistantAddress,
+            enacted: true,
             success: true
         };
     } catch (error) {
@@ -491,6 +499,227 @@ const createImportWrapperAssistant = async (bridgeAddress, tokenConfig) => {
     }
 };
 ```
+
+## Bridge Enactment
+
+**⚠️ CRITICAL STEP**: After creating the Import Wrapper bridge and assistant, you MUST enact the bridge before it can perform any mint/burn operations. The `enactImportWrapper()` function performs comprehensive security checks to ensure the bridge is properly configured.
+
+### What is Bridge Enactment?
+
+Bridge enactment is a one-time security validation process that verifies:
+1. **Asset Ownership**: Bridge contract owns the precompile asset
+2. **Role Permissions**: Bridge has issuer, admin, and freezer roles
+3. **Asset Status**: Asset is in "Live" status and operational
+4. **Balance Requirements**: Bridge holds the minimum required balance
+5. **Precompile Configuration**: Precompile address is properly set
+
+Once enacted, the bridge status cannot be changed, ensuring security and preventing unauthorized modifications.
+
+### Prerequisites for Enactment
+
+Before calling `enactImportWrapper()`, you must:
+
+1. **Set Asset Roles**: The bridge must have issuer, admin, and freezer roles
+2. **Fund the Bridge**: Bridge must hold the minimum required balance (`minBalance`)
+3. **Transfer Asset Ownership**: The bridge contract must be the owner of the precompile asset
+4. **Verify Asset Status**: Asset must be in "Live" status
+
+### Step 1: Set Asset Roles
+
+The bridge contract must have the issuer, admin, and freezer roles for the asset:
+
+```javascript
+// This requires Substrate interaction
+const setAssetRoles = async (assetId, bridgeSubstrateAddress) => {
+    console.log(`Setting asset roles for Asset ${assetId}:`);
+    console.log(`  - Issuer: ${bridgeSubstrateAddress}`);
+    console.log(`  - Admin: ${bridgeSubstrateAddress}`);
+    console.log(`  - Freezer: ${bridgeSubstrateAddress}`);
+    
+    // Example Substrate call (conceptual):
+    // await api.tx.poscanAssets.setTeam(assetId, bridgeSubstrateAddress, bridgeSubstrateAddress, bridgeSubstrateAddress).signAndSend(alice);
+};
+```
+
+### Step 2: Fund the Bridge Contract
+
+The bridge must hold the minimum required balance for the asset:
+
+```javascript
+const fundBridgeContract = async (bridgeAddress, precompileAddress) => {
+    // Get minimum balance requirement
+    const minBalance = await getMinBalance(precompileAddress);
+    console.log(`Minimum balance required: ${minBalance.toString()}`);
+    
+    // Transfer minimum balance to bridge
+    const transferTx = await precompileContract.transfer(
+        bridgeAddress,
+        minBalance,
+        { gasLimit: 200000 }
+    );
+    await transferTx.wait();
+    console.log(`✓ Bridge funded with ${minBalance.toString()} tokens`);
+};
+
+const getMinBalance = async (precompileAddress) => {
+    const localAssetAbi = [
+        { "constant": true, "inputs": [], "name": "minBalance", "outputs": [{ "name": "", "type": "uint256" }], "type": "function" }
+    ];
+    const localAssetContract = new ethers.Contract(precompileAddress, localAssetAbi, signer);
+    return await localAssetContract.minBalance();
+};
+```
+
+### Step 3: Transfer Asset Ownership
+
+**⚠️ IMPORTANT**: This step must be done via Substrate calls, not EVM calls, as it involves the `poscanAssets.transferOwnership` pallet function.
+
+```javascript
+// This is a conceptual example - actual implementation requires Substrate interaction
+// You would use a script like test-poscanAssets-transfer-ownership.js
+
+const transferAssetOwnership = async (assetId, bridgeSubstrateAddress) => {
+    // This requires Substrate interaction using @polkadot/api
+    // The bridge EVM address needs to be converted to Substrate address
+    console.log(`Transferring ownership of Asset ${assetId} to bridge: ${bridgeSubstrateAddress}`);
+    
+    // Example Substrate call (conceptual):
+    // await api.tx.poscanAssets.transferOwnership(assetId, bridgeSubstrateAddress).signAndSend(alice);
+};
+```
+
+### Step 4: Enact the Bridge
+
+Once all prerequisites are met, enact the bridge:
+
+```javascript
+const enactBridge = async (bridgeAddress) => {
+    const importWrapperContract = new ethers.Contract(bridgeAddress, importWrapperJson.abi, signer);
+    
+    console.log('🔧 Enacting Import Wrapper bridge...');
+    
+    try {
+        // Call enactImportWrapper function
+        const enactTx = await importWrapperContract.enactImportWrapper({
+            gasLimit: 1000000 // Use reasonable gas limit
+        });
+        
+        const enactReceipt = await enactTx.wait();
+        console.log(`✅ Bridge enacted successfully!`);
+        console.log(`   Transaction: ${enactTx.hash}`);
+        console.log(`   Gas used: ${enactReceipt.gasUsed.toString()}`);
+        
+        // Verify enactment status
+        const enacted = await importWrapperContract.enacted();
+        console.log(`   Enacted status: ${enacted}`);
+        
+        return true;
+    } catch (error) {
+        console.error(`❌ Bridge enactment failed: ${error.message}`);
+        
+        // Provide specific error guidance
+        if (error.message.includes("Bridge is not owner of asset")) {
+            console.log(`💡 Solution: Transfer asset ownership to bridge contract`);
+        } else if (error.message.includes("Bridge is not issuer of asset")) {
+            console.log(`💡 Solution: Set bridge as issuer of the asset`);
+        } else if (error.message.includes("Bridge is not admin of asset")) {
+            console.log(`💡 Solution: Set bridge as admin of the asset`);
+        } else if (error.message.includes("Bridge is not freezer of asset")) {
+            console.log(`💡 Solution: Set bridge as freezer of the asset`);
+        } else if (error.message.includes("Asset status is not Live")) {
+            console.log(`💡 Solution: Ensure asset is in "Live" status`);
+        } else if (error.message.includes("Bridge balance does not equal minBalance")) {
+            console.log(`💡 Solution: Fund bridge with minimum required balance`);
+        }
+        
+        throw error;
+    }
+};
+```
+
+### Complete Enactment Process
+
+```javascript
+const completeBridgeEnactment = async (bridgeAddress, precompileAddress, assetId, bridgeSubstrateAddress) => {
+    try {
+        console.log('🚀 Starting complete bridge enactment process...');
+        
+        // Step 1: Set asset roles (requires Substrate interaction)
+        console.log('Step 1: Setting asset roles...');
+        await setAssetRoles(assetId, bridgeSubstrateAddress);
+        
+        // Step 2: Fund bridge contract
+        console.log('Step 2: Funding bridge contract...');
+        await fundBridgeContract(bridgeAddress, precompileAddress);
+        
+        // Step 3: Transfer asset ownership (requires Substrate interaction)
+        console.log('Step 3: Transferring asset ownership...');
+        await transferAssetOwnership(assetId, bridgeSubstrateAddress);
+        
+        // Step 4: Enact the bridge
+        console.log('Step 4: Enacting bridge...');
+        await enactBridge(bridgeAddress);
+        
+        console.log('🎉 Bridge enactment completed successfully!');
+        console.log('   The bridge is now ready for mint/burn operations.');
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Bridge enactment process failed:', error.message);
+        throw error;
+    }
+};
+```
+
+### Enactment Verification
+
+After enactment, verify the bridge is properly configured:
+
+```javascript
+const verifyBridgeEnactment = async (bridgeAddress) => {
+    const importWrapperContract = new ethers.Contract(bridgeAddress, importWrapperJson.abi, signer);
+    
+    console.log('🔍 Verifying bridge enactment...');
+    
+    // Check enactment status
+    const enacted = await importWrapperContract.enacted();
+    console.log(`   Enacted: ${enacted}`);
+    
+    if (!enacted) {
+        throw new Error('Bridge is not enacted');
+    }
+    
+    // Verify precompile address
+    const precompileAddress = await importWrapperContract.precompileAddress();
+    console.log(`   Precompile: ${precompileAddress}`);
+    
+    // Test bridge functionality (should not throw errors)
+    try {
+        const testAmount = ethers.utils.parseUnits('1', 6); // 1 token
+        const requiredStake = await importWrapperContract.getRequiredStake(testAmount);
+        console.log(`   Required stake for 1 token: ${ethers.utils.formatUnits(requiredStake, 12)} P3D`);
+        console.log('✅ Bridge enactment verified successfully!');
+        return true;
+    } catch (error) {
+        console.error('❌ Bridge verification failed:', error.message);
+        return false;
+    }
+};
+```
+
+### Enactment Checklist
+
+Before enacting the bridge, ensure:
+
+- [ ] **Asset Ownership**: Bridge contract is the owner of the precompile asset
+- [ ] **Issuer Role**: Bridge contract has issuer role for the asset
+- [ ] **Admin Role**: Bridge contract has admin role for the asset  
+- [ ] **Freezer Role**: Bridge contract has freezer role for the asset
+- [ ] **Asset Status**: Asset is in "Live" status
+- [ ] **Bridge Funding**: Bridge holds the minimum required balance
+- [ ] **Precompile Address**: Precompile address is properly set
+- [ ] **Oracle Configuration**: Oracle price feeds are configured
+- [ ] **Gas Funds**: Sufficient P3D for gas fees
 
 ## Verification and Testing
 
@@ -587,9 +816,13 @@ const BRIDGE_PARAMS = {
     large_challenging_periods: [604800, 2592000, 5184000]
 };
 
+// Bridge enactment parameters
+const ASSET_ID = 1; // AssetId for wUSDT precompile
+const BRIDGE_SUBSTRATE_ADDRESS = "d7bkdCs6VNJkUnzSVRaGt6xNBte71avu1zcb72Hcrw3Qc1Fvj"; // Bridge's Substrate address
+
 // Create USDT Import bridge
-const result = await createImportBridge(USDT_CONFIG, BRIDGE_PARAMS);
-console.log('USDT Import bridge created successfully:', result);
+const result = await createImportBridge(USDT_CONFIG, BRIDGE_PARAMS, ASSET_ID, BRIDGE_SUBSTRATE_ADDRESS);
+console.log('USDT Import bridge created and enacted successfully:', result);
 ```
 
 ## Troubleshooting
@@ -666,6 +899,64 @@ console.log(`Precompile symbol: ${symbol}`);
 console.log('Transaction logs:', receipt.logs);
 ```
 
+#### 7. "Bridge is not owner of asset" Error
+
+**Problem**: Bridge enactment fails because bridge doesn't own the asset.
+
+**Solution**: Transfer asset ownership to the bridge contract via Substrate:
+```javascript
+// Use test-poscanAssets-transfer-ownership.js script
+// or implement Substrate interaction to transfer ownership
+console.log('Transfer asset ownership to bridge contract via Substrate');
+```
+
+#### 8. "Bridge is not issuer/admin/freezer of asset" Error
+
+**Problem**: Bridge enactment fails due to missing roles.
+
+**Solution**: Set the bridge as issuer, admin, and freezer via Substrate:
+```javascript
+// Use poscanAssets.setTeam() to set all roles
+// Bridge must have issuer, admin, and freezer roles
+console.log('Set bridge roles via Substrate poscanAssets.setTeam()');
+```
+
+#### 9. "Asset status is not Live" Error
+
+**Problem**: Asset is not in "Live" status.
+
+**Solution**: Ensure the asset is properly configured and in "Live" status:
+```javascript
+// Check asset status via Substrate
+const assetStatus = await api.query.poscanAssets.assetStatus(assetId);
+console.log('Asset status:', assetStatus.toString());
+```
+
+#### 10. "Bridge balance does not equal minBalance" Error
+
+**Problem**: Bridge doesn't hold the minimum required balance.
+
+**Solution**: Fund the bridge with the minimum required balance:
+```javascript
+// Get minimum balance and transfer to bridge
+const minBalance = await getMinBalance(precompileAddress);
+await precompileContract.transfer(bridgeAddress, minBalance);
+console.log(`Bridge funded with ${minBalance.toString()} tokens`);
+```
+
+#### 11. "Bridge already enacted" Error
+
+**Problem**: Attempting to enact an already enacted bridge.
+
+**Solution**: Check enactment status before attempting enactment:
+```javascript
+const enacted = await importWrapperContract.enacted();
+if (enacted) {
+    console.log('Bridge is already enacted');
+    return;
+}
+```
+
 ### Debugging Tips
 
 1. **Enable verbose logging**: Add detailed console.log statements
@@ -698,6 +989,9 @@ console.log('Transaction logs:', receipt.logs);
 - Implement proper access controls
 - Monitor bridge activity regularly
 - **Always verify precompile approval for non-P3D tokens**
+- **Always enact bridges before production use**
+- **Verify all enactment prerequisites before calling enactImportWrapper()**
+- **Test bridge functionality after enactment**
 
 ### 4. Documentation
 
@@ -708,6 +1002,14 @@ console.log('Transaction logs:', receipt.logs);
 
 ## Conclusion
 
-Creating new Import bridges requires careful attention to configuration, Oracle setup, precompile approval, and verification. Follow this guide step-by-step to ensure successful bridge deployment. **Always remember to call `approvePrecompile` for assistants that use non-P3D tokens as stake tokens.**
+Creating new Import bridges requires careful attention to configuration, Oracle setup, precompile approval, bridge enactment, and verification. Follow this guide step-by-step to ensure successful bridge deployment. 
+
+**Critical Steps to Remember:**
+1. **Always call `approvePrecompile` for assistants that use non-P3D tokens as stake tokens**
+2. **Always enact bridges before production use** - this is a mandatory security step
+3. **Verify all enactment prerequisites** before calling `enactImportWrapper()`
+4. **Test bridge functionality** after enactment to ensure everything works correctly
+
+The bridge enactment process is the final security validation that ensures your bridge is properly configured and ready for mint/burn operations. Never skip this step!
 
 For additional support, refer to the main bridge documentation and the `bridge-setup-and-test.js` script for implementation examples.

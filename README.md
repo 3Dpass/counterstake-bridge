@@ -1,10 +1,10 @@
-# Counterstake assistant and watchdog
+# Counterstake Bridge Node (assistant + watchdog)
 
-Run this bot to assist users with cross-chain transfers facilitated by [counterstake protocol](https://counterstake.org) and earn assistant rewards (initially, 1%) on each transfer.
+Run this Node to assist users with cross-chain transfers facilitated by [counterstake protocol](https://counterstake.org) and earn assistant rewards (initially, 1%) on each transfer.
 
-The bot also serves as watchdog. It monitors the ongoing transfers and if it sees a fraudulent claim or challenge, it sends a counterstake looking to win the stake posted by the fraudulent claim or challenge. The potential ROI is 66.7%. See [how counterstake works](https://counterstake.org/how-it-works).
+The Node also serves as a "watchdog" performing the bridge main security mechanism. It monitors the ongoing transfers and if it sees a fraudulent claim or challenge, it sends a counterstake looking to win the stake posted by the fraudulent claim or challenge. The potential ROI is 66.7%. See [how counterstake works](https://counterstake.org/how-it-works).
 
-Currently, the bot supports transfers between Obyte, Ethereum, BSC, and 3DPass.
+Currently, the Node supports transfers between Obyte, Ethereum, BSC, and 3DPass.
 
 The are no guarantees of the correct operation of the software. There might be bugs which can lead to losing money. Use at your own risk.
 
