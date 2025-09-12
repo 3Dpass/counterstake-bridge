@@ -62,7 +62,7 @@ contract ImportWrapper is Counterstake {
 	}
 
 	function setupGovernance(GovernanceFactory governanceFactory, VotedValueFactory votedValueFactory) external {
-		setupCounterstakeGovernance(governanceFactory, votedValueFactory, address(this));
+		setupCounterstakeGovernance(governanceFactory, votedValueFactory, precompileAddress);
 		governance.addVotedValue("oracleAddress", votedValueFactory.createVotedValueAddress(governance, oracleAddress, this.validateOracle, this.setOracle));
 		governance.addVotedValue("min_price20", votedValueFactory.createVotedValueUint(governance, min_price20, this.validateMinPrice, this.setMinPrice));
 	}

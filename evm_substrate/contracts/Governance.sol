@@ -87,7 +87,9 @@ contract Governance is ReentrancyGuard {
 			require(msg.value == 0, "don't send P3D");
 			require(IPrecompileERC20(votingTokenAddress).transferFrom(from, address(this), amount), "3DPass ERC20 transferFrom failed");
 		} else {
-			revert("unsupported voting token type");
+			// Handle regular ERC20 contracts (like assistants) using SafeERC20
+			require(msg.value == 0, "don't send P3D");
+			IERC20(votingTokenAddress).safeTransferFrom(from, address(this), amount);
 		}
 		balances[from] += amount;
 		emit Deposit(from, amount);
@@ -110,7 +112,8 @@ contract Governance is ReentrancyGuard {
 		else if (is3DPassERC20Precompile(votingTokenAddress))
 			require(IPrecompileERC20(votingTokenAddress).transfer(msg.sender, amount), "3DPass ERC20 transfer failed");
 		else
-			revert("unsupported voting token type");
+			// Handle regular ERC20 contracts (like assistants) using SafeERC20
+			IERC20(votingTokenAddress).safeTransfer(msg.sender, amount);
 		emit Withdrawal(msg.sender, amount);
 	}
 }
