@@ -128,6 +128,8 @@ function getCoingeckoId(currency) {
 		case 'eth': return 'ethereum';
 		case 'bnb': return 'binancecoin';
 		case 'matic': return 'matic-network';
+		case 'p3d': return '3dpass';
+		case '3dpass': return '3dpass';
 		default: return currency;
 	}
 }
@@ -265,3 +267,5 @@ async function test() {
 
 exports.fetchExchangeRateInNativeAsset = fetchExchangeRateInNativeAsset;
 exports.fetchExchangeRateInUSD = fetchExchangeRateInUSD;
+exports.fetchCoingeckoExchangeRateCached = fetchCoingeckoExchangeRateCached;
+exports.fetchExchangeRateCached = fetchExchangeRateCached;

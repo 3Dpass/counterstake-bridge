@@ -10,6 +10,7 @@ The watchdog bot needs private keys to:
 - **Claim transfers** for users (earning assistant rewards)
 - **Send challenges** against fraudulent claims
 - **Manage Obyte wallet** for Obyte network operations
+- **Act as manager** of assistant contracts for automated operations
 
 ## 📋 Existing Keys Format
 
@@ -67,7 +68,10 @@ node setup_existing_account.js "your twelve word mnemonic phrase here"
 
 ### 1. Obyte Keys (`keys.json`)
 
-**Location**: `~/Library/Application Support/counterstake-bridge/keys.json`
+**Location**: 
+- **macOS**: `~/Library/Application Support/counterstake-bridge/keys.json`
+- **Linux**: `~/.config/counterstake-bridge/keys.json`
+- **Windows**: `%APPDATA%/counterstake-bridge/keys.json`
 
 This file contains the Obyte wallet mnemonic phrase and is used for:
 - Obyte network transactions
@@ -76,7 +80,10 @@ This file contains the Obyte wallet mnemonic phrase and is used for:
 
 ### 2. User Configuration (`conf.json`)
 
-**Location**: `~/Library/Application Support/counterstake-bridge/conf.json`
+**Location**:
+- **macOS**: `~/Library/Application Support/counterstake-bridge/conf.json`
+- **Linux**: `~/.config/counterstake-bridge/conf.json`
+- **Windows**: `%APPDATA%/counterstake-bridge/conf.json`
 
 Contains additional configuration including:
 - Device private key for Obyte
@@ -87,10 +94,33 @@ Contains additional configuration including:
 
 ### Step 1: Create Configuration Directory
 
+**macOS:**
 ```bash
 # Create the configuration directory
 mkdir -p "/Users/$USER/Library/Application Support/counterstake-bridge"
 cd "/Users/$USER/Library/Application Support/counterstake-bridge"
+```
+
+**Linux:**
+```bash
+# Create the configuration directory
+mkdir -p "$HOME/.config/counterstake-bridge"
+cd "$HOME/.config/counterstake-bridge"
+```
+
+**Windows (PowerShell):**
+```powershell
+# Create the configuration directory
+$configDir = "$env:APPDATA\counterstake-bridge"
+New-Item -ItemType Directory -Force -Path $configDir
+cd $configDir
+```
+
+**Windows (Command Prompt):**
+```cmd
+# Create the configuration directory
+mkdir "%APPDATA%\counterstake-bridge"
+cd "%APPDATA%\counterstake-bridge"
 ```
 
 ### Step 2: Generate Obyte Wallet (First Time Setup)
@@ -207,7 +237,68 @@ constructor(network, factory_contract_addresses, assistant_factory_contract_addr
 }
 ```
 
-### 2. Obyte Network
+### 2. Assistant Contract Management
+
+**CRITICAL**: The bot's address must be set as the **manager** of assistant contracts to perform automated operations.
+
+#### How Manager Address Works:
+```javascript
+// From transfers.js - checking if bot is the manager
+const meIsManager = networkApi[networkApiKey].getMyAddress() === manager;
+
+// From assistant contracts - onlyManager modifier
+modifier onlyManager() {
+    require(msg.sender == managerAddress, "caller is not the manager");
+    _;
+}
+```
+
+#### Assistant Contract Operations:
+The bot performs these operations **only if it's the manager**:
+
+1. **Automated Claiming**: Claims transfers using assistant funds
+   ```javascript
+   // From transfers.js
+   if (bClaimFromPooledAssistant) {
+       claim_txid = await dst_api.sendClaimFromPooledAssistant({
+           assistant_aa, amount: dst_amount, reward: dst_reward, 
+           claimed_asset, staked_asset, sender_address, dest_address, 
+           data, txid, txts
+       });
+   }
+   ```
+
+2. **Automated Challenging**: Challenges fraudulent claims
+   ```javascript
+   // From transfers.js
+   const txid = bClaimFromPooledAssistant
+       ? await api.sendChallengeFromPooledAssistant(assistant_aa, claim_num, stake_on, counterstake)
+       : await api.sendChallenge(bridge_aa, claim_num, stake_on, asset, counterstake);
+   ```
+
+3. **Automated Withdrawals**: Withdraws stakes from completed claims
+   ```javascript
+   // From transfers.js
+   if (await addressHasStakesInClaim({ claim_num, bridge_id, type }, assistant_aa)) {
+       txid = await api.sendWithdrawalRequest(bridge_aa, claim_num, assistant_aa);
+   }
+   ```
+
+#### Manager Address Setup:
+When assistant contracts are deployed, the **bot's address** must be set as the manager:
+
+```solidity
+// From assistant contract constructors
+constructor(address bridgeAddr, address managerAddr, ...) {
+    // managerAddr should be the bot's address
+    address finalManager = (managerAddr != address(0)) ? managerAddr : msg.sender;
+    managerAddress = finalManager;
+}
+```
+
+**Your Bot's Manager Address**: `0x410F43d38BAA817F37EB50731dd6626EfdAEE52D`
+
+### 3. Obyte Network
 
 Uses the temporary private key from `keys.json` for Obyte-specific operations:
 
@@ -236,39 +327,6 @@ After setting up private keys, fund the bot addresses:
   - **3DPass**: P3D + wrapped tokens
   - **Polygon**: MATIC + ERC20 tokens
   - **Kava**: KAVA + ERC20 tokens
-
-### 3. Recommended Funding Strategy
-
-```javascript
-// Minimum recommended balances for each network
-const MINIMUM_BALANCES = {
-    'Obyte': {
-        'GBYTE': '100',  // For fees and staking
-        'USDT': '1000',  // For transfers
-        'USDC': '1000'   // For transfers
-    },
-    'Ethereum': {
-        'ETH': '0.5',    // For gas fees
-        'USDT': '1000',  // For transfers and counterstakes
-        'USDC': '1000'   // For transfers and counterstakes
-    },
-    'BSC': {
-        'BNB': '0.1',    // For gas fees
-        'BUSD': '1000'   // For transfers and counterstakes
-    },
-    '3DPass': {
-        'P3D': '100',    // For staking and fees
-        'wUSDT': '1000', // For transfers
-        'wUSDC': '1000'  // For transfers
-    }
-};
-
-// Your specific addresses (from existing keys.json)
-const YOUR_ADDRESSES = {
-    'Obyte': 'TNM2YRTJOANVGXMCFOH2FBVC3KYHZ4O6', // Will be generated
-    'EVM_Networks': '0x410F43d38BAA817F37EB50731dd6626EfdAEE52D' // Same for all EVM networks
-};
-```
 
 ## 🔧 Advanced Configuration
 
@@ -353,10 +411,22 @@ const MULTISIG_CONFIG = {
 - **Access control** to configuration files
 
 ### 2. Network Security
+
+**macOS/Linux:**
 ```bash
 # Set proper file permissions
-chmod 600 "/Users/$USER/Library/Application Support/counterstake-bridge/keys.json"
-chmod 600 "/Users/$USER/Library/Application Support/counterstake-bridge/conf.json"
+chmod 600 "$HOME/Library/Application Support/counterstake-bridge/keys.json"  # macOS
+chmod 600 "$HOME/Library/Application Support/counterstake-bridge/conf.json"  # macOS
+# OR
+chmod 600 "$HOME/.config/counterstake-bridge/keys.json"  # Linux
+chmod 600 "$HOME/.config/counterstake-bridge/conf.json"  # Linux
+```
+
+**Windows:**
+```powershell
+# Set file attributes to hidden and read-only
+attrib +H +R "$env:APPDATA\counterstake-bridge\keys.json"
+attrib +H +R "$env:APPDATA\counterstake-bridge\conf.json"
 ```
 
 ### 3. Environment Variables
@@ -400,16 +470,59 @@ node run.js
 # Verify the addresses match your expectations
 ```
 
-### 2. Test Transaction Signing
+### 2. Verify Manager Status
+```bash
+# Check if your bot is the manager of assistant contracts
+node -e "
+const { ethers } = require('ethers');
+const { getProvider } = require('./evm/provider.js');
+
+async function checkManagerStatus() {
+    const provider = getProvider('3DPass');
+    const botAddress = '0x410F43d38BAA817F37EB50731dd6626EfdAEE52D';
+    
+    // Check Import Assistant
+    const importAssistant = new ethers.Contract(
+        '0x2Dce9B2dc9983f9b435da02a69C6F0e8A31Bf3E8',
+        ['function managerAddress() view returns (address)'],
+        provider
+    );
+    const importManager = await importAssistant.managerAddress();
+    console.log('Import Assistant Manager:', importManager);
+    console.log('Bot is Import Manager:', importManager.toLowerCase() === botAddress.toLowerCase());
+    
+    // Check Export Assistant
+    const exportAssistant = new ethers.Contract(
+        '0xA07a7a1514F391E1e636F2d5eB71c53ee80fC6DB',
+        ['function managerAddress() view returns (address)'],
+        provider
+    );
+    const exportManager = await exportAssistant.managerAddress();
+    console.log('Export Assistant Manager:', exportManager);
+    console.log('Bot is Export Manager:', exportManager.toLowerCase() === botAddress.toLowerCase());
+}
+
+checkManagerStatus().catch(console.error);
+"
+```
+
+### 3. Test Transaction Signing
 ```bash
 # Send a small test transaction on each network
 # Verify the bot can sign and send transactions
 ```
 
-### 3. Test Counterstake Operations
+### 4. Test Counterstake Operations
 ```bash
 # Monitor the bot during a test transfer
 # Verify it can perform counterstake operations
+```
+
+### 5. Test Assistant Operations
+```bash
+# Monitor the bot during a transfer
+# Verify it can claim using assistant contracts
+# Check that assistant contracts have sufficient funds
 ```
 
 ## 🚨 Troubleshooting
@@ -434,12 +547,29 @@ node run.js
 
 ### Debug Commands
 
+**macOS:**
 ```bash
 # Check configuration files
-cat "/Users/$USER/Library/Application Support/counterstake-bridge/keys.json"
-cat "/Users/$USER/Library/Application Support/counterstake-bridge/conf.json"
+cat "$HOME/Library/Application Support/counterstake-bridge/keys.json"
+cat "$HOME/Library/Application Support/counterstake-bridge/conf.json"
+```
 
-# Test wallet generation
+**Linux:**
+```bash
+# Check configuration files
+cat "$HOME/.config/counterstake-bridge/keys.json"
+cat "$HOME/.config/counterstake-bridge/conf.json"
+```
+
+**Windows (PowerShell):**
+```powershell
+# Check configuration files
+Get-Content "$env:APPDATA\counterstake-bridge\keys.json"
+Get-Content "$env:APPDATA\counterstake-bridge\conf.json"
+```
+
+**All Platforms - Test wallet generation:**
+```bash
 node -e "
 const fs = require('fs');
 const { ethers } = require('ethers');

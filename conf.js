@@ -10,7 +10,7 @@
 //exports.myUrl = 'ws://127.0.0.1:' + exports.port;
 
 exports.bServeAsHub = false;
-exports.bLight = false; // Use full mode - light mode rejected by network
+exports.bLight = false; // Use full mode - required for bridge monitoring due to large factory contract histories
 
 exports.storage = 'sqlite';
 
@@ -40,7 +40,7 @@ exports.max_ts_error = 60; // how far txts can be into the future due to clock d
 // Obyte
 exports.token_registry_aa = "O6H6ZIFI57X3PLTYHOCVYPP5A553CYFQ";
 
-exports.version = 'v1.1';
+exports.version = 'v1.1-substrate';
 
 exports.export_factory_aas = {
 	'v1': 'YOOQMPDNU3YU6CIN3MOVU6ILY3EVDTLE',
@@ -104,7 +104,7 @@ if (process.env.devnet){
 	exports.kava_assistant_factory_contract_addresses = {
 		'v1.1': '',
 	};
-	// 3DPass devnet contract addresses
+	
 	}
 else if (process.env.testnet) {
 	exports.ethereum_factory_contract_addresses = {
@@ -137,7 +137,7 @@ else if (process.env.testnet) {
 	exports.kava_assistant_factory_contract_addresses = {
 		'v1.1': '0x192b3769709cA681e315848809cddad526D1ca08',
 	};
-	// 3DPass testnet contract addresses
+	
 	}
 else { // mainnet
 	exports.ethereum_factory_contract_addresses = {
@@ -189,7 +189,7 @@ exports.bAttack = true; // whether to bite or just bark by emitting events (assu
 // Disable problematic networks for testing
 exports.disablePolygon = true;
 exports.disableKava = true;
-exports.disableBSC = false; // Enable BSC monitoring
+exports.disableBSC = true; // Disable BSC monitoring
 exports.disableThreeDPass = false; // Re-enable 3DPass
 exports.disableObyte = false; // Disable Obyte to avoid light mode issues
 
@@ -198,15 +198,18 @@ exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 
 exports.webPort = process.env.testnet ? 7001 : 7000; // set to null in order to disable the web server
 
 
-// 3DPass Network Configuration
+// 3DPass Network Configuration (Substrate-specific version)
 exports.threedpass_factory_contract_addresses = {
-    'v1.1': '0xBDe856499b710dc8E428a6B616A4260AAFa60dd0'
+    'v1.1-substrate': '0x1bB031c2Fc2b93d98569e81877E9664Bfb32db43'
 };
 exports.threedpass_assistant_factory_contract_addresses = {
-    'v1.1': '0x5b74685B32cdaA74a030DA14F15F56CcfB5cA1Bc'
+    'v1.1-substrate': '0x51D7976F592724401e9DAE0dC75B126D889C9C9e'
+};
+exports.threedpass_bridges_registry_addresses = {
+    'v1.1-substrate': '0x9092Fe0755299C57dBC8AbB59678fCc004339a3b'
 };
 exports.threedpass_oracle_addresses = {
-    '3DPass': '0xAc647d0caB27e912C844F27716154f54EDD519cE'
+    '3DPass': '0x237527b4F7bb0030Bd5B7B863839Aa121cefd5fB'
 };
 
 console.log('finished watchdog conf');

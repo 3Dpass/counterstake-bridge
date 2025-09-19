@@ -42,6 +42,14 @@ class EvmChain {
 		return this.#provider;
 	}
 
+	getWallet() {
+		return this.#wallet;
+	}
+
+	_storeContractReference(address, contract) {
+		this.#contractsByAddress[address] = contract;
+	}
+
 	getMaxBlockRange() {
 		return 0;
 	}
@@ -713,7 +721,11 @@ class EvmChain {
 			const version = getVersion(this.#factory_contract_addresses, event.address);
 			if (!version)
 				throw Error(`undefined version of new export ${contractAddress} ${JSON.stringify(event)}`);
-			const bAdded = await transfers.handleNewExportAA(contractAddress, this.network, tokenAddress, decimals, foreign_network, foreign_asset, version);
+			
+			// Normalize network names to ensure consistency
+			const normalizedForeignNetwork = foreign_network === '3dpass' ? '3DPass' : foreign_network;
+			
+			const bAdded = await transfers.handleNewExportAA(contractAddress, this.network, tokenAddress, decimals, normalizedForeignNetwork, foreign_asset, version);
 			if (bAdded)
 				this.startWatchingExportAA(contractAddress);
 		};
@@ -721,7 +733,11 @@ class EvmChain {
 			const version = getVersion(this.#factory_contract_addresses, event.address);
 			if (!version)
 				throw Error(`undefined version of new import ${contractAddress} ${JSON.stringify(event)}`);
-			const bAdded = await transfers.handleNewImportAA(contractAddress, home_network, home_asset, this.network, contractAddress, 18, stakeTokenAddress, version);
+			
+			// Normalize network names to ensure consistency
+			const normalizedHomeNetwork = home_network === '3dpass' ? '3DPass' : home_network;
+			
+			const bAdded = await transfers.handleNewImportAA(contractAddress, normalizedHomeNetwork, home_asset, this.network, contractAddress, 18, stakeTokenAddress, version);
 			if (bAdded)
 				this.startWatchingImportAA(contractAddress);
 		};

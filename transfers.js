@@ -940,9 +940,8 @@ async function handleNewAssistantAA(side, assistant_aa, bridge_aa, network, mana
 	if (!bridge)
 		return unlock(`got new ${side} assistant for AA ${bridge_aa} but the bridge not found`);
 	const { bridge_id } = bridge;
-	// Map network names to networkApi keys
-	const networkApiKey = network === '3DPass' ? 'ThreeDPass' : network;
-	const meIsManager = networkApi[networkApiKey].getMyAddress() === manager;
+	// Use network name directly as networkApi key (network names are consistent)
+	const meIsManager = networkApi[network].getMyAddress() === manager;
 	if (meIsManager)
 		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, [assistant_aa, version, bridge_id]);
 	await db.query(`INSERT ${db.getIgnore()} INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [assistant_aa, bridge_id, bridge_aa, network, side, manager, assistant_shares_asset, assistant_shares_symbol, version]);
@@ -955,17 +954,26 @@ async function populatePooledAssistantsTable() {
 
 	async function addPooledAssistant(bridge_id, network, bridge_aa, side, assistant_aa) {
 		const api = networkApi[network];
-		let shares_asset, manager;
+		let shares_asset, manager, version;
 		if (network === 'Obyte') {
 			manager = (await dag.readAAParams(assistant_aa)).manager;
 			shares_asset = await dag.readAAStateVar(assistant_aa, 'shares_asset');
+			// For Obyte, determine version from factory addresses
+			const { getVersion } = require('./utils.js');
+			if (side === 'export') {
+				version = getVersion(conf.export_assistant_factory_aas, assistant_aa) || conf.version;
+			} else {
+				version = getVersion(conf.import_assistant_factory_aas, assistant_aa) || conf.version;
+			}
 		}
 		else {
 			manager = api.getMyAddress();
 			shares_asset = assistant_aa;
+			// For EVM networks, use the current version from config
+			version = conf.version;
 		}
 		const shares_symbol = await api.getSymbol(shares_asset);
-		await db.query(`INSERT INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol) VALUES(?, ?,?, ?,?,?, ?,?)`, [assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol]);
+		await db.query(`INSERT INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, version]);
 	}
 
 	const bridges = await db.query("SELECT * FROM bridges");
@@ -1097,6 +1105,9 @@ async function restartNetwork(network) {
 	console.log(`restart: catching up ${network} done`);
 }
 
+// Import the 3DPass registry setup functionality
+const setup3DPassBridges = require('./setup_3dpass_bridges_from_registry.js');
+
 async function start() {
 	networkApi.Obyte = new Obyte();
 	if (!process.env.testnet)
@@ -1108,7 +1119,10 @@ async function start() {
 	if (!conf.disableKava)
 		networkApi.Kava = new Kava();
 	if (!conf.disableThreeDPass)
-		networkApi.ThreeDPass = new ThreeDPass();
+		networkApi['3DPass'] = new ThreeDPass();
+
+	// Note: 3DPass Registry discovery moved to after factory monitoring starts
+	// to ensure proper timing and network connectivity
 
 	let caughtUp = {};
 	let disconnected_ts = {};
@@ -1138,7 +1152,7 @@ async function start() {
 		else if (network === 'Kava')
 			networkApi.Kava = new Kava();
 		else if (network === '3DPass')
-			networkApi.ThreeDPass = new ThreeDPass();
+			networkApi['3DPass'] = new ThreeDPass();
 		else
 			throw Error(`unknown network disconnected ${network}`);
 		await restartNetwork(network);
@@ -1178,6 +1192,19 @@ async function start() {
 		starters.push(f());
 	}
 	await Promise.all(starters);
+
+	// Discover bridges from 3DPass Registry after factory monitoring has started
+	// This ensures proper timing and network connectivity
+	if (!conf.disableThreeDPass && networkApi['3DPass']) {
+		try {
+			console.log('🔍 Discovering bridges from 3DPass Registry...');
+			await setup3DPassBridges.setupCorrect3DPassBridges();
+			console.log('✅ 3DPass Registry discovery completed successfully');
+		} catch (err) {
+			console.error('❌ Failed to discover bridges from 3DPass Registry:', err.message);
+			console.error('Error stack:', err.stack);
+		}
+	}
 
 //	await populatePooledAssistantsTable();
 

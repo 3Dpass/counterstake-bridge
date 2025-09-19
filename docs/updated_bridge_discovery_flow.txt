@@ -1,0 +1,170 @@
+UPDATED BRIDGE DISCOVERY FLOW DIAGRAM
+=====================================
+
+1. SYSTEM STARTUP
+   ┌─────────────────┐
+   │   Bot Startup   │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Load Existing   │
+   │ Bridges from DB │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ 3DPass Registry │
+   │ Discovery       │
+   │ (New Step!)     │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Add New Bridges │
+   │ from Registry   │
+   │ to Database     │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Start Monitoring│
+   │ Factory Events  │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Process Missed  │
+   │ Events (Catchup)│
+   └─────────────────┘
+
+2. 3DPASS REGISTRY DISCOVERY (NEW INTEGRATED STEP)
+   ┌─────────────────┐
+   │ Check if 3DPass │
+   │ is configured   │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Connect to      │
+   │ BridgesRegistry │
+   │ Contract        │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ getAllBridges() │
+   │ getAllAssistants()│
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Check Existing  │
+   │ Bridges in DB   │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Add Only New    │
+   │ Bridges/Assistants│
+   │ to Database     │
+   └─────────┬───────┘
+             │
+             ▼
+   ┌─────────────────┐
+   │ Continue to     │
+   │ Factory Events  │
+   └─────────────────┘
+
+3. FACTORY EVENT DETECTION (EXISTING)
+   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+   │   Ethereum      │    │      BSC        │    │    3DPass       │
+   │   Factory       │    │   Factory       │    │   Factory       │
+   └─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+             │                      │                      │
+             ▼                      ▼                      ▼
+   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+   │  NewExport      │    │  NewExport      │    │  NewExport      │
+   │  NewImport      │    │  NewImport      │    │  NewImportWrapper│
+   │  NewAssistant   │    │  NewAssistant   │    │  NewAssistant   │
+   └─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+             │                      │                      │
+             └──────────────────────┼──────────────────────┘
+                                    ▼
+                        ┌─────────────────┐
+                        │  Event Handler  │
+                        │  Functions      │
+                        └─────────┬───────┘
+
+4. BRIDGE HANDLING LOGIC (EXISTING)
+                        ┌─────────────────┐
+                        │ handleNewExport │
+                        │ handleNewImport │
+                        │ handleNewAssistant│
+                        └─────────┬───────┘
+                                  │
+                                  ▼
+                        ┌─────────────────┐
+                        │   Validation    │
+                        │ • Asset valid?  │
+                        │ • Duplicate?    │
+                        │ • Networks OK?  │
+                        └─────────┬───────┘
+                                  │
+                                  ▼
+                        ┌─────────────────┐
+                        │  Bridge Match   │
+                        │ • Find existing │
+                        │ • Complete?     │
+                        │ • Create new?   │
+                        └─────────┬───────┘
+                                  │
+                                  ▼
+                        ┌─────────────────┐
+                        │  Database       │
+                        │  Operations     │
+                        │ • INSERT new    │
+                        │ • UPDATE existing│
+                        └─────────┬───────┘
+                                  │
+                                  ▼
+                        ┌─────────────────┐
+                        │ Start Monitoring│
+                        │ New Contracts   │
+                        └─────────────────┘
+
+5. MONITORING SYSTEM (EXISTING)
+   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+   │   Export        │    │   Import        │    │   Assistant     │
+   │   Contracts     │    │   Contracts     │    │   Contracts     │
+   └─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+             │                      │                      │
+             ▼                      ▼                      ▼
+   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+   │ startWatching   │    │ startWatching   │    │ startWatching   │
+   │ ExportAA()      │    │ ImportAA()      │    │ AssistantAA()   │
+   └─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+             │                      │                      │
+             └──────────────────────┼──────────────────────┘
+                                    ▼
+                        ┌─────────────────┐
+                        │  Event          │
+                        │  Processing     │
+                        │ • Transfers     │
+                        │ • Claims        │
+                        │ • Challenges    │
+                        └─────────────────┘
+
+KEY IMPROVEMENTS:
+- Registry discovery is now fully integrated into main startup flow
+- No separate startup scripts needed
+- All bridges are discovered consistently and automatically
+- Better coverage and reliability
+- Integrated with existing factory event monitoring
+- Proper timing: registry discovery happens after factory monitoring starts
+
+INTEGRATION POINTS:
+- transfers.js: Registry discovery call integrated into start() function
+- setup_3dpass_bridges_from_registry.js: Core logic imported and called during startup
+- Automatic execution: No manual intervention required
+- Error handling: Graceful failure if registry discovery fails

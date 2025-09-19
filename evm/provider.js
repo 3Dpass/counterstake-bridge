@@ -50,7 +50,10 @@ function getProvider(network, bFree) {
 			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava-rpc.com`);
 		
 		case '3DPass':
-			return new ethers.providers.WebSocketProvider(process.env.testnet ? `ws://127.0.0.1:9944` : `ws://127.0.0.1:9944`);
+			// JsonRpcProvider: https://rpc-http.3dpass.org (commented out)
+			// WebSocketProvider: wss://rpc.3dpass.org
+			//	return new ethers.providers.JsonRpcProvider(`https://rpc-http.3dpass.org`);
+			return new ethers.providers.WebSocketProvider(`wss://rpc.3dpass.org`);
 	}
 	throw Error(`unknown network ` + network);
 }

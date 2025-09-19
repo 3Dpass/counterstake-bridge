@@ -2,9 +2,16 @@
 
 Run this Node to assist users with cross-chain transfers facilitated by [counterstake protocol](https://counterstake.org) and earn assistant rewards (initially, 1%) on each transfer.
 
-The Node also serves as a "watchdog" performing the bridge main security mechanism. It monitors the ongoing transfers and if it sees a fraudulent claim or challenge, it sends a counterstake looking to win the stake posted by the fraudulent claim or challenge. The potential ROI is 66.7%. See [how counterstake works](https://counterstake.org/how-it-works).
+The Node also serves as a "watchdog" performing the bridge main security mechanism. It monitors the ongoing transfers and if it sees a fraudulent claim or challenge, it sends a counterstake looking to win the stake posted by the fraudulent claim or challenge. The potential ROI is 66.7%. See [how the counterstake works](https://counterstake.org/how-it-works). 
 
-Currently, the Node supports transfers between Obyte, Ethereum, BSC, and 3DPass.
+Explore the [USER_FLOW.md](/docs/USER_FLOW.md) documentation to dive into the implementation details.
+
+Currently, the Node supports transfers across the Obyte, Ethereum, BSC, and 3DPass.
+
+SMART CONTRACT VERSIONS
+v1.0.
+v1.1.
+v1.1-substrate
 
 The are no guarantees of the correct operation of the software. There might be bugs which can lead to losing money. Use at your own risk.
 
@@ -14,28 +21,37 @@ nodejs 12+
 ## Install
 Get the repo:
 ```bash
-git clone https://github.com/byteball/counterstake-bridge
+git clone https://github.com/3Dpass/counterstake-bridge
 cd counterstake-bridge
 yarn
 ```
 
-It should automatically compile Ethereum contracts during install, but in case any error occures, you can compile them manually:
-```bash
-cd evm
-yarn global add truffle
-truffle compile
-```
-or
+## Compile both Ethereum and 3DPass versions of the contracts:
 
+Ethereum version 1.1.: 
 ```bash
 cd evm
 npx truffle compile --all
+```
+
+3Dpass (1.1-substrate) version:
 ```bash
+cd evm_substrate
+npx truffle compile --all
+```
 
 ## Run
 ```bash
 node run.js bridge 2>errlog
 ```
+
+## Stop
+```bash
+pkill -f "node run.js"
+```
+
+## Setup Keys
+Follow the [KEY_MANAGEMENT.md](/docs/KEY_MANAGEMENT.md) to setup the signer account. 
 
 ## Funding
 When the bot starts, it prints its addresses, like this:

@@ -1,13 +1,5 @@
-/Users/jm/counterstake-bridge/node_modules/.pnpm/ocore@https+++codeload.github.com+byteball+ocore+tar.gz+9a4be38036ab30d8536c8d1bf7bcd7a_3bcf88a692034fe1a5ee64cd804cd413/node_modules/ocore/kvstore.js:25
-		throw Error("rocksdb open failed (is the app already running?): " + err);
-		      ^
-
-Error: rocksdb open failed (is the app already running?): OpenError: IO error: While lock file: /Users/jm/Library/Application Support/counterstake-bridge/rocksdb/LOCK: Resource temporarily unavailable
-    at /Users/jm/counterstake-bridge/node_modules/.pnpm/ocore@https+++codeload.github.com+byteball+ocore+tar.gz+9a4be38036ab30d8536c8d1bf7bcd7a_3bcf88a692034fe1a5ee64cd804cd413/node_modules/ocore/kvstore.js:25:9
-    at /Users/jm/counterstake-bridge/node_modules/.pnpm/levelup@5.1.1/node_modules/levelup/lib/levelup.js:127:14
-    at /Users/jm/counterstake-bridge/node_modules/.pnpm/abstract-leveldown@7.2.0/node_modules/abstract-leveldown/abstract-leveldown.js:41:14
-    at onopen (/Users/jm/counterstake-bridge/node_modules/.pnpm/deferred-leveldown@7.0.0/node_modules/deferred-leveldown/deferred-leveldown.js:49:14)
-    at /Users/jm/counterstake-bridge/node_modules/.pnpm/abstract-leveldown@7.2.0/node_modules/abstract-leveldown/abstract-leveldown.js:41:14
-    at /Users/jm/counterstake-bridge/node_modules/.pnpm/abstract-leveldown@7.2.0/node_modules/abstract-leveldown/abstract-leveldown.js:41:14
-
-Node.js v18.20.2
+----- readAAStateVar O6H6ZIFI57X3PLTYHOCVYPP5A553CYFQ a2s_RF/ysZ/ZY4leyc3huUq1yFc0xTS0GdeFQu8RmXas4ys=
+----- readAAStateVar O6H6ZIFI57X3PLTYHOCVYPP5A553CYFQ a2s_S/oCESzEO8G2hvQuI6HsyPr0foLfKwzs+GU73nO9H40=
+----- readAAStateVar O6H6ZIFI57X3PLTYHOCVYPP5A553CYFQ a2s_0IwAk71D5xFP0vTzwamKBwzad3I1ZUjZ1gdeB5OnfOg=
+----- readAAStateVar O6H6ZIFI57X3PLTYHOCVYPP5A553CYFQ a2s_vApNsebTEPb3QDNNfyLsDB/iI5st9koMpAqvADzTw5A=
+----- readAAStateVar O6H6ZIFI57X3PLTYHOCVYPP5A553CYFQ a2s_ii2bMrkLlB7KeBV6h3rPdfGTslrDeYO4DWUv1aW8tiw=
