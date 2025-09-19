@@ -10,7 +10,7 @@
 //exports.myUrl = 'ws://127.0.0.1:' + exports.port;
 
 exports.bServeAsHub = false;
-exports.bLight = false; // Use full mode - required for bridge monitoring due to large factory contract histories
+exports.bLight = true; // Obyte client Light mode
 
 exports.storage = 'sqlite';
 
@@ -186,12 +186,12 @@ exports.bClaimForOthers = true;
 exports.bUseOwnFunds = true;
 exports.bAttack = true; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
 
-// Disable problematic networks for testing
-exports.disablePolygon = true;
-exports.disableKava = true;
+// Disable networks
+exports.disablePolygon = true; // Disable Polygon monitoring
+exports.disableKava = true; // Disable Kava monitoring
 exports.disableBSC = true; // Disable BSC monitoring
-exports.disableThreeDPass = false; // Re-enable 3DPass
-exports.disableObyte = false; // Disable Obyte to avoid light mode issues
+exports.disableThreeDPass = false; // Enable 3DPass monitoring
+exports.disableObyte = false; // Enable Obyte monitoring
 
 exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 0.5%
 

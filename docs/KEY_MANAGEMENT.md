@@ -16,7 +16,7 @@ The watchdog bot needs private keys to:
 
 If you already have a `keys.json` file, here's what it contains:
 
-### Current `keys.json` Structure
+###  Example: `keys.json` Structure 
 ```json
 {
   "mnemonic_phrase": "tooth unlock fossil diet lounge recipe snack craft noble heavy any talent",

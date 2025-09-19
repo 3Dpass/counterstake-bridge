@@ -8,10 +8,10 @@ Explore the [USER_FLOW.md](/docs/USER_FLOW.md) documentation to dive into the im
 
 Currently, the Node supports transfers across the Obyte, Ethereum, BSC, and 3DPass.
 
-SMART CONTRACT VERSIONS
-v1.0.
-v1.1.
-v1.1-substrate
+SMART CONTRACTS VERSIONS SUPPORTED:
+- [v1.0](/evm-v1.0/) - the very first version for EVM networks
+- [v1.1](/evm/) - current EVM networks
+- [v1.1-substrate](/evm_substrate/) - cross-platform (EVM-Substrate)
 
 The are no guarantees of the correct operation of the software. There might be bugs which can lead to losing money. Use at your own risk.
 
@@ -26,15 +26,15 @@ cd counterstake-bridge
 yarn
 ```
 
-## Compile both Ethereum and 3DPass versions of the contracts:
+## Compile contracts (both Ethereum and 3DPass versions required):
 
-Ethereum version 1.1.: 
+1. Conventional EVM `version 1.1`: 
 ```bash
 cd evm
 npx truffle compile --all
 ```
 
-3Dpass (1.1-substrate) version:
+2. 3Dpass cross-platform (EVM-Substrate) `version 1.1-substrate`:
 ```bash
 cd evm_substrate
 npx truffle compile --all
@@ -45,38 +45,66 @@ npx truffle compile --all
 node run.js bridge 2>errlog
 ```
 
+## Check bridge instances
+```bash
+node print_bridges.js
+```
+
 ## Stop
 ```bash
 pkill -f "node run.js"
+```
+## Enable/Disable Networks
+Manage networks in the `conf.js`:
+```bash
+// Disable networks
+exports.disablePolygon = true; // Disable Polygon monitoring
+exports.disableKava = true; // Disable Kava monitoring
+exports.disableBSC = true; // Disable BSC monitoring
+exports.disableThreeDPass = false; // Enable 3DPass monitoring
+exports.disableObyte = false; // Enable Obyte monitoring
 ```
 
 ## Setup Keys
 Follow the [KEY_MANAGEMENT.md](/docs/KEY_MANAGEMENT.md) to setup the signer account. 
 
 ## Funding
-When the bot starts, it prints its addresses, like this:
+1. The bot prints its addresses at startup:
 ```
-====== my single address: TNM2YRTJOANVGXMCFOH2FBVC3KYHZ4O6
+====== my single address: TNM2YRTJOANV...
 ```
-This is your Obyte address. Fund it with GBYTE and any Obyte tokens that users are likely to expatriate to other chains. Larger balances will enable you to serve larger transfers and win competition against other assistant bots.
+This is your Obyte address. Fund it with GBYTE and any Obyte tokens.
 ```
-====== my Ethereum address:  0xEA6D65BAE2E0dDF1A3723B139cb989FAbCD63318
+====== my Ethereum address:  0xEA6D65BAE2E0dDF...
 ```
-This is your Ethereum address. Fund it with ETH and any ERC20 tokens that users are likely to expatriate to other chains. Larger balances will enable you to serve larger transfers and win competition against other assistant bots.
+This is your Ethereum address. Fund it with ETH and any ERC20 tokens.
 ```
-====== my BSC address:  0xEA6D65BAE2E0dDF1A3723B139cb989FAbCD63318
+====== my BSC address:  0xEA6D65BAE2E0dDF...
 ```
-This is your BSC address. Fund it with BNB and any BEP20 tokens that users are likely to expatriate to other chains. Larger balances will enable you to serve larger transfers and win competition against other assistant bots.
+This is your BSC address. Fund it with BNB and any BEP20 tokens.
 ```
-====== my 3DPass address:  0xEA6D65BAE2E0dDF1A3723B139cb989FAbCD63318
+====== my 3DPass address:  0xEA6D65BAE2E0dDF...
 ```
-This is your 3DPass address. Fund it with P3D and any 3DPRC20 tokens that users are likely to expatriate to other chains. Larger balances will enable you to serve larger transfers and win competition against other assistant bots.
+This is your 3DPass address. Fund it with P3D and any 3DPRC20 tokens.
 
-Larger balances also allow you to serve more transfers in parallel before your bot's capacity is exhausted.
+The larger balances you have, the more transfers you can handge in parallel.
 
-Next, to be able to assist users with expatriations, you need to fund the bot with imported tokens on foreign chains. To do that, transfer some tokens to your bot via [counterstake.org](https://counterstake.org) by specifying your bot's address as the recipient. E.g. transfer GBYTE from Obyte to your bot's Ethereum address, transfer ETH and USDC from Ethereum to your bot's Obyte address, and so on. Note that the challenging period is 3 days by default, therefore the imported tokens will be available to your bot only after 3 days. If you want to top up the bot's balances in the future, plan that in advance as the transfer will take 3 days again.
+2. An operational bridge is comprized of two contracts deployed on corresponding chains. For example:
 
-You can track the bot's balances through the explorers on the respective chains.
+**USDT Ethereum <-> wUSDT 3DPass bridge**
+
+📥 IMPORT (on 3DPass):
+  -  ✅ Import: 0x00D5f00250434e76711e8127A37c6f84dBbDAA4C
+  - Asset: 0xfBFBfbFA000000000000000000000000000000de
+   - Symbol: wUSDT
+      
+
+📤 EXPORT (on Ethereum):
+  - ✅ Export: 0x3a96AC42A28D5610Aca2A79AE782988110108eDe
+  - Asset: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+  - Symbol: USDT
+
+Fund the bot with both assets in order to operate seamlessly in either directon (USDT on Ethereum and wUSDT on 3DPass in the example above).
 
 ## Email notifications
 If the bot complains about `admin_email` and `from_email`, specify them in ~/.config/counterstake-bridge/conf.json. In case of any issues, you'll get notifications to `admin_email`.
@@ -122,12 +150,7 @@ Check `conf.js` for the available options. You can override them in your conf.js
 * `control_addresses`: array of device addresses of your Obyte wallets (usually GUI wallets) that are allowed to view and withdraw balances using chatbot interface.
 * `payout_addresses`: associative array of your withdrawal addresses keyed by network.
 
-## Running as a pooled assistant
-If the bot notices that a pooled assistant has been created for a specific bridge and the bot's address is set as the manager, the bot will start using the pool's money for claiming and counterstaking on that bridge when sufficient funds are available.
-
-There is no UI for contributing to the pools yet, so this is not a real option at the moment.
-
-## Managing the bot and withdrawing funds
+## Managing the bot and withdrawing funds over the Obyte chatbot
 When the bot starts, it prints its pairing code, like this:
 ```
 ====== my pairing code: AzA8qzvoMEnf7vVyo4YCw7u/hIiDOb8APpTmIPttP/29@obyte.org/bb-test#0000
@@ -147,7 +170,21 @@ Set `control_addresses` in your conf.json to let the bot know who is allowed to 
 Type `help` in chat to see the available commands. In particular, you can use `balances` command to view the bot's balances in all currencies, `deposit` to add funds, `withdraw` to withdraw funds from the bot's balance to your payout addresses.
 
 ## Adding new bridges
-See `setup_bridges.js` and edit `setupAdditionalBridge()` as appropriate.
+**v1.1**
+See `setup_bridges.js` and edit `setupAdditionalBridge()` as appropriate. 
+
+**v1.1-substrate**
+Follow the documentation to setup new bridge instances and pooled assistants:
+- [Create new Import instatnce](/evm_substrate/docs/CREATE_NEW_IMPORT_BRIDGE_GUIDE.md)
+- [Create neww Export instance](/evm_substrate/docs/CREATE_NEW_EXPORT_BRIDGE_GUIDE.md)
+- [Create new pooled assistant](/evm_substrate/docs/CREATE_NEW_ASSISTANT_GUIDE.md)
+
+**Note!** Every independent bridge mush have an Oracle deployed to maintain "Transfer Token vs Stake token" prices. 
+
+## Oracle 
+Oracles are independent contracts operating on whatever chain the bridge is deployed to help providing actual price feeds necessary for either Import or Export contract stake calcualtions. [Oracle documentation](/docs/ORACLE_FLOW.md).
+
+Follow this [guide](/docs/ORACLE_PRICE_UPDATER.md) as a referrence for seting up and using 3DPass Oracle Price Updater to automatically maintain accurate price feeds for the Counterstake bridge system.
 
 ## Adding new chains
 To add a new EVM-based chain, see the source code of `ethereum.js` and `bsc.js`, add a similar class, and use it in `transfers.js`. Edit and run `emv/deploy-contracts.js` to deploy the contracts.
@@ -169,4 +206,33 @@ Install and run Ganache. If using a command-line version of Ganache (ganache-cli
 cd evm
 npx truffle test
 ```
+## Reading data directly from deployed contracts
+
+Read bridges and assistants from 3dpass bridge registry:
+```bash
+cd evm_substrate 
+node read-3dpass-bridges-registry.js
+```
+Read Immport Wrapper bridge data from 3dpass:
+```bash
+cd evm_substrate/scripts
+node read-import-wrapper-bridge-settings-3dpass.js
+```
+Read Export instance data from Ethereum:
+```bash
+cd evm_substrate/scripts
+node read-export-bridge-settings-ethereum.js
+```
+Read Import Wrapper pooled assistant data from 3dpass:
+```bash
+cd evm_substrate/scripts
+node read-import-wrapper-assistant-3dpass.js
+```
+Read Export pooled Assistant data from Ethereum
+```bash
+cd evm_substrate/scripts
+node read-export-assistant-ethereum.js
+```
+
+
 
