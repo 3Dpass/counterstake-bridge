@@ -165,6 +165,13 @@ class ThreeDPass extends EvmChain {
 
 	// Override approve to handle 3DPass precompiles
 	async approve(tokenAddress, spenderAddress) {
+		// 3DPass-specific gas parameters (very low gas costs)
+		const gasOptions = {
+			gasLimit: 100000,
+			maxFeePerGas: 100, // 100 wei (not gwei!)
+			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+		};
+
 		if (this.isP3D(tokenAddress)) {
 			// Use IP3D interface for P3D precompile
 			const p3d = new ethers.Contract(tokenAddress, ip3dJson.abi, this.getWallet());
@@ -175,7 +182,7 @@ class ThreeDPass extends EvmChain {
 					return "already approved";
 				}
 				console.log(`will approve spender ${spenderAddress} to spend our P3D`);
-				const res = await p3d.approve(spenderAddress, BigNumber.from(2).pow(256).sub(1));
+				const res = await p3d.approve(spenderAddress, BigNumber.from(2).pow(256).sub(1), gasOptions);
 				return res;
 			}
 			catch (e) {
@@ -192,7 +199,7 @@ class ThreeDPass extends EvmChain {
 					return "already approved";
 				}
 				console.log(`will approve spender ${spenderAddress} to spend our ERC20 precompile`);
-				const res = await token.approve(spenderAddress, BigNumber.from(2).pow(256).sub(1));
+				const res = await token.approve(spenderAddress, BigNumber.from(2).pow(256).sub(1), gasOptions);
 				return res;
 			}
 			catch (e) {
@@ -452,6 +459,176 @@ class ThreeDPass extends EvmChain {
 			const since_block = await this.getSinceBlock();
 			await processPastEventsOnContract(since_block, 0);
 		}
+	}
+
+	// ===== 3DPass Precompile Support Functions =====
+
+	/**
+	 * Transfer tokens using 3DPass precompiles
+	 * This is the key function for evm_substrate compatibility
+	 */
+	async transferTokens(tokenAddress, recipientAddress, amount) {
+		// 3DPass-specific gas parameters (very low gas costs)
+		const gasOptions = {
+			gasLimit: 100000,
+			maxFeePerGas: 100, // 100 wei (not gwei!)
+			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+		};
+
+		if (this.isP3D(tokenAddress)) {
+			// Use IP3D interface for P3D precompile
+			const p3d = new ethers.Contract(tokenAddress, ip3dJson.abi, this.getWallet());
+			return await p3d.transfer(recipientAddress, amount, gasOptions);
+		} else if (this.is3DPassERC20Precompile(tokenAddress)) {
+			// Use IPrecompileERC20 interface for ERC20 precompiles
+			const token = new ethers.Contract(tokenAddress, iprecompileErc20Json.abi, this.getWallet());
+			return await token.transfer(recipientAddress, amount, gasOptions);
+		}
+		// Fallback to standard ERC20 transfer
+		return await super.transferTokens(tokenAddress, recipientAddress, amount);
+	}
+
+	/**
+	 * Enhanced claim function for 3DPass precompiles
+	 * Overrides the base claim function to handle precompile-specific logic
+	 */
+	async claim(contractAddress, txid, txts, amount, reward, stake, senderAddress, recipientAddress, data = "") {
+		const contract = this.getContractReference(contractAddress);
+		if (!contract) {
+			throw new Error(`Contract reference not found for ${contractAddress}`);
+		}
+
+		// Calculate the total value to send (amount + stake)
+		const totalValue = BigNumber.from(amount).add(BigNumber.from(stake));
+		
+		// 3DPass-specific gas parameters (very low gas costs)
+		const options = {
+			value: totalValue,
+			gasLimit: 500000,
+			maxFeePerGas: 100, // 100 wei (not gwei!)
+			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+		};
+
+		console.log(`3DPass: Submitting claim for ${contractAddress}`, {
+			txid, txts, amount: amount.toString(), reward: reward.toString(), 
+			stake: stake.toString(), senderAddress, recipientAddress, data
+		});
+
+		return await contract.claim(
+			txid, txts, amount, reward, stake, senderAddress, recipientAddress, data, options
+		);
+	}
+
+	/**
+	 * Enhanced challenge function for 3DPass precompiles
+	 */
+	async challenge(contractAddress, claimId, stake) {
+		const contract = this.getContractReference(contractAddress);
+		if (!contract) {
+			throw new Error(`Contract reference not found for ${contractAddress}`);
+		}
+
+		// 3DPass-specific gas parameters (very low gas costs)
+		const options = {
+			value: BigNumber.from(stake),
+			gasLimit: 300000,
+			maxFeePerGas: 100, // 100 wei (not gwei!)
+			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+		};
+
+		console.log(`3DPass: Submitting challenge for ${contractAddress}`, {
+			claimId, stake: stake.toString()
+		});
+
+		return await contract.challenge(claimId, options);
+	}
+
+	/**
+	 * Enhanced withdraw function for 3DPass precompiles
+	 */
+	async withdraw(contractAddress, claimId) {
+		const contract = this.getContractReference(contractAddress);
+		if (!contract) {
+			throw new Error(`Contract reference not found for ${contractAddress}`);
+		}
+
+		// 3DPass-specific gas parameters (very low gas costs)
+		const options = {
+			gasLimit: 200000,
+			maxFeePerGas: 100, // 100 wei (not gwei!)
+			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+		};
+
+		console.log(`3DPass: Withdrawing for ${contractAddress}`, { claimId });
+
+		return await contract.withdraw(claimId, options);
+	}
+
+	/**
+	 * Get contract reference by address
+	 * Helper function to retrieve stored contract references
+	 */
+	getContractReference(address) {
+		return this.contractReferences?.[address] || null;
+	}
+
+	/**
+	 * Store contract reference
+	 * Helper function to store contract references for later use
+	 */
+	_storeContractReference(address, contract) {
+		if (!this.contractReferences) {
+			this.contractReferences = {};
+		}
+		this.contractReferences[address] = contract;
+	}
+
+	/**
+	 * Enhanced token validation for 3DPass precompiles
+	 * Validates that a token address is a valid 3DPass precompile
+	 */
+	validate3DPassToken(tokenAddress) {
+		if (this.isP3D(tokenAddress)) {
+			return { valid: true, type: 'P3D', decimals: 18 };
+		} else if (this.is3DPassERC20Precompile(tokenAddress)) {
+			return { valid: true, type: 'ERC20_PRECOMPILE', decimals: null }; // Will be fetched dynamically
+		}
+		return { valid: false, type: 'UNKNOWN', decimals: null };
+	}
+
+	/**
+	 * Get token info for 3DPass precompiles
+	 * Returns comprehensive token information
+	 */
+	async getTokenInfo(tokenAddress) {
+		const validation = this.validate3DPassToken(tokenAddress);
+		if (!validation.valid) {
+			throw new Error(`Invalid 3DPass token address: ${tokenAddress}`);
+		}
+
+		const info = {
+			address: tokenAddress,
+			type: validation.type,
+			decimals: validation.decimals,
+			symbol: null,
+			name: null
+		};
+
+		try {
+			if (this.isP3D(tokenAddress)) {
+				info.symbol = 'P3D';
+				info.name = '3DPass Native Token';
+			} else if (this.is3DPassERC20Precompile(tokenAddress)) {
+				const token = new ethers.Contract(tokenAddress, iprecompileErc20Json.abi, this.getProvider());
+				info.symbol = await token.symbol();
+				info.name = await token.name();
+				info.decimals = await token.decimals();
+			}
+		} catch (e) {
+			console.log(`Error getting token info for ${tokenAddress}:`, e.message);
+		}
+
+		return info;
 	}
 }
 
