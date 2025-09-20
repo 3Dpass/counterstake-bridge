@@ -54,22 +54,39 @@ node print_bridges.js
 ```bash
 pkill -f "node run.js"
 ```
-## Enable/Disable Networks
-Manage networks in the `conf.js`:
-```bash
-// Disable networks
-exports.disablePolygon = true; // Disable Polygon monitoring
-exports.disableKava = true; // Disable Kava monitoring
-exports.disableBSC = true; // Disable BSC monitoring
-exports.disableThreeDPass = false; // Enable 3DPass monitoring
-exports.disableObyte = false; // Enable Obyte monitoring
-```
 
 ## Setup Keys
 Follow the [KEY_MANAGEMENT.md](/docs/KEY_MANAGEMENT.md) to setup the signer account. 
 
-## Funding
-1. The bot prints its addresses at startup:
+## Operating mode
+The bot can be configured to operate in either **Individual** or **Pooled** mode:  
+- **Individual mode** - the bot will use its own addresses balances
+- **Pooled mode** - the bot will operate as a manager (admin) at Liquidity Pools - additional assistant contracts configured to interact with the bridges.
+
+If the the bot's account, set up in the configuration, matches a Liquidity Pool manager's address, the bot will automatically detect it and switch to the Pooled mode to start using the pool's funds via the assistant contract ABI.
+
+### Individual mode
+
+Setup the your own account in the bot configuration to operate in Individual mode. The bot will use the STAKE ASSETS directly from the account balance.
+
+For example:
+
+**USDT Ethereum <-> wUSDT 3DPass bridge**
+
+📥 IMPORT (on 3DPass):
+  -  ✅ Import: 0x00D5f00250434e76711e8127A37c6f84dBbDAA4C
+  - Asset 1: wUSDT
+  - 💰 STAKE ASSET 1: P3D
+
+📤 EXPORT (on Ethereum):
+  - ✅ Export: 0x3a96AC42A28D5610Aca2A79AE782988110108eDe
+  - Asset 2: USDT
+  - 💰 STAKE ASSET 2: USDT
+
+P3D balance on 3DPass will be used for the `Ethereum -> 3Dpass` transfers 
+USDT balance on Ethereum will be used for the `Ethereum <- 3Dpass` transfers 
+
+The bot prints its addresses at startup:
 ```
 ====== my single address: TNM2YRTJOANV...
 ```
@@ -89,22 +106,29 @@ This is your 3DPass address. Fund it with P3D and any 3DPRC20 tokens.
 
 The larger balances you have, the more transfers you can handge in parallel.
 
-2. An operational bridge is comprized of two contracts deployed on corresponding chains. For example:
+###  Pooled mode
+Setup the Pool Assistant manager's account in the bot configuration to operate as the Pool manager (admin).
 
-**USDT Ethereum <-> wUSDT 3DPass bridge**
+For example:
 
 📥 IMPORT (on 3DPass):
   -  ✅ Import: 0x00D5f00250434e76711e8127A37c6f84dBbDAA4C
-  - Asset: 0xfBFBfbFA000000000000000000000000000000de
-   - Symbol: wUSDT
-      
+  - Asset 1: wUSDT
+  - 💰 STAKE ASSET 1: P3D
+
+🤖 POOL IMPORT Assistant: 0x2Dce9B2dc9983f9b435da02a69C6F0e8A31Bf3E8
+  - Manager: 0x2Dce9B2dc9983f9b435da02a69C6F0e8A31Bf3E8
+  - Shares: USDTIA
 
 📤 EXPORT (on Ethereum):
   - ✅ Export: 0x3a96AC42A28D5610Aca2A79AE782988110108eDe
-  - Asset: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+  - Asset 2: USDT
   - Symbol: USDT
+  - 💰 STAKE ASSET 2: USDT
 
-Fund the bot with both assets in order to operate seamlessly in either directon (USDT on Ethereum and wUSDT on 3DPass in the example above).
+🤖 POOL EXPORT Assistant: 0xA07a7a1514F391E1e636F2d5eB71c53ee80fC6DB
+  - Manager: 0x067Fac51f31Dc80263D55f9980DF1358357DC10d
+  - Shares: USDTEA
 
 ## Email notifications
 If the bot complains about `admin_email` and `from_email`, specify them in ~/.config/counterstake-bridge/conf.json. In case of any issues, you'll get notifications to `admin_email`.
@@ -131,8 +155,9 @@ If `sendmail` is not setup and configured on your system (usually, it isn't), ad
 
 ## Configuration
 Check `conf.js` for the available options. You can override them in your conf.json. The most important ones are:
-* `infura_project_id`: your infura project ID. Sign up at infura to get it.
-* `alchemy_keys`: your alchemy keys. Sign up at alchemy to get them. The format is like
+
+- `infura_project_id`: your infura project ID. Sign up at infura to get it.
+- `alchemy_keys`: your alchemy keys. Sign up at alchemy to get them. The format is like
 ```json
 	"alchemy_keys": {
 		"polygon": {
@@ -141,14 +166,40 @@ Check `conf.js` for the available options. You can override them in your conf.js
 		}
 	},
 ```
-* `min_reward_ratio`: minimum net reward (net of gas fees) that your bot expects to earn for assisting a transfer. The bot will ignore the transfers that pay a lower reward. Default 0.005 (0.5%).
-* `max_exposure`: max share of the bot's balance in a specific token that can be sent in a counterstake against a fraudulent claim a challenge. This limits the risk you are taking. Default 0.5 (50%).
-* `evm_min_transfer_age`: minimum age (in seconds) of the transfer on an EVM-based source chain before it is deemed irreversible and safe to claim on the destination chain. The default is 300 seconds (5 minutes). You can set a lower value to make sure your bot claims a transfer before other assistant bots but this also increases the risk that the transfer will be reverted and your bot will lose money.
-* `evm_count_blocks_for_finality`: if your bot sees a new claim for a transfer sent from an EVM-based chain but can't find the transfer, and its timestamp is earlier than that of the block `evm_count_blocks_for_finality` blocks ago, then the bot will think that the transfer doesn't exist and will counterstake against the claim. Otherwise, the bot will wait for a few more blocks and check again if the tranfer has appeared in the source chain. The default is 20 blocks. Set a lower value to make sure that your bot counterstakes earlier than other watchdogs but this also increases the risk that the transfer will still appear in the source chain and your bot will lose money.
-* `bLight`: whether to run the bot as a light Obyte node. Default `true`. Running a full node allows the bot to see new transactions slightly faster and is also more secure as the bot doesn't need to trust any external sources. However a full node takes a lot more disk space and its initial sync takes several days.
-* `socksHost` and `socksPort`: host and port for connecting to TOR proxy. By default, the bot is configured to connect to Obyte nodes through TOR. To disable TOR, set `socksHost` to `null`.
-* `control_addresses`: array of device addresses of your Obyte wallets (usually GUI wallets) that are allowed to view and withdraw balances using chatbot interface.
-* `payout_addresses`: associative array of your withdrawal addresses keyed by network.
+- `min_reward_ratio`: minimum net reward (net of gas fees) that your bot expects to earn for assisting a transfer. The bot will ignore the transfers that pay a lower reward. Default 0.005 (0.5%).
+- `max_exposure`: max share of the bot's balance in a specific token that can be sent in a counterstake against a fraudulent claim a challenge. This limits the risk you are taking. Default 0.5 (50%).
+- `evm_min_transfer_age`: minimum age (in seconds) of the transfer on an EVM-based source chain before it is deemed irreversible and safe to claim on the destination chain. The default is 300 seconds (5 minutes). You can set a lower value to make sure your bot claims a transfer before other assistant bots but this also increases the risk that the transfer will be reverted and your bot will lose money.
+- `evm_count_blocks_for_finality`: if your bot sees a new claim for a transfer sent from an EVM-based chain but can't find the transfer, and its timestamp is earlier than that of the block `evm_count_blocks_for_finality` blocks ago, then the bot will think that the transfer doesn't exist and will counterstake against the claim. Otherwise, the bot will wait for a few more blocks and check again if the tranfer has appeared in the source chain. The default is 20 blocks. Set a lower value to make sure that your bot counterstakes earlier than other watchdogs but this also increases the risk that the transfer will still appear in the source chain and your bot will lose money.
+- `bLight`: whether to run the bot as a light Obyte node. Default `true`. Running a full node allows the bot to see new transactions slightly faster and is also more secure as the bot doesn't need to trust any external sources. However a full node takes a lot more disk space and its initial sync takes several days.
+- `socksHost` and `socksPort`: host and port for connecting to TOR proxy. By default, the bot is configured to connect to Obyte nodes through TOR. To disable TOR, set `socksHost` to `null`.
+- `control_addresses`: array of device addresses of your Obyte wallets (usually GUI wallets) that are allowed to view and withdraw balances using chatbot interface.
+- `payout_addresses`: associative array of your withdrawal addresses keyed by network.
+
+### Enable/Disable Networks
+Manage networks in the `conf.js`:
+```bash
+// Disable networks
+exports.disablePolygon = true; // Disable Polygon monitoring
+exports.disableKava = true; // Disable Kava monitoring
+exports.disableBSC = true; // Disable BSC monitoring
+exports.disableThreeDPass = false; // Enable 3DPass monitoring
+exports.disableObyte = false; // Enable Obyte monitoring
+```
+
+### Explorer API keys
+Add your explorer keys into the `~/.config/counterstake/conf.json` to override `conf.js` for safety
+
+```json
+{
+  "admin_email": "admin@example.com", 
+  "from_email": "noreply@example.com",
+  "etherscan_api_key": "YOUR_ETHERSCAN_API_KEY_HERE",
+  "bsc_api_key": "YOUR_BSCSCAN_API_KEY_HERE", 
+  "polygon_api_key": "YOUR_POLYGONSCAN_API_KEY_HERE",
+  "infura_project_id": "YOUR_IFURA_KEY_HERE",
+  "moralis_key": "YOUR_MORALIS_KEY_HERE"
+},
+```
 
 ## Managing the bot and withdrawing funds over the Obyte chatbot
 When the bot starts, it prints its pairing code, like this:
@@ -179,7 +230,7 @@ Follow the documentation to setup new bridge instances and pooled assistants:
 - [Create neww Export instance](/evm_substrate/docs/CREATE_NEW_EXPORT_BRIDGE_GUIDE.md)
 - [Create new pooled assistant](/evm_substrate/docs/CREATE_NEW_ASSISTANT_GUIDE.md)
 
-**Note!** Every independent bridge mush have an Oracle deployed to maintain "Transfer Token vs Stake token" prices. 
+**Note!** Every independent bridge mush have an Oracle deployed to maintain "Transfer Token vs Stake token" prices.
 
 ## Oracle 
 Oracles are independent contracts operating on whatever chain the bridge is deployed to help providing actual price feeds necessary for either Import or Export contract stake calcualtions. [Oracle documentation](/docs/ORACLE_FLOW.md).

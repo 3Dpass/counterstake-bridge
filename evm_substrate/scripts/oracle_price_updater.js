@@ -93,7 +93,7 @@ class Oracle3DPassUpdater {
             log(`✅ Connected to 3DPass network`, colors.green);
             
             // Load oracle signer keys
-            const keysPath = '/Users/jm/Library/Application Support/counterstake-bridge/keys.json';
+            const keysPath = desktopApp.getAppDataDir() + '/keys.json';
             const keys = JSON.parse(fs.readFileSync(keysPath));
             
             if (!keys.oracle_manager_evm_private_key) {
