@@ -11,6 +11,7 @@ const nativeSymbols = {
 	BSC: 'BNB',
 	Polygon: 'MATIC',
 	Kava: 'KAVA',
+	'3DPass': 'P3D',
 };
 
 

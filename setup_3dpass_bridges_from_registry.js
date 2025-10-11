@@ -111,12 +111,15 @@ async function getBridgeDetails(bridgeAddress, bridgeType) {
             
             // Get bridge settings
             const rawSettings = await bridge.settings();
+            console.log(`  🔍 Raw settings from ImportWrapper contract:`, rawSettings);
             const settings = {};
             for (let key in rawSettings) {
                 if (!key.match(/^\d+$/)) {
                     settings[key] = rawSettings[key];
                 }
             }
+            console.log(`  🔍 Processed settings:`, settings);
+            console.log(`  🔍 settings.tokenAddress:`, settings.tokenAddress);
             
             bridgeDetails = {
                 ...bridgeDetails,
@@ -298,15 +301,21 @@ async function setupCorrect3DPassBridges() {
     for (const bridge of bridges) {
         // Check if this bridge already exists in the database by address
         if (existingBridgeAddresses.has(bridge.address)) {
-            console.log(`⏭️  Skipping existing ${bridge.type} bridge (by address): ${bridge.address}`);
-            existingBridgesSkipped++;
-            continue;
+            console.log(`🔄 Updating existing ${bridge.type} bridge (by address): ${bridge.address}`);
+        } else {
+            console.log(`Setting up new ${bridge.type} bridge: ${bridge.address}`);
         }
-        
-        console.log(`Setting up new ${bridge.type} bridge: ${bridge.address}`);
         
         // Get detailed bridge information from the contract
         const bridgeDetails = await getBridgeDetails(bridge.address, bridge.type);
+        
+        // Check if this bridge already exists in the database by address
+        let existingBridgeByAddress = null;
+        if (existingBridgeAddresses.has(bridge.address)) {
+            existingBridgeByAddress = existingBridges.find(existing => 
+                existing.import_aa === bridge.address || existing.export_aa === bridge.address
+            );
+        }
         
         // Check if a bridge with the same foreign_asset already exists (for both Import and Export)
         let existingBridgeByAssets = null;
@@ -362,12 +371,34 @@ async function setupCorrect3DPassBridges() {
             }
         }
         
-        if (existingBridgeByAssets) {
+        // Use existingBridgeByAddress if bridge exists by address, otherwise use existingBridgeByAssets
+        const bridgeToUpdate = existingBridgeByAddress || existingBridgeByAssets;
+        
+        if (bridgeToUpdate) {
             console.log(`🔄 Updating existing ${bridge.type} bridge: ${bridge.address}`);
-            console.log(`    Existing bridge: ${existingBridgeByAssets.bridge_id} (${existingBridgeByAssets.home_network} ${existingBridgeByAssets.home_symbol} -> ${existingBridgeByAssets.foreign_network} ${existingBridgeByAssets.foreign_symbol})`);
+            console.log(`    Existing bridge: ${bridgeToUpdate.bridge_id} (${bridgeToUpdate.home_network} ${bridgeToUpdate.home_symbol} -> ${bridgeToUpdate.foreign_network} ${bridgeToUpdate.foreign_symbol})`);
             
             // Update the existing bridge with the registry information
             if (bridge.type === 'Import') {
+                // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
+                let homeSymbol = 'Unknown';
+                try {
+                    console.log(`  🔍 Fetching symbol for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
+                    const { getProvider } = require('./evm/provider.js');
+                    const externalProvider = getProvider(bridgeDetails.homeNetwork);
+                    console.log(`  🔍 Provider created for ${bridgeDetails.homeNetwork}`);
+                    const { ethers } = require("ethers");
+                    const erc20Abi = [
+                        { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
+                    ];
+                    const externalTokenContract = new ethers.Contract(bridgeDetails.homeAsset, erc20Abi, externalProvider);
+                    homeSymbol = await externalTokenContract.symbol();
+                    console.log(`  ✓ Fetched external token symbol: ${homeSymbol}`);
+                } catch (err) {
+                    console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
+                    console.log(`  🔍 Error details:`, err);
+                }
+                
                 await db.query(`
                     UPDATE bridges SET 
                         import_aa = ?, 
@@ -379,7 +410,8 @@ async function setupCorrect3DPassBridges() {
                         foreign_network = ?,
                         foreign_asset = ?,
                         foreign_asset_decimals = ?,
-                        foreign_symbol = ?
+                        foreign_symbol = ?,
+                        stake_asset = ?
                     WHERE bridge_id = ?
                 `, [
                     bridge.address,
@@ -387,14 +419,34 @@ async function setupCorrect3DPassBridges() {
                     bridgeDetails.homeNetwork,
                     bridgeDetails.homeAsset,
                     6, // Default decimals for external assets
-                    bridgeDetails.homeSymbol || 'Unknown',
+                    homeSymbol, // Correct external token symbol
                     '3DPass',
                     bridgeDetails.foreignAsset,
                     bridgeDetails.foreignToken.decimals || 6,
                     bridgeDetails.foreignToken.symbol || 'Unknown',
-                    existingBridgeByAssets.bridge_id
+                    bridgeDetails.stakeAsset,
+                    bridgeToUpdate.bridge_id
                 ]);
             } else if (bridge.type === 'Export') {
+                // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
+                let foreignSymbol = 'Unknown';
+                try {
+                    console.log(`  🔍 Fetching symbol for ${bridgeDetails.foreignAsset} on ${bridgeDetails.foreignNetwork}`);
+                    const { getProvider } = require('./evm/provider.js');
+                    const externalProvider = getProvider(bridgeDetails.foreignNetwork);
+                    console.log(`  🔍 Provider created for ${bridgeDetails.foreignNetwork}`);
+                    const { ethers } = require("ethers");
+                    const erc20Abi = [
+                        { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
+                    ];
+                    const externalTokenContract = new ethers.Contract(bridgeDetails.foreignAsset, erc20Abi, externalProvider);
+                    foreignSymbol = await externalTokenContract.symbol();
+                    console.log(`  ✓ Fetched external token symbol: ${foreignSymbol}`);
+                } catch (err) {
+                    console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
+                    console.log(`  🔍 Error details:`, err);
+                }
+                
                 await db.query(`
                     UPDATE bridges SET 
                         export_aa = ?, 
@@ -406,7 +458,8 @@ async function setupCorrect3DPassBridges() {
                         foreign_network = ?,
                         foreign_asset = ?,
                         foreign_asset_decimals = ?,
-                        foreign_symbol = ?
+                        foreign_symbol = ?,
+                        stake_asset = ?
                     WHERE bridge_id = ?
                 `, [
                     bridge.address,
@@ -418,12 +471,13 @@ async function setupCorrect3DPassBridges() {
                     bridgeDetails.foreignNetwork,
                     bridgeDetails.foreignAsset,
                     6, // Default decimals
-                    bridgeDetails.foreignSymbol || 'Unknown',
-                    existingBridgeByAssets.bridge_id
+                    foreignSymbol, // Correct external token symbol
+                    bridgeDetails.stakeAsset,
+                    bridgeToUpdate.bridge_id
                 ]);
             }
             
-            console.log(`  ✅ Updated existing bridge ${existingBridgeByAssets.bridge_id} with registry information`);
+            console.log(`  ✅ Updated existing bridge ${bridgeToUpdate.bridge_id} with registry information`);
             existingBridgesSkipped++;
             continue;
         }
@@ -438,8 +492,10 @@ async function setupCorrect3DPassBridges() {
             let homeSymbol = 'Unknown';
             try {
                 // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
+                console.log(`  🔍 Fetching symbol for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
                 const { getProvider } = require('./evm/provider.js');
                 const externalProvider = getProvider(bridgeDetails.homeNetwork);
+                console.log(`  🔍 Provider created for ${bridgeDetails.homeNetwork}`);
                 const { ethers } = require("ethers");
                 const erc20Abi = [
                     { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
@@ -449,6 +505,7 @@ async function setupCorrect3DPassBridges() {
                 console.log(`  ✓ Fetched external token symbol: ${homeSymbol}`);
             } catch (err) {
                 console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
+                console.log(`  🔍 Error details:`, err);
             }
             
     await db.query(`

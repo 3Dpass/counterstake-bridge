@@ -51,6 +51,10 @@ class EvmChain {
 		this.#contractsByAddress[address] = contract;
 	}
 
+	getContractReference(address) {
+		return this.#contractsByAddress[address] || null;
+	}
+
 	getMaxBlockRange() {
 		return 0;
 	}
@@ -116,6 +120,11 @@ class EvmChain {
 	}
 
 	async getMyBalance(asset) {
+		// Handle null/undefined asset
+		if (asset === null || asset === undefined) {
+			console.log(`getMyBalance called with null/undefined asset, treating as zero balance`);
+			return BigNumber.from(0);
+		}
 		if (asset === AddressZero)
 			return await this.#wallet.getBalance();
 		const token = new ethers.Contract(asset, erc20Json.abi, this.#provider);
@@ -124,6 +133,11 @@ class EvmChain {
 
 	async getBalance(address, asset, bExternalAddress, attempt = 0) {
 		try {
+			// Handle null/undefined asset
+			if (asset === null || asset === undefined) {
+				console.log(`getBalance called with null/undefined asset, treating as zero balance`);
+				return BigNumber.from(0);
+			}
 			if (asset === AddressZero)
 				return await this.#provider.getBalance(address);
 			const token = new ethers.Contract(asset, erc20Json.abi, this.#provider);

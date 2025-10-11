@@ -95,7 +95,9 @@ const grepPattern = [
     'reconnect', 'disconnected', 'new export', 'new import', 'new assistant',
     'inserting transfer', 'duplicate transfer', 'emitting txid', 're-confirmed',
     'forgetting unconfirmed', 'bounced tx', '3DPass Registry', 'Discovering bridges',
-    'Failed to discover', 'Error', '❌', '✅', '🔍'
+    'Failed to discover', 'Error', '❌', '✅', '🔍',
+    'WARNING: stake_asset is null', 'stake_asset is null for bridge', 'bad initial state',
+    'Assistant.*has bad initial state', 'gross balance.*but total supply', 'will try to claim myself'
 ].join('|');
 
 console.log(`${colors.cyan}${colors.bright}🚀 Counterstake Bridge Real-time Monitoring${colors.reset}`);

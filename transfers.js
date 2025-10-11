@@ -101,6 +101,11 @@ async function handleTransfer(transfer) {
 	const claimed_asset = type === 'expatriation' ? foreign_asset : home_asset;
 	const claimed_symbol = type === 'expatriation' ? foreign_symbol : home_symbol;
 	const staked_asset = type === 'expatriation' ? stake_asset : home_asset;
+	
+	// Debug: Check for null stake_asset
+	if (stake_asset === null || stake_asset === undefined) {
+		console.log(`🚨 WARNING: stake_asset is null for bridge ${bridge_id}, type ${type}, home_asset ${home_asset}, foreign_asset ${foreign_asset}`);
+	}
 	const src_asset_decimals = type === 'expatriation' ? home_asset_decimals : foreign_asset_decimals;
 	const dst_asset_decimals = type === 'expatriation' ? foreign_asset_decimals : home_asset_decimals;
 	const dst_amount = getDestAmount(amount, src_asset_decimals, dst_asset_decimals);
@@ -177,15 +182,22 @@ async function handleTransfer(transfer) {
 			stake = stake.mul(110).div(100);
 		let bClaimFromPooledAssistant = !!assistant_aa;
 		if (bClaimFromPooledAssistant) {
-			const bAssistantHasEnoughBalance = (staked_asset === claimed_asset)
-				? dst_amount.add(stake).lt(await dst_api.getBalance(assistant_aa, staked_asset))
-				: (stake.lt(await dst_api.getBalance(assistant_aa, staked_asset))
-					&& dst_amount.lt(await dst_api.getBalance(assistant_aa, claimed_asset)));
-			if (bAssistantHasEnoughBalance)
-				console.log(`will claim ${txid} from assistant AA ${assistant_aa}`);
-			else {
-				console.log(`assistant AA ${assistant_aa} has insufficient balance to claim ${txid}, will try to claim myself`);
+			// Check for bad initial state: assistant has stake tokens but no share tokens
+			const bAssistantHasBadState = await checkAssistantBadInitialState(dst_api, assistant_aa, staked_asset, claimed_asset);
+			if (bAssistantHasBadState) {
+				console.log(`assistant AA ${assistant_aa} has bad initial state (stake tokens but no shares), will try to claim myself`);
 				bClaimFromPooledAssistant = false;
+			} else {
+				const bAssistantHasEnoughBalance = (staked_asset === claimed_asset)
+					? dst_amount.add(stake).lt(await dst_api.getBalance(assistant_aa, staked_asset))
+					: (stake.lt(await dst_api.getBalance(assistant_aa, staked_asset))
+						&& dst_amount.lt(await dst_api.getBalance(assistant_aa, claimed_asset)));
+				if (bAssistantHasEnoughBalance)
+					console.log(`will claim ${txid} from assistant AA ${assistant_aa}`);
+				else {
+					console.log(`assistant AA ${assistant_aa} has insufficient balance to claim ${txid}, will try to claim myself`);
+					bClaimFromPooledAssistant = false;
+				}
 			}
 		}
 		if (!bClaimFromPooledAssistant) {
@@ -219,6 +231,12 @@ async function handleTransfer(transfer) {
 		unlock();
 	};
 
+	// Check if the bridge contract is properly initialized before getting min_tx_age
+	if (!dst_api.getContractReference || !dst_api.getContractReference(bridge_aa)) {
+		console.log(`bridge contract ${bridge_aa} not initialized yet, will skip transfer ${txid}`);
+		return;
+	}
+	
 	let min_tx_age = await dst_api.getMinTxAge(bridge_aa);
 	if (BigNumber.isBigNumber(min_tx_age))
 		min_tx_age = min_tx_age.toNumber();
@@ -636,6 +654,39 @@ async function getCounterstakeAmount(network, assistant_aa, required_counterstak
 	const fBalance = parseFloat(utils.formatEther(balance));
 	const max_stake = utils.parseEther((conf.max_exposure * fBalance).toFixed(18));
 	return required_counterstake.lt(max_stake) ? required_counterstake : max_stake;
+}
+
+/**
+ * Check if an assistant has a bad initial state
+ * Bad state: assistant has gross balance > 0 but total supply = 0
+ * This violates the contract invariant: (gross_balance == 0) == (totalSupply() == 0)
+ */
+async function checkAssistantBadInitialState(api, assistant_aa, staked_asset, claimed_asset) {
+	try {
+		// Check if this is a 3DPass assistant (ImportWrapperAssistant or ExportAssistant)
+		if (api.network === '3DPass' && (api.isImportWrapperAssistant || api.isExportAssistant)) {
+			// Get gross balance (stake token balance + balance_in_work)
+			const stakeBalance = await api.getBalance(assistant_aa, staked_asset);
+			
+			// Get share token balance (totalSupply of the assistant's ERC20 tokens)
+			const shareBalance = await api.getAssistantShareBalance(assistant_aa);
+			
+			// Bad state: gross balance > 0 but total supply = 0
+			// This violates the contract invariant: (gross_balance == 0) == (totalSupply() == 0)
+			const hasGrossBalance = stakeBalance && stakeBalance.gt(0);
+			const hasNoShareTokens = !shareBalance || shareBalance.eq(0);
+			
+			if (hasGrossBalance && hasNoShareTokens) {
+				const assistantType = api.isImportWrapperAssistant ? 'ImportWrapperAssistant' : 'ExportAssistant';
+				console.log(`🚨 ${assistantType} ${assistant_aa} has bad initial state: gross balance ${stakeBalance.toString()} > 0 but total supply = ${shareBalance ? shareBalance.toString() : '0'}`);
+				return true;
+			}
+		}
+		return false;
+	} catch (error) {
+		console.log(`Error checking assistant bad initial state for ${assistant_aa}:`, error.message);
+		return false; // If we can't check, assume it's okay
+	}
 }
 
 

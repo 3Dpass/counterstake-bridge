@@ -46,8 +46,14 @@ node run.js bridge 2>errlog
 ```
 
 ## Check bridge instances
+Run the script, make sure all the bridges discovered are set on the database.
 ```bash
 node print_bridges.js
+```
+
+## Realtime monitoring
+```bash
+node realtime_monitoring.js
 ```
 
 ## Stop

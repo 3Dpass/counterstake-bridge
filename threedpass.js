@@ -3,7 +3,7 @@ const conf = require('ocore/conf.js');
 const EvmChain = require('./evm-chain.js');
 const { getProvider } = require("./evm/provider.js");
 const { getAddressBlocks, getAddressTransactionBlocks } = require("./3dpscan.js");
-const { ethers } = require("ethers");
+const { ethers, BigNumber } = require("ethers");
 const { wait } = require('./utils.js');
 
 // 3DPass-specific ABI imports from evm_substrate
@@ -18,8 +18,6 @@ const assistantFactoryJson = require('./evm_substrate/build/contracts/AssistantF
 // 3DPass precompile interfaces
 const ip3dJson = require('./evm_substrate/build/contracts/IP3D.json');
 const iprecompileErc20Json = require('./evm_substrate/build/contracts/IPrecompileERC20.json');
-
-const { BigNumber } = ethers;
 
 // 3DPass-specific constants
 const P3D_PRECOMPILE = '0x0000000000000000000000000000000000000802';
@@ -80,13 +78,17 @@ class ThreeDPass extends EvmChain {
 
 	// Helper function to detect 3DPass ERC20 precompiles
 	is3DPassERC20Precompile(tokenAddr) {
+		// Handle null/undefined tokenAddr
+		if (tokenAddr === null || tokenAddr === undefined) {
+			return false;
+		}
 		// 3DPass ERC20 precompiles have prefix 0xFBFBFBFA
 		return BigNumber.from(tokenAddr).shr(128).eq(0xFBFBFBFA);
 	}
 
 	// Helper function to check if token is P3D precompile
 	isP3D(token) {
-		return token === P3D_PRECOMPILE;
+		return token !== null && token !== undefined && token === P3D_PRECOMPILE;
 	}
 
 	// Override getMyBalance to handle 3DPass precompiles
@@ -107,12 +109,30 @@ class ThreeDPass extends EvmChain {
 	// Override getBalance to handle 3DPass precompiles
 	async getBalance(address, asset, bExternalAddress, attempt = 0) {
 		try {
+			// Handle null asset parameter
+			if (asset === null || asset === undefined) {
+				console.log(`getBalance ${address} called with null/undefined asset, treating as zero balance`);
+				return BigNumber.from(0);
+			}
+			
 			if (this.isP3D(asset)) {
 				const p3d = new ethers.Contract(asset, ip3dJson.abi, this.getProvider());
-				return await p3d.balanceOf(address);
+				const balance = await p3d.balanceOf(address);
+				// Handle null return values
+				if (balance === null || balance === undefined) {
+					console.log(`getBalance ${address} ${asset} returned null, treating as zero balance`);
+					return BigNumber.from(0);
+				}
+				return balance;
 			} else if (this.is3DPassERC20Precompile(asset)) {
 				const token = new ethers.Contract(asset, iprecompileErc20Json.abi, this.getProvider());
-				return await token.balanceOf(address);
+				const balance = await token.balanceOf(address);
+				// Handle null return values
+				if (balance === null || balance === undefined) {
+					console.log(`getBalance ${address} ${asset} returned null, treating as zero balance`);
+					return BigNumber.from(0);
+				}
+				return balance;
 			}
 			// Fallback to standard ERC20
 			return await super.getBalance(address, asset, bExternalAddress, attempt);
@@ -145,14 +165,74 @@ class ThreeDPass extends EvmChain {
 		return await super.getSymbol(tokenAddress);
 	}
 
+	/**
+	 * Check if an address is an ImportWrapperAssistant contract
+	 */
+	isImportWrapperAssistant(assistantAddress) {
+		// Check if we have this assistant in our contracts mapping
+		return this.getContractReference(assistantAddress) !== null;
+	}
+
+	/**
+	 * Check if an address is an ExportAssistant contract
+	 */
+	isExportAssistant(assistantAddress) {
+		// Check if we have this assistant in our contracts mapping
+		return this.getContractReference(assistantAddress) !== null;
+	}
+
+	/**
+	 * Get the share balance (totalSupply) of an assistant contract
+	 * This represents how many share tokens the assistant has minted
+	 * Works for both ImportWrapperAssistant and ExportAssistant
+	 */
+	async getAssistantShareBalance(assistantAddress) {
+		try {
+			const assistant = this.getContractReference(assistantAddress);
+			if (!assistant) {
+				// If not in our mapping, try to determine the contract type and create a temporary instance
+				// Try ImportWrapperAssistant first
+				try {
+					const tempAssistant = new ethers.Contract(assistantAddress, importWrapperAssistantJson.abi, this.getProvider());
+					return await tempAssistant.totalSupply();
+				} catch (error) {
+					// If that fails, try ExportAssistant
+					try {
+						const tempAssistant = new ethers.Contract(assistantAddress, exportAssistantJson.abi, this.getProvider());
+						return await tempAssistant.totalSupply();
+					} catch (error2) {
+						console.log(`Error getting assistant share balance for ${assistantAddress}:`, error2.message);
+						return BigNumber.from(0);
+					}
+				}
+			}
+			return await assistant.totalSupply();
+		} catch (error) {
+			console.log(`Error getting assistant share balance for ${assistantAddress}:`, error.message);
+			return BigNumber.from(0);
+		}
+	}
+
 	// Override getDecimals to handle 3DPass precompiles
 	async getDecimals(tokenAddress) {
+		// Handle null tokenAddress parameter
+		if (tokenAddress === null || tokenAddress === undefined) {
+			console.log(`getDecimals called with null/undefined tokenAddress, using default 18`);
+			return 18;
+		}
+		
 		if (this.isP3D(tokenAddress)) {
 			return 18; // P3D has 18 decimals
 		} else if (this.is3DPassERC20Precompile(tokenAddress)) {
 			const token = new ethers.Contract(tokenAddress, iprecompileErc20Json.abi, this.getProvider());
 			try {
-				return await token.decimals();
+				const decimals = await token.decimals();
+				// Handle null return values
+				if (decimals === null || decimals === undefined) {
+					console.log(`getDecimals(${tokenAddress}) returned null, using default 18`);
+					return 18;
+				}
+				return decimals;
 			}
 			catch (e) {
 				console.log(`getDecimals(${tokenAddress}) failed`, e);
@@ -564,24 +644,7 @@ class ThreeDPass extends EvmChain {
 		return await contract.withdraw(claimId, options);
 	}
 
-	/**
-	 * Get contract reference by address
-	 * Helper function to retrieve stored contract references
-	 */
-	getContractReference(address) {
-		return this.contractReferences?.[address] || null;
-	}
 
-	/**
-	 * Store contract reference
-	 * Helper function to store contract references for later use
-	 */
-	_storeContractReference(address, contract) {
-		if (!this.contractReferences) {
-			this.contractReferences = {};
-		}
-		this.contractReferences[address] = contract;
-	}
 
 	/**
 	 * Enhanced token validation for 3DPass precompiles
