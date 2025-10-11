@@ -13,6 +13,7 @@
 
 const fs = require("fs");
 const { ethers } = require("ethers");
+const desktopApp = require('ocore/desktop_app.js');
 const { getProvider } = require('../../evm/provider.js');
 const { wait } = require('../../utils.js');
 const { fetchCoingeckoExchangeRateCached } = require('../../prices.js');
@@ -40,6 +41,9 @@ const P3D_ADDRESS = '0x0000000000000000000000000000000000000802';
 
 // Batch precompile address
 const BATCH_ADDRESS = '0x0000000000000000000000000000000000000808';
+
+// EVM decimals multiplier for price adjustments
+const EVMdecimalsMultiplier = 1000000;
 
 // Token addresses and configurations
 const TOKEN_CONFIGS = {
@@ -174,8 +178,13 @@ class Oracle3DPassUpdater {
     async fetchP3DPrice() {
         try {
             log('📊 Fetching P3D price from CoinGecko...', colors.blue);
-            this.p3dUsdPrice = await fetchCoingeckoExchangeRateCached('P3D', 'USD', true);
-            log(`✅ P3D/USD Price: $${this.p3dUsdPrice}`, colors.green);
+            const rawP3dUsdPrice = await fetchCoingeckoExchangeRateCached('P3D', 'USD', true);
+            
+            // Apply EVM decimals multiplier adjustment
+            this.p3dUsdPrice = rawP3dUsdPrice / EVMdecimalsMultiplier;
+            
+            log(`✅ Raw P3D/USD Price: $${rawP3dUsdPrice}`, colors.blue);
+            log(`✅ Adjusted P3D/USD Price to map 12 -> 18 decimals on EVM: $${this.p3dUsdPrice} (divided by ${EVMdecimalsMultiplier})`, colors.green);
             return this.p3dUsdPrice;
         } catch (error) {
             log(`❌ Failed to fetch P3D price: ${error.message}`, colors.red);
@@ -310,7 +319,7 @@ class Oracle3DPassUpdater {
             log(`   ${baseAsset}/${quoteAsset} = ${basePrice}/${quotePrice}`, colors.blue);
             
             // Convert prices to proper format (numerator/denominator)
-            const numerator = ethers.utils.parseEther(basePrice.toString());
+            const numerator = ethers.utils.parseUnits(basePrice.toFixed(18), 18);
             const denominator = ethers.utils.parseEther(quotePrice.toString());
             
             // Set gas parameters (matching bridge-setup-and-test.js)
@@ -353,7 +362,7 @@ class Oracle3DPassUpdater {
             const p3dWusdtCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 'P3D',
                 TOKEN_CONFIGS.wUSDT.address,
-                ethers.utils.parseEther(p3dToWusdt.toString()),
+                ethers.utils.parseUnits(p3dToWusdt.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -366,7 +375,7 @@ class Oracle3DPassUpdater {
             const p3dUsdtCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 'P3D',
                 TOKEN_CONFIGS.USDT.address,
-                ethers.utils.parseEther(p3dToUsdt.toString()),
+                ethers.utils.parseUnits(p3dToUsdt.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -379,7 +388,7 @@ class Oracle3DPassUpdater {
             const wusdtP3dCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 TOKEN_CONFIGS.wUSDT.address,
                 'P3D',
-                ethers.utils.parseEther(wusdtToP3d.toString()),
+                ethers.utils.parseUnits(wusdtToP3d.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -392,7 +401,7 @@ class Oracle3DPassUpdater {
             const usdtP3dCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 TOKEN_CONFIGS.USDT.address,
                 'P3D',
-                ethers.utils.parseEther(usdtToP3d.toString()),
+                ethers.utils.parseUnits(usdtToP3d.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -404,7 +413,7 @@ class Oracle3DPassUpdater {
             const nativeWusdtCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 '_NATIVE_',
                 TOKEN_CONFIGS.wUSDT.address,
-                ethers.utils.parseEther(p3dToWusdt.toString()),
+                ethers.utils.parseUnits(p3dToWusdt.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -416,7 +425,7 @@ class Oracle3DPassUpdater {
             const wusdtNativeCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 TOKEN_CONFIGS.wUSDT.address,
                 '_NATIVE_',
-                ethers.utils.parseEther(wusdtToP3d.toString()),
+                ethers.utils.parseUnits(wusdtToP3d.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -428,7 +437,7 @@ class Oracle3DPassUpdater {
             const nativeUsdtCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 '_NATIVE_',
                 TOKEN_CONFIGS.USDT.address,
-                ethers.utils.parseEther(p3dToUsdt.toString()),
+                ethers.utils.parseUnits(p3dToUsdt.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -440,7 +449,7 @@ class Oracle3DPassUpdater {
             const usdtNativeCallData = this.oracle.interface.encodeFunctionData('setPrice', [
                 TOKEN_CONFIGS.USDT.address,
                 '_NATIVE_',
-                ethers.utils.parseEther(usdtToP3d.toString()),
+                ethers.utils.parseUnits(usdtToP3d.toFixed(18), 18),
                 ethers.utils.parseEther('1')
             ]);
             to.push(ORACLE_ADDRESS);
@@ -448,7 +457,7 @@ class Oracle3DPassUpdater {
             callData.push(usdtNativeCallData);
             gasLimits.push(500000);
             
-            log(`📊 Batch Update Summary:`, colors.magenta);
+            log(`📊 Batch Update Summary (using adjusted P3D price):`, colors.magenta);
             log(`   P3D/wUSDT: ${p3dToWusdt}`, colors.magenta);
             log(`   P3D/USDT: ${p3dToUsdt}`, colors.magenta);
             log(`   wUSDT/P3D: ${wusdtToP3d}`, colors.magenta);
@@ -504,7 +513,7 @@ class Oracle3DPassUpdater {
             }
             
             log(`📊 Price Summary:`, colors.magenta);
-            log(`   P3D/USD: $${this.p3dUsdPrice}`, colors.magenta);
+            log(`   P3D/USD (adjusted): $${this.p3dUsdPrice} (raw price divided by ${EVMdecimalsMultiplier})`, colors.magenta);
             log(`   wUSDT/USD: $${TOKEN_CONFIGS.wUSDT.usdPrice}`, colors.magenta);
             log(`   USDT/USD: $${TOKEN_CONFIGS.USDT.usdPrice}`, colors.magenta);
             
@@ -514,7 +523,7 @@ class Oracle3DPassUpdater {
             const wusdtToP3d = TOKEN_CONFIGS.wUSDT.usdPrice / this.p3dUsdPrice;
             const usdtToP3d = TOKEN_CONFIGS.USDT.usdPrice / this.p3dUsdPrice;
             
-            log(`📊 Calculated Ratios:`, colors.magenta);
+            log(`📊 Calculated Ratios (using adjusted P3D price):`, colors.magenta);
             log(`   P3D/wUSDT: ${p3dToWusdt}`, colors.magenta);
             log(`   P3D/USDT: ${p3dToUsdt}`, colors.magenta);
             log(`   wUSDT/P3D: ${wusdtToP3d}`, colors.magenta);

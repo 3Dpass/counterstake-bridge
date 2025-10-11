@@ -945,8 +945,8 @@ class EvmChain {
 			else {
 				let last_block_ts = Date.now();
 				var interval = setInterval(() => {
-					if (Date.now() - last_block_ts > 5 * 60 * 1000) {
-						console.log(`====== no new blocks on ${this.network} in more than 5 mins, will reset websocket connection`);
+					if (Date.now() - last_block_ts > 15 * 60 * 1000) {
+						console.log(`====== no new blocks on ${this.network} in more than 15 mins, will reset websocket connection`);
 						forgetAndEmitDisconnected();
 						closeSocket();
 					}
