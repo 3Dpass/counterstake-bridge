@@ -20,57 +20,58 @@ async function printBridges() {
     
     await init();
     
-    // Get all bridges
-    const bridges = await db.query(`
-        SELECT 
-            bridge_id,
-            home_network,
-            home_asset,
-            home_asset_decimals,
-            home_symbol,
-            foreign_network,
-            foreign_asset,
-            foreign_asset_decimals,
-            foreign_symbol,
-            stake_asset,
-            import_aa,
-            export_aa,
-            import_assistant_aa,
-            export_assistant_aa,
-            creation_date,
-            e_v,
-            i_v,
-            ea_v,
-            ia_v
-        FROM bridges 
-        ORDER BY bridge_id
-    `);
+    try {
+        // Get all bridges
+        const bridges = await db.query(`
+            SELECT 
+                bridge_id,
+                home_network,
+                home_asset,
+                home_asset_decimals,
+                home_symbol,
+                foreign_network,
+                foreign_asset,
+                foreign_asset_decimals,
+                foreign_symbol,
+                stake_asset,
+                import_aa,
+                export_aa,
+                import_assistant_aa,
+                export_assistant_aa,
+                creation_date,
+                e_v,
+                i_v,
+                ea_v,
+                ia_v
+            FROM bridges 
+            ORDER BY bridge_id
+        `);
+        
+        // Get all pooled assistants
+        const assistants = await db.query(`
+            SELECT 
+                assistant_aa,
+                bridge_id,
+                bridge_aa,
+                network,
+                side,
+                manager,
+                shares_asset,
+                shares_symbol,
+                version
+            FROM pooled_assistants 
+            ORDER BY bridge_id, side
+        `);
     
-    // Get all pooled assistants
-    const assistants = await db.query(`
-        SELECT 
-            assistant_aa,
-            bridge_id,
-            bridge_aa,
-            network,
-            side,
-            manager,
-            shares_asset,
-            shares_symbol,
-            version
-        FROM pooled_assistants 
-        ORDER BY bridge_id, side
-    `);
-    
-    if (bridges.length === 0) {
-        console.log('❌ No bridges found in database');
-        return;
-    }
-    
-    console.log(`📊 Found ${bridges.length} bridge(s) in database:\n`);
-    
-    // Print each bridge
-    bridges.forEach((bridge, index) => {
+        if (bridges.length === 0) {
+            console.log('❌ No bridges found in database');
+            return;
+        }
+        
+        console.log(`📊 Found ${bridges.length} bridge(s) in database:\n`);
+        
+        // Print each bridge
+        bridges.forEach((bridge, index) => {
         console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
         console.log(`🌉 BRIDGE #${bridge.bridge_id} (${index + 1}/${bridges.length})`);
         console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
@@ -212,7 +213,16 @@ async function printBridges() {
         console.log(`No assistants found in database`);
     }
     
-    console.log(`\n🎉 Bridge database inspection complete!`);
+        console.log(`\n🎉 Bridge database inspection complete!`);
+        
+    } catch (error) {
+        console.error('❌ Error fetching bridge data:', error);
+        throw error;
+    } finally {
+        // Force exit to ensure script terminates and releases terminal
+        console.log('🔒 Script completed, exiting...');
+        process.exit(0);
+    }
 }
 
 printBridges().catch(console.error);

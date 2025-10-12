@@ -3,6 +3,7 @@ const { request } = require('./request.js');
 const { asyncCallWithTimeout } = require('./utils.js');
 const network = require('ocore/network.js');
 const mutex = require('ocore/mutex.js');
+const { getProvider } = require('./evm/provider.js');
 
 const { constants: { AddressZero } } = ethers;
 
@@ -13,6 +14,17 @@ const nativeSymbols = {
 	Kava: 'KAVA',
 	'3DPass': 'P3D',
 };
+
+// 3DPass Oracle configuration
+const THREEDPASS_ORACLE_ADDRESS = '0x237527b4F7bb0030Bd5B7B863839Aa121cefd5fB';
+const P3D_ADDRESS = '0x0000000000000000000000000000000000000802';
+const WUSDT_ADDRESS = '0xfBFBfbFA000000000000000000000000000000de';
+const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+
+// 3DPass Oracle ABI (minimal)
+const ORACLE_ABI = [
+	"function getPrice(string memory tokenA, string memory tokenB) view returns (uint256 numerator, uint256 denominator)"
+];
 
 
 const cache_lifetime = 60 * 60 * 1000; // 60 minutes
@@ -111,7 +123,7 @@ const fetchERC20ExchangeRate = async (chain, token_address, quote) => {
 			return getObyteAssetPrice('kNWO9R4/oiZ7m+3k4RgBxR2Lrdb/rtfIYB2XKVytCc0=');
 		}
 	}
-	const data = await request(`https://api.coingecko.com/api/v3/coins/${chain}/contract/${token_address.toLowerCase()}`)
+	const data = await asyncCallWithTimeout(request(`https://api.coingecko.com/api/v3/coins/${chain}/contract/${token_address.toLowerCase()}`), 15 * 1000)
 	const prices = data.market_data.current_price
 	quote = quote.toLowerCase()
 	if (!prices[quote]) {
@@ -193,10 +205,30 @@ const coingeckoChainIds = {
 async function tryGetTokenPrice(network, token_address, nativeSymbol, cached) {
 	switch (network) {
 		case 'Ethereum':
+			try {
+				const chain = coingeckoChainIds[network];
+				return await fetchERC20ExchangeRateCached(chain, token_address, nativeSymbol, cached);
+			}
+			catch (e) {
+				console.log(`fetchERC20ExchangeRate for ${network} ${token_address}/${nativeSymbol} failed, trying 3DPass oracle fallback`, e);
+				// Fallback to 3DPass oracle for ETH/USDT and USDT/P3D pairs
+				try {
+					const fallbackRate = await fetch3DPassOraclePrice(token_address, nativeSymbol, cached);
+					if (fallbackRate) {
+						console.log(`✅ 3DPass oracle fallback succeeded: ${token_address}/${nativeSymbol} = ${fallbackRate}`);
+					} else {
+						console.log(`❌ 3DPass oracle fallback returned null for ${token_address}/${nativeSymbol}`);
+					}
+					return fallbackRate;
+				} catch (fallbackError) {
+					console.log(`❌ 3DPass oracle fallback failed for ${token_address}/${nativeSymbol}:`, fallbackError.message);
+					return null;
+				}
+			}
+			break;
 		case 'BSC':
 		case 'Polygon':
 		case 'Kava':
-		case '3DPass':
 			try {
 				const chain = coingeckoChainIds[network];
 				return await fetchERC20ExchangeRateCached(chain, token_address, nativeSymbol, cached);
@@ -205,8 +237,90 @@ async function tryGetTokenPrice(network, token_address, nativeSymbol, cached) {
 				console.log(`fetchERC20ExchangeRate for ${network} ${token_address}/${nativeSymbol} failed`, e);
 			}
 			break;
+		case '3DPass':
+			try {
+				const chain = coingeckoChainIds[network];
+				return await fetchERC20ExchangeRateCached(chain, token_address, nativeSymbol, cached);
+			}
+			catch (e) {
+				console.log(`fetchERC20ExchangeRate for ${network} ${token_address}/${nativeSymbol} failed, trying 3DPass oracle fallback`, e);
+				// Fallback to 3DPass oracle for P3D-related prices
+				return await fetch3DPassOraclePrice(token_address, nativeSymbol, cached);
+			}
+			break;
 	}
 	return null;
+}
+
+// Fetch price from 3DPass oracle as fallback
+async function fetch3DPassOraclePrice(token_address, nativeSymbol, cached) {
+	try {
+		console.log(`Fetching 3DPass oracle price for ${token_address}/${nativeSymbol}`);
+		
+		// Get 3DPass provider
+		const provider = getProvider('3DPass');
+		const oracle = new ethers.Contract(THREEDPASS_ORACLE_ADDRESS, ORACLE_ABI, provider);
+		
+		// Determine token symbols for oracle query
+		let tokenA, tokenB;
+		
+		if (nativeSymbol === 'P3D') {
+			// We want token_address/P3D rate
+			if (token_address === WUSDT_ADDRESS) {
+				tokenA = 'P3D';
+				tokenB = WUSDT_ADDRESS;
+			} else if (token_address === USDT_ADDRESS) {
+				// For USDT/P3D rate, we need to query P3D/USDT and invert
+				tokenA = 'P3D';
+				tokenB = USDT_ADDRESS;
+			} else {
+				console.log(`Unknown token address ${token_address} for 3DPass oracle`);
+				return null;
+			}
+		} else if (nativeSymbol === 'ETH') {
+			// We want token_address/ETH rate
+			if (token_address === USDT_ADDRESS) {
+				tokenA = 'ETH';
+				tokenB = USDT_ADDRESS;
+			} else {
+				console.log(`Unknown token address ${token_address} for ETH oracle fallback`);
+				return null;
+			}
+		} else {
+			console.log(`3DPass oracle fallback only supports P3D and ETH as native symbols, got ${nativeSymbol}`);
+			return null;
+		}
+		
+		// Query oracle with timeout
+		const priceData = await asyncCallWithTimeout(oracle.getPrice(tokenA, tokenB), 15 * 1000);
+		const numerator = parseFloat(ethers.utils.formatEther(priceData[0]));
+		const denominator = parseFloat(ethers.utils.formatEther(priceData[1]));
+		
+		if (denominator === 0) {
+			console.log(`3DPass oracle returned zero denominator for ${tokenA}/${tokenB}`);
+			return null;
+		}
+		
+		const rate = numerator / denominator;
+		console.log(`3DPass oracle price ${tokenA}/${tokenB}: ${rate} (${numerator}/${denominator})`);
+		
+		// For P3D/token and ETH/token queries, we need to invert to get token/native
+		if (tokenA === 'P3D') {
+			const invertedRate = 1 / rate;
+			console.log(`Inverted rate ${tokenB}/P3D: ${invertedRate}`);
+			return invertedRate;
+		} else if (tokenA === 'ETH') {
+			const invertedRate = 1 / rate;
+			console.log(`Inverted rate ${tokenB}/ETH: ${invertedRate}`);
+			return invertedRate;
+		}
+		
+		return rate;
+		
+	} catch (error) {
+		console.log(`3DPass oracle price fetch failed for ${token_address}/${nativeSymbol}:`, error.message);
+		return null;
+	}
 }
 
 // dst_network must be EVM based
@@ -270,3 +384,5 @@ exports.fetchExchangeRateInNativeAsset = fetchExchangeRateInNativeAsset;
 exports.fetchExchangeRateInUSD = fetchExchangeRateInUSD;
 exports.fetchCoingeckoExchangeRateCached = fetchCoingeckoExchangeRateCached;
 exports.fetchExchangeRateCached = fetchExchangeRateCached;
+exports.tryGetTokenPrice = tryGetTokenPrice;
+exports.fetch3DPassOraclePrice = fetch3DPassOraclePrice;

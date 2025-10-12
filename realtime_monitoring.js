@@ -96,8 +96,14 @@ const grepPattern = [
     'inserting transfer', 'duplicate transfer', 'emitting txid', 're-confirmed',
     'forgetting unconfirmed', 'bounced tx', '3DPass Registry', 'Discovering bridges',
     'Failed to discover', 'Error', '❌', '✅', '🔍',
-    'WARNING: stake_asset is null', 'stake_asset is null for bridge', 'bad initial state',
-    'Assistant.*has bad initial state', 'gross balance.*but total supply', 'will try to claim myself'
+    'WARNING: stake_asset is null', 'stake_asset is null for bridge',
+    // Claim rejection and gas cost logs
+    'the reward.*is only.*which is less than the minimum.*to justify the fees', 'will not claim',
+    'required gas for claim\\+withdraw', 'getMinReward', 'fMinReward',
+    '3DPass oracle fallback', 'oracle fallback.*succeeded', 'oracle fallback.*failed',
+    'fetchERC20ExchangeRate.*failed', 'unable to determine min reward',
+    '3DPass.*getMinReward returned null', 'using default.*P3D for claim',
+    // 'bad initial state', 'Assistant.*has bad initial state', 'gross balance.*but total supply', 'will try to claim myself'
 ].join('|');
 
 console.log(`${colors.cyan}${colors.bright}🚀 Counterstake Bridge Real-time Monitoring${colors.reset}`);

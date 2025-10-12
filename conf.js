@@ -214,5 +214,5 @@ exports.threedpass_oracle_addresses = {
 
 console.log('finished watchdog conf');
 
-// 3DPass specific: P3D precompile address
+// 3DPass native token Precompile address:
 exports.p3d_precompile_address = '0x0000000000000000000000000000000000000802';

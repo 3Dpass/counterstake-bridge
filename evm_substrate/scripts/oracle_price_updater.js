@@ -63,6 +63,12 @@ const TOKEN_CONFIGS = {
         address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT on Ethereum
         decimals: 6,
         usdPrice: 1.0 // USDT is pegged to USD
+    },
+    ETH: {
+        symbol: 'ETH',
+        coingeckoId: 'ethereum',
+        decimals: 18,
+        usdPrice: null // Will be fetched from CoinGecko
     }
 };
 
@@ -151,9 +157,9 @@ class Oracle3DPassUpdater {
             
             log(`   P3D Balance: ${balanceFormatted} P3D`, colors.blue);
             
-            // Calculate required balance for batch transaction (8 price updates)
+            // Calculate required balance for batch transaction (10 price updates)
             // Using the same gas strategy as bridge-setup-and-test.js
-            const gasLimit = ethers.BigNumber.from(4000000); // Higher gas limit for 8 price updates
+            const gasLimit = ethers.BigNumber.from(5000000); // Higher gas limit for 10 price updates
             const maxFeePerGas = ethers.BigNumber.from(100); // 100 wei (not gwei!)
             const totalRequired = gasLimit.mul(maxFeePerGas); // Total cost for single batch transaction
             const totalRequiredFormatted = ethers.utils.formatEther(totalRequired);
@@ -188,6 +194,21 @@ class Oracle3DPassUpdater {
             return this.p3dUsdPrice;
         } catch (error) {
             log(`❌ Failed to fetch P3D price: ${error.message}`, colors.red);
+            throw error;
+        }
+    }
+
+    async fetchETHPrice() {
+        try {
+            log('📊 Fetching ETH price from CoinGecko...', colors.blue);
+            const ethUsdPrice = await fetchCoingeckoExchangeRateCached('ETH', 'USD', true);
+            
+            TOKEN_CONFIGS.ETH.usdPrice = ethUsdPrice;
+            
+            log(`✅ ETH/USD Price: $${ethUsdPrice}`, colors.green);
+            return ethUsdPrice;
+        } catch (error) {
+            log(`❌ Failed to fetch ETH price: ${error.message}`, colors.red);
             throw error;
         }
     }
@@ -292,6 +313,30 @@ class Oracle3DPassUpdater {
                 };
             } catch (err) {
                 prices['USDT_vs__NATIVE_'] = { error: err.message };
+            }
+            
+            // Fetch ETH vs USDT
+            try {
+                const ethUsdtPrice = await this.oracle.getPrice('ETH', TOKEN_CONFIGS.USDT.address);
+                prices['ETH_vs_USDT'] = {
+                    numerator: ethers.utils.formatEther(ethUsdtPrice[0]),
+                    denominator: ethers.utils.formatEther(ethUsdtPrice[1]),
+                    ratio: parseFloat(ethers.utils.formatEther(ethUsdtPrice[0])) / parseFloat(ethers.utils.formatEther(ethUsdtPrice[1]))
+                };
+            } catch (err) {
+                prices['ETH_vs_USDT'] = { error: err.message };
+            }
+            
+            // Fetch USDT vs ETH
+            try {
+                const usdtEthPrice = await this.oracle.getPrice(TOKEN_CONFIGS.USDT.address, 'ETH');
+                prices['USDT_vs_ETH'] = {
+                    numerator: ethers.utils.formatEther(usdtEthPrice[0]),
+                    denominator: ethers.utils.formatEther(usdtEthPrice[1]),
+                    ratio: parseFloat(ethers.utils.formatEther(usdtEthPrice[0])) / parseFloat(ethers.utils.formatEther(usdtEthPrice[1]))
+                };
+            } catch (err) {
+                prices['USDT_vs_ETH'] = { error: err.message };
             }
             
             return prices;
@@ -457,7 +502,33 @@ class Oracle3DPassUpdater {
             callData.push(usdtNativeCallData);
             gasLimits.push(500000);
             
-            log(`📊 Batch Update Summary (using adjusted P3D price):`, colors.magenta);
+            // 9. ETH vs USDT
+            const ethToUsdt = TOKEN_CONFIGS.ETH.usdPrice / TOKEN_CONFIGS.USDT.usdPrice;
+            const ethUsdtCallData = this.oracle.interface.encodeFunctionData('setPrice', [
+                'ETH',
+                TOKEN_CONFIGS.USDT.address,
+                ethers.utils.parseUnits(ethToUsdt.toFixed(18), 18),
+                ethers.utils.parseEther('1')
+            ]);
+            to.push(ORACLE_ADDRESS);
+            values.push(0);
+            callData.push(ethUsdtCallData);
+            gasLimits.push(500000);
+            
+            // 10. USDT vs ETH
+            const usdtToEth = TOKEN_CONFIGS.USDT.usdPrice / TOKEN_CONFIGS.ETH.usdPrice;
+            const usdtEthCallData = this.oracle.interface.encodeFunctionData('setPrice', [
+                TOKEN_CONFIGS.USDT.address,
+                'ETH',
+                ethers.utils.parseUnits(usdtToEth.toFixed(18), 18),
+                ethers.utils.parseEther('1')
+            ]);
+            to.push(ORACLE_ADDRESS);
+            values.push(0);
+            callData.push(usdtEthCallData);
+            gasLimits.push(500000);
+            
+            log(`📊 Batch Update Summary (using adjusted P3D price and ETH price):`, colors.magenta);
             log(`   P3D/wUSDT: ${p3dToWusdt}`, colors.magenta);
             log(`   P3D/USDT: ${p3dToUsdt}`, colors.magenta);
             log(`   wUSDT/P3D: ${wusdtToP3d}`, colors.magenta);
@@ -466,13 +537,15 @@ class Oracle3DPassUpdater {
             log(`   wUSDT/_NATIVE_: ${wusdtToP3d}`, colors.magenta);
             log(`   _NATIVE_/USDT: ${p3dToUsdt}`, colors.magenta);
             log(`   USDT/_NATIVE_: ${usdtToP3d}`, colors.magenta);
+            log(`   ETH/USDT: ${ethToUsdt}`, colors.magenta);
+            log(`   USDT/ETH: ${usdtToEth}`, colors.magenta);
             
             // Create batch contract instance
             const batchContract = new ethers.Contract(BATCH_ADDRESS, BATCH_ABI, this.signer);
             
             // Set gas parameters for the batch transaction
             const gasParams = {
-                gasLimit: 4000000, // Higher gas limit for 8 price updates
+                gasLimit: 5000000, // Higher gas limit for 10 price updates
                 maxFeePerGas: 100, // 100 wei (not gwei!)
                 maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
             };
@@ -505,15 +578,21 @@ class Oracle3DPassUpdater {
             const pricesBefore = await this.fetchCurrentOraclePrices();
             await this.displayOraclePrices(pricesBefore, 'Current Oracle Prices (BEFORE)');
             
-            // Fetch current P3D price
+            // Fetch current P3D and ETH prices
             await this.fetchP3DPrice();
+            await this.fetchETHPrice();
             
             if (!this.p3dUsdPrice) {
                 throw new Error('P3D price not available');
             }
             
+            if (!TOKEN_CONFIGS.ETH.usdPrice) {
+                throw new Error('ETH price not available');
+            }
+            
             log(`📊 Price Summary:`, colors.magenta);
             log(`   P3D/USD (adjusted): $${this.p3dUsdPrice} (raw price divided by ${EVMdecimalsMultiplier})`, colors.magenta);
+            log(`   ETH/USD: $${TOKEN_CONFIGS.ETH.usdPrice}`, colors.magenta);
             log(`   wUSDT/USD: $${TOKEN_CONFIGS.wUSDT.usdPrice}`, colors.magenta);
             log(`   USDT/USD: $${TOKEN_CONFIGS.USDT.usdPrice}`, colors.magenta);
             
@@ -522,12 +601,16 @@ class Oracle3DPassUpdater {
             const p3dToUsdt = this.p3dUsdPrice / TOKEN_CONFIGS.USDT.usdPrice;
             const wusdtToP3d = TOKEN_CONFIGS.wUSDT.usdPrice / this.p3dUsdPrice;
             const usdtToP3d = TOKEN_CONFIGS.USDT.usdPrice / this.p3dUsdPrice;
+            const ethToUsdt = TOKEN_CONFIGS.ETH.usdPrice / TOKEN_CONFIGS.USDT.usdPrice;
+            const usdtToEth = TOKEN_CONFIGS.USDT.usdPrice / TOKEN_CONFIGS.ETH.usdPrice;
             
-            log(`📊 Calculated Ratios (using adjusted P3D price):`, colors.magenta);
+            log(`📊 Calculated Ratios (using adjusted P3D price and ETH price):`, colors.magenta);
             log(`   P3D/wUSDT: ${p3dToWusdt}`, colors.magenta);
             log(`   P3D/USDT: ${p3dToUsdt}`, colors.magenta);
             log(`   wUSDT/P3D: ${wusdtToP3d}`, colors.magenta);
             log(`   USDT/P3D: ${usdtToP3d}`, colors.magenta);
+            log(`   ETH/USDT: ${ethToUsdt}`, colors.magenta);
+            log(`   USDT/ETH: ${usdtToEth}`, colors.magenta);
             
             // Update all oracle prices using Batch precompile (single transaction)
             await this.updateAllPricesBatch();
@@ -602,6 +685,14 @@ class Oracle3DPassUpdater {
             // Check USDT vs _NATIVE_
             const usdtNativePrice = await this.oracle.getPrice(TOKEN_CONFIGS.USDT.address, '_NATIVE_');
             log(`   USDT/_NATIVE_: ${ethers.utils.formatEther(usdtNativePrice[0])}/${ethers.utils.formatEther(usdtNativePrice[1])}`, colors.blue);
+            
+            // Check ETH vs USDT
+            const ethUsdtPrice = await this.oracle.getPrice('ETH', TOKEN_CONFIGS.USDT.address);
+            log(`   ETH/USDT: ${ethers.utils.formatEther(ethUsdtPrice[0])}/${ethers.utils.formatEther(ethUsdtPrice[1])}`, colors.blue);
+            
+            // Check USDT vs ETH
+            const usdtEthPrice = await this.oracle.getPrice(TOKEN_CONFIGS.USDT.address, 'ETH');
+            log(`   USDT/ETH: ${ethers.utils.formatEther(usdtEthPrice[0])}/${ethers.utils.formatEther(usdtEthPrice[1])}`, colors.blue);
             
             log('✅ Price verification completed', colors.green);
             

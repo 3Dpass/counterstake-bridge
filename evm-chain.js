@@ -219,13 +219,21 @@ class EvmChain {
 		console.log('getMinReward', type, claimed_asset, src_network, src_asset, bWithAssistant);
 		const gas = bWithAssistant ? conf.evm_required_gas_with_pooled_assistant : conf.evm_required_gas;
 		const fee = gas * (await this.getGasPrice()) / 1e9; // in Ether, 1 gwei = 1e-9 ETH
-		console.log(`required gas for claim+withdraw (${bWithAssistant ? 'pooled' : 'solo'}): ${fee} ${this.getNativeSymbol()}`);
+		console.log(`required gas for claim+withdraw (${bWithAssistant ? 'pooled' : 'solo'}): ${fee.toFixed(18)} ${this.getNativeSymbol()}`);
 		if (claimed_asset === AddressZero)
 			return fee;
-		const rate = await fetchExchangeRateInNativeAsset(type, this.network, claimed_asset, src_network, src_asset, bCached);
-		if (!rate)
+		try {
+			const rate = await asyncCallWithTimeout(
+				fetchExchangeRateInNativeAsset(type, this.network, claimed_asset, src_network, src_asset, bCached),
+				30 * 1000 // 30 second timeout
+			);
+			if (!rate)
+				return null;
+			return fee / rate;
+		} catch (e) {
+			console.log(`getMinReward timeout for ${type} ${claimed_asset} ${src_network} ${src_asset}:`, e.message);
 			return null;
-		return fee / rate;
+		}
 	}
 
 	getMyAddress() {

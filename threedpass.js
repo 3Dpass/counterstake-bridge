@@ -20,6 +20,7 @@ const ip3dJson = require('./evm_substrate/build/contracts/IP3D.json');
 const iprecompileErc20Json = require('./evm_substrate/build/contracts/IPrecompileERC20.json');
 
 // 3DPass-specific constants
+// P3D native token ERC20 precompile address
 const P3D_PRECOMPILE = '0x0000000000000000000000000000000000000802';
 
 let bCreated = false;

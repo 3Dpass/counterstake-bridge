@@ -140,12 +140,19 @@ async function handleTransfer(transfer) {
 		const fReward = parseFloat(utils.formatEther(reward));
 		if (fReward < conf.min_reward_ratio * fAmount)
 			return console.log(`too small reward in transfer ${txid} from ${sender_address}`);
-		const fMinReward = await dst_api.getMinReward(type, claimed_asset, src_network, src_asset, !!assistant_aa);
-		console.log({ fMinReward });
-		if (fMinReward === null)
-			return console.log(`unable to determine min reward for transfer ${txid} from ${sender_address} of ${fAmount} ${claimed_asset}, will not claim`);
+		let fMinReward = await dst_api.getMinReward(type, claimed_asset, src_network, src_asset, !!assistant_aa);
+		console.log({ fMinReward: fMinReward ? fMinReward.toFixed(18) : fMinReward });
+		if (fMinReward === null) {
+			// For 3DPass, use a very low default since gas costs are negligible
+			if (dst_network === '3DPass') {
+				console.log(`3DPass: getMinReward returned null, using default 0.001 P3D for claim`);
+				fMinReward = 0.0000000001; // Very low default for 3DPass
+			} else {
+				return console.log(`unable to determine min reward for transfer ${txid} from ${sender_address} of ${fAmount} ${claimed_asset}, will not claim`);
+			}
+		}
 		if (fDstReward < fMinReward)
-			return console.log(`the reward in transfer ${txid} from ${sender_address} is only ${fDstReward} which is less than the minimum ${fMinReward} to justify the fees, will not claim`);
+			return console.log(`the reward in transfer ${txid} from ${sender_address} is only ${fDstReward} which is less than the minimum ${fMinReward.toFixed(18)} to justify the fees, will not claim`);
 		const fDstNetReward = fDstReward - fMinReward;
 		if (fDstNetReward < conf.min_reward_ratio * fDstAmount)
 			return console.log(`too small net reward ${fDstNetReward} in transfer ${txid} from ${sender_address}`);
@@ -180,7 +187,21 @@ async function handleTransfer(transfer) {
 		stake = BigNumber.from(stake);
 		if (type === 'expatriation' && dst_network === 'Obyte') // we use oracle price, which might change, add 10%
 			stake = stake.mul(110).div(100);
-		let bClaimFromPooledAssistant = !!assistant_aa;
+		let bClaimFromPooledAssistant = false;
+		if (assistant_aa) {
+			// Check if bot is the manager of the assistant
+			try {
+				const assistantContract = dst_api.getContractReference(assistant_aa);
+				if (assistantContract) {
+					const managerAddress = await assistantContract.managerAddress();
+					const botAddress = await dst_api.getMyAddress();
+					bClaimFromPooledAssistant = (botAddress.toLowerCase() === managerAddress.toLowerCase());
+					console.log(`Assistant ${assistant_aa} manager: ${managerAddress}, bot: ${botAddress}, isManager: ${bClaimFromPooledAssistant}`);
+				}
+			} catch (err) {
+				console.log(`Could not check assistant manager for ${assistant_aa}: ${err.message}`);
+			}
+		}
 		if (bClaimFromPooledAssistant) {
 			// Check for bad initial state: assistant has stake tokens but no share tokens
 			const bAssistantHasBadState = await checkAssistantBadInitialState(dst_api, assistant_aa, staked_asset, claimed_asset);
@@ -201,16 +222,35 @@ async function handleTransfer(transfer) {
 			}
 		}
 		if (!bClaimFromPooledAssistant) {
-			console.log({staked_asset, claimed_asset}, `dst amount ${dst_amount}, stake ${stake}, bal ${await dst_api.getMyBalance(staked_asset)}`)
+			const stakedBalance = await dst_api.getMyBalance(staked_asset);
+			const claimedBalance = await dst_api.getMyBalance(claimed_asset);
+			console.log({staked_asset, claimed_asset}, `dst amount ${dst_amount}, stake ${stake}, staked_bal ${stakedBalance}, claimed_bal ${claimedBalance}`)
+			console.log(`DEBUG: bThirdPartyClaiming=${bThirdPartyClaiming}, staked_asset === claimed_asset: ${staked_asset === claimed_asset}`);
+			
 			const bHaveEnoughBalance = bThirdPartyClaiming
 				? ((staked_asset === claimed_asset)
-					? dst_amount.add(stake).lte(await dst_api.getMyBalance(staked_asset))
-					: (stake.lte(await dst_api.getMyBalance(staked_asset))
-						&& dst_amount.lte(await dst_api.getMyBalance(claimed_asset))))
-				: stake.lte(await dst_api.getMyBalance(staked_asset));
+					? dst_amount.add(stake).lte(stakedBalance)
+					: (stake.lte(stakedBalance) && dst_amount.lte(claimedBalance)))
+				: stake.lte(stakedBalance);
+			
+			console.log(`DEBUG: Balance check result: ${bHaveEnoughBalance}`);
+			if (bThirdPartyClaiming && staked_asset !== claimed_asset) {
+				console.log(`DEBUG: Third-party with different assets - stake.lte(stakedBalance): ${stake.lte(stakedBalance)}, dst_amount.lte(claimedBalance): ${dst_amount.lte(claimedBalance)}`);
+			}
+			
 			if (!bHaveEnoughBalance) {
-				if (!transfer_id || transfer_id > 6947) // transfer_id available only when retrying from the db
-					notifications.notifyAdmin(`not enough balance to claim ${dst_amount / 10 ** dst_asset_decimals} ${claimed_symbol} on ${dst_network} (${claimed_asset}) in transfer ${txid} from ${sender_address} (${src_network}) to ${dest_address}`);
+				console.log(`DEBUG: Insufficient balance detected, sending notification...`);
+				if (!transfer_id || transfer_id > 6947) { // transfer_id available only when retrying from the db
+					console.log(`DEBUG: About to call notifyAdmin...`);
+					try {
+						notifications.notifyAdmin(`not enough balance to claim ${dst_amount / 10 ** dst_asset_decimals} ${claimed_symbol} on ${dst_network} (${claimed_asset}) in transfer ${txid} from ${sender_address} (${src_network}) to ${dest_address}`);
+						console.log(`DEBUG: notifyAdmin call completed`);
+					} catch (error) {
+						console.log(`DEBUG: notifyAdmin call failed:`, error);
+					}
+				} else {
+					console.log(`DEBUG: Skipping notification due to transfer_id condition: ${transfer_id}`);
+				}
 				return unlock();
 			}
 		}
@@ -1192,8 +1232,9 @@ async function start() {
 
 	// reconnect to Ethereum websocket
 	eventBus.on('network_disconnected', async (network) => {
-		if (!caughtUp[network])
+		if (!caughtUp[network]) {
 			throw Error(`${network} disconnected before having caught up`);
+		}
 		console.log('will reconnect to', network);
 		if (!disconnected_ts[network])
 			disconnected_ts[network] = Date.now();

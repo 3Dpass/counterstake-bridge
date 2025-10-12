@@ -331,43 +331,52 @@ async function setupCorrect3DPassBridges() {
             );
         }
         
-        // Find the corresponding assistant
-        const assistant = assistants.find(a => a.type === bridge.type);
+        // Find all assistants of the corresponding type
+        const matchingAssistants = assistants.filter(a => a.type === bridge.type);
         
-        // Check if the bot is the manager of the assistant (if it exists)
+        // Check if the bot is the manager of any of the assistants
         let assistantAddress = null;
-        if (assistant) {
+        let selectedAssistant = null;
+        
+        for (const assistant of matchingAssistants) {
             try {
-                // Get the bot's address for 3DPass network
+                // Get the assistant's manager address directly from the assistant contract
                 const { getProvider } = require('./evm/provider.js');
                 const provider = getProvider('3DPass');
-                const botAddress = await provider.getSigner().getAddress();
+                const ImportWrapperAssistant = require('./evm_substrate/build/contracts/ImportWrapperAssistant.json');
+                const assistantContract = new ethers.Contract(assistant.address, ImportWrapperAssistant.abi, provider);
                 
-                // Get the assistant's manager address from the contract
-                const AssistantFactory = require('./evm_substrate/build/contracts/AssistantFactory.json');
-                const assistantFactoryAddress = conf.threedpass_assistant_factory_contract_addresses[conf.version];
-                const assistantFactory = new ethers.Contract(assistantFactoryAddress, AssistantFactory.abi, provider);
-                
-                // Get assistant details to check manager
-                const assistantInfo = await assistantFactory.getAssistant(assistant.address);
-                const managerAddress = assistantInfo.manager;
+                // Get manager address and symbol directly from the assistant contract
+                const managerAddress = await assistantContract.managerAddress();
+                const assistantSymbol = await assistantContract.symbol();
                 
                 console.log(`  📋 Assistant found: ${assistant.address}`);
                 console.log(`    Manager: ${managerAddress}`);
-                console.log(`    Bot address: ${botAddress}`);
+                console.log(`    Symbol: ${assistantSymbol}`);
                 
-                // Only set assistant address if bot is the manager
-                if (botAddress.toLowerCase() === managerAddress.toLowerCase()) {
-                    assistantAddress = assistant.address;
-                    console.log(`    ✅ Bot is the manager - will set assistant in bridges table`);
-                } else {
-                    console.log(`    ⚠️  Bot is NOT the manager - will NOT set assistant in bridges table`);
-                    console.log(`    📝 Assistant will still be recorded in pooled_assistants table for monitoring`);
+                // Add ALL assistants to pooled_assistants table for monitoring (regardless of manager)
+                try {
+                    const bridgeToUpdate = existingBridgeByAddress || existingBridgeByAssets;
+                    if (bridgeToUpdate) {
+                        const bridgeId = bridgeToUpdate.bridge_id;
+                        const bridgeAa = bridge.address;
+                        const network = '3DPass';
+                        const side = bridge.type.toLowerCase(); // 'import' or 'export'
+                        const sharesAsset = assistant.address; // For 3DPass, shares_asset is the assistant address itself
+                        const sharesSymbol = assistantSymbol; // Use the actual symbol from the assistant contract
+                        const version = conf.version;
+                        
+                        console.log(`    📝 Adding/updating assistant in pooled_assistants table: ${assistant.address}`);
+                        await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                            [assistant.address, bridgeId, bridgeAa, network, side, managerAddress, sharesAsset, sharesSymbol, version]);
+                        console.log(`    ✅ Assistant added/updated in pooled_assistants table`);
+                    }
+                } catch (pooledErr) {
+                    console.log(`    ⚠️  Could not add assistant to pooled_assistants table: ${pooledErr.message}`);
                 }
+                
             } catch (err) {
-                console.log(`  ⚠️  Could not check assistant manager: ${err.message}`);
-                console.log(`    📝 Will set assistant address anyway for compatibility`);
-                assistantAddress = assistant.address;
+                console.log(`  ⚠️  Could not process assistant: ${err.message}`);
             }
         }
         
