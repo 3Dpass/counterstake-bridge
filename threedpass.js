@@ -3,8 +3,9 @@ const conf = require('ocore/conf.js');
 const EvmChain = require('./evm-chain.js');
 const { getProvider } = require("./evm/provider.js");
 const { getAddressBlocks, getAddressTransactionBlocks } = require("./3dpscan.js");
-const { ethers, BigNumber } = require("ethers");
+const { ethers, BigNumber, constants: { AddressZero } } = require("ethers");
 const { wait } = require('./utils.js');
+const mutex = require('ocore/mutex.js');
 
 // 3DPass-specific ABI imports from evm_substrate
 const exportJson = require('./evm_substrate/build/contracts/Export.json');
@@ -569,59 +570,177 @@ class ThreeDPass extends EvmChain {
 		return await super.transferTokens(tokenAddress, recipientAddress, amount);
 	}
 
+
 	/**
-	 * Enhanced claim function for 3DPass precompiles
-	 * Overrides the base claim function to handle precompile-specific logic
+	 * Override sendClaim to handle 3DPass-specific approval logic
 	 */
-	async claim(contractAddress, txid, txts, amount, reward, stake, senderAddress, recipientAddress, data = "") {
-		const contract = this.getContractReference(contractAddress);
-		if (!contract) {
-			throw new Error(`Contract reference not found for ${contractAddress}`);
+	async sendClaim({ bridge_aa, amount, reward, claimed_asset, stake, staked_asset, sender_address, dest_address, data, txid, txts }) {
+		const unlock = await mutex.lock(this.network + 'Tx');
+		console.log(`will send a claim to ${this.network}`, { bridge_aa, amount, reward, claimed_asset, stake, staked_asset, sender_address, dest_address, data, txid, txts });
+		await this.waitBetweenTransactions();
+		
+		// Handle approval for staked asset (3DPass-specific logic)
+		if (staked_asset && staked_asset !== AddressZero) {
+			const approval_res = await this.approve(staked_asset, bridge_aa);
+			if (!approval_res)
+				throw Error(`failed to approve ${bridge_aa} to spend our ${staked_asset}`);
 		}
 
-		// Calculate the total value to send (amount + stake)
-		const totalValue = BigNumber.from(amount).add(BigNumber.from(stake));
-		
-		// 3DPass-specific gas parameters (very low gas costs)
-		const options = {
-			value: totalValue,
-			gasLimit: 500000,
-			maxFeePerGas: 100, // 100 wei (not gwei!)
-			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
-		};
-
-		console.log(`3DPass: Submitting claim for ${contractAddress}`, {
-			txid, txts, amount: amount.toString(), reward: reward.toString(), 
-			stake: stake.toString(), senderAddress, recipientAddress, data
-		});
-
-		return await contract.claim(
-			txid, txts, amount, reward, stake, senderAddress, recipientAddress, data, options
-		);
+		const bThirdPartyClaiming = (dest_address && dest_address !== this.getMyAddress());
+		const paid_amount = bThirdPartyClaiming ? amount.sub(reward) : BigNumber.from(0);
+		const total = (claimed_asset === staked_asset) ? stake.add(paid_amount) : stake;
+		const contract = this.getContractReference(bridge_aa);
+		if (!contract)
+			throw Error(`no contract by bridge AA ${bridge_aa}`);
+		try {
+			// 3DPass-specific gas parameters (very low gas costs)
+			let opts = {
+				value: 0, // Always 0 for 3DPass precompiles
+				gasLimit: 500000,
+				maxFeePerGas: 100, // 100 wei (not gwei!)
+				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+			};
+			
+			await this.addAccessListIfNecessary(opts, claimed_asset, staked_asset, dest_address);
+			const res = await contract.claim(txid, txts, amount, reward, stake, sender_address, dest_address, data, opts);
+			const claim_txid = res.hash;
+			console.log(`sent claim for ${amount} with reward ${reward} sent in tx ${txid} from ${sender_address}: ${claim_txid}`);
+			// Note: last_tx_ts and bWaitForMined are private properties in parent class
+			// We'll let the parent class handle transaction timing
+			unlock();
+			return claim_txid;
+		}
+		catch (e) {
+			console.log(`failed to send claim for ${amount} with reward ${reward} sent in tx ${txid} from ${sender_address}`, e);
+			unlock();
+			if (e.toString().includes('has already been claimed')) {
+				console.log(`transfer ${txid} already claimed, maybe we missed the event?`);
+				process.nextTick(async () => {
+					console.log(`will rescan events since ${txts}`);
+					const blocks = await this.getAddressBlocks(bridge_aa, 0, txts);
+					console.log(`blocks since ${txts}:`, blocks);
+					for (let blockNumber of blocks) {
+						await this.processPastEventsOnBridgeContract(contract, blockNumber, blockNumber);
+					}
+				});
+			}
+			return null;
+		}
 	}
 
 	/**
-	 * Enhanced challenge function for 3DPass precompiles
+	 * Override sendClaimFromPooledAssistant to handle 3DPass-specific logic
 	 */
-	async challenge(contractAddress, claimId, stake) {
-		const contract = this.getContractReference(contractAddress);
-		if (!contract) {
-			throw new Error(`Contract reference not found for ${contractAddress}`);
+	async sendClaimFromPooledAssistant({ assistant_aa, amount, reward, claimed_asset, staked_asset, sender_address, dest_address, data, txid, txts }) {
+		const unlock = await mutex.lock(this.network + 'Tx');
+		if (!dest_address)
+			throw Error(`no dest address in assistant claim`);
+		await this.waitBetweenTransactions();
+		const contract = this.getContractReference(assistant_aa);
+		if (!contract)
+			throw Error(`no contract by assistant AA ${assistant_aa}`);
+		
+		try {
+			// 3DPass-specific gas parameters (very low gas costs)
+			let opts = {
+				value: 0, // Always 0 for 3DPass precompiles
+				gasLimit: 5000000,
+				maxFeePerGas: 100, // 100 wei (not gwei!)
+				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+			};
+			
+			await this.addAccessListIfNecessary(opts, claimed_asset, staked_asset, dest_address);
+			const res = await contract.claim(txid, txts, amount, reward, sender_address, dest_address, data, opts);
+			const claim_txid = res.hash;
+			console.log(`sent assistant claim for ${amount} with reward ${reward} sent in tx ${txid} from ${sender_address}: ${claim_txid}`);
+			// Note: last_tx_ts and bWaitForMined are private properties in parent class
+			// We'll let the parent class handle transaction timing
+			unlock();
+			return claim_txid;
 		}
+		catch (e) {
+			console.log(`failed to send assistant claim for ${amount} with reward ${reward} sent in tx ${txid} from ${sender_address}`, e);
+			unlock();
+			return null;
+		}
+	}
 
-		// 3DPass-specific gas parameters (very low gas costs)
-		const options = {
-			value: BigNumber.from(stake),
-			gasLimit: 300000,
-			maxFeePerGas: 100, // 100 wei (not gwei!)
-			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
-		};
 
-		console.log(`3DPass: Submitting challenge for ${contractAddress}`, {
-			claimId, stake: stake.toString()
-		});
+	/**
+	 * Override sendChallenge to handle 3DPass-specific approval logic
+	 */
+	async sendChallenge(bridge_aa, claim_num, stake_on, asset, counterstake) {
+		const unlock = await mutex.lock(this.network + 'Tx');
+		await this.waitBetweenTransactions();
+		const side = stake_on === 'yes' ? 1 : 0;
+		const contract = this.getContractReference(bridge_aa);
+		if (!contract)
+			throw Error(`no contract by bridge AA ${bridge_aa}`);
+		
+		// Handle approval for staking asset (3DPass-specific logic)
+		if (asset && asset !== AddressZero) {
+			const approval_res = await this.approve(asset, bridge_aa);
+			if (!approval_res)
+				throw Error(`failed to approve ${bridge_aa} to spend our ${asset} for challenge`);
+		}
+		
+		try {
+			// 3DPass-specific gas parameters (very low gas costs)
+			let opts = {
+				value: 0, // Always 0 for 3DPass precompiles
+				gasLimit: 500000,
+				maxFeePerGas: 100, // 100 wei (not gwei!)
+				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+			};
+			
+			const res = await contract['challenge(uint256,uint8,uint256)'](claim_num, side, counterstake, opts);
+			const txid = res.hash;
+			console.log(`sent counterstake ${counterstake} for "${stake_on}" to challenge claim ${claim_num}: ${txid}`);
+			// Note: last_tx_ts and bWaitForMined are private properties in parent class
+			// We'll let the parent class handle transaction timing
+			unlock();
+			return txid;
+		}
+		catch (e) {
+			console.log(`failed to send challenge for claim ${claim_num} with ${stake_on} stake ${counterstake}`, e);
+			unlock();
+			return null;
+		}
+	}
 
-		return await contract.challenge(claimId, options);
+	/**
+	 * Override sendChallengeFromPooledAssistant to handle 3DPass-specific logic
+	 */
+	async sendChallengeFromPooledAssistant(assistant_aa, claim_num, stake_on, counterstake) {
+		const unlock = await mutex.lock(this.network + 'Tx');
+		await this.waitBetweenTransactions();
+		const side = stake_on === 'yes' ? 1 : 0;
+		const contract = this.getContractReference(assistant_aa);
+		if (!contract)
+			throw Error(`no contract by assistant AA ${assistant_aa}`);
+		
+		try {
+			// 3DPass-specific gas parameters (very low gas costs)
+			let opts = {
+				value: 0, // Always 0 for 3DPass precompiles
+				gasLimit: 500000,
+				maxFeePerGas: 100, // 100 wei (not gwei!)
+				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+			};
+			
+			const res = await contract.challenge(claim_num, side, counterstake, opts);
+			const txid = res.hash;
+			console.log(`sent assistant counterstake ${counterstake} for "${stake_on}" to challenge claim ${claim_num}: ${txid}`);
+			// Note: last_tx_ts and bWaitForMined are private properties in parent class
+			// We'll let the parent class handle transaction timing
+			unlock();
+			return txid;
+		}
+		catch (e) {
+			console.log(`failed to send assistant challenge for claim ${claim_num} with ${stake_on} stake ${counterstake}`, e);
+			unlock();
+			return null;
+		}
 	}
 
 	/**
@@ -635,7 +754,7 @@ class ThreeDPass extends EvmChain {
 
 		// 3DPass-specific gas parameters (very low gas costs)
 		const options = {
-			gasLimit: 200000,
+			gasLimit: 500000,
 			maxFeePerGas: 100, // 100 wei (not gwei!)
 			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
 		};

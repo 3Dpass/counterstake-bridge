@@ -71,9 +71,9 @@ The bot can be configured to operate in either **Individual** or **Pooled** mode
 
 If the the bot's account, set up in the configuration, matches a Liquidity Pool manager's address, the bot will automatically detect it and switch to the Pooled mode to start using the pool's funds via the assistant contract ABI.
 
-### Individual mode
+### Solo mode
 
-Setup the your own account in the bot configuration to operate in Individual mode. The bot will use the STAKE ASSETS directly from the account balance.
+Setup the your own account in the bot configuration to operate in Solo mode. The bot will use both the STAKE ASSET and TRANSFER ASSET directly from the account balance.
 
 For example:
 
@@ -89,7 +89,7 @@ For example:
   - Asset 2: USDT
   - 💰 STAKE ASSET 2: USDT
 
-P3D balance on 3DPass will be used for the `Ethereum -> 3Dpass` transfers 
+Both P3D and wUSDT balance on 3DPass will be used for the `Ethereum -> 3Dpass` transfers 
 USDT balance on Ethereum will be used for the `Ethereum <- 3Dpass` transfers 
 
 The bot prints its addresses at startup:
@@ -122,9 +122,9 @@ For example:
   - Asset 1: wUSDT
   - 💰 STAKE ASSET 1: P3D
 
-🤖 POOL IMPORT Assistant: 0x2Dce9B2dc9983f9b435da02a69C6F0e8A31Bf3E8
+🤖 POOL IMPORT Assistant: 0x6F7c9FFa2250E7119B44e3496B6f6b37736035F8
   - Manager: 0x2Dce9B2dc9983f9b435da02a69C6F0e8A31Bf3E8
-  - Shares: USDTIA
+  - Shares: WUSDTA
 
 📤 EXPORT (on Ethereum):
   - ✅ Export: 0x3a96AC42A28D5610Aca2A79AE782988110108eDe

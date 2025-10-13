@@ -195,6 +195,9 @@ exports.disableObyte = false; // Enable Obyte monitoring
 
 exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 0.5%
 
+// Anti-spam protection for admin notifications
+exports.admin_notification_threshold = 3788; // 6947 old value // Skip notifications for old transfers (transfer_id <= this value)
+
 exports.webPort = process.env.testnet ? 7001 : 7000; // set to null in order to disable the web server
 
 
