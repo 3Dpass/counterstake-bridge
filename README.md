@@ -70,8 +70,8 @@ pkill -f "node run.js"
 Follow the [KEY_MANAGEMENT.md](/docs/KEY_MANAGEMENT.md) to setup the signer account. 
 
 ## Operating mode
-The bot can be configured to operate in either **Individual** or **Pooled** mode:  
-- **Individual mode** - the bot will use its own addresses balances
+The bot can be configured to operate in either **Solo** or **Pooled** mode:  
+- **Solo mode** - the bot will use its own addresses balances
 - **Pooled mode** - the bot will operate as a manager (admin) at Liquidity Pools - additional assistant contracts configured to interact with the bridges.
 
 If the the bot's account, set up in the configuration, matches a Liquidity Pool manager's address, the bot will automatically detect it and switch to the Pooled mode to start using the pool's funds via the assistant contract ABI.
