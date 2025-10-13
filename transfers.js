@@ -239,12 +239,12 @@ async function handleTransfer(transfer) {
 			}
 			
 			if (!bHaveEnoughBalance) {
-				console.log(`DEBUG: Insufficient balance detected, sending notification...`);
+				// console.log(`DEBUG: Insufficient balance detected, sending notification...`);
 				if (!transfer_id || transfer_id > conf.admin_notification_threshold) { // transfer_id available only when retrying from the db
-					console.log(`DEBUG: About to call notifyAdmin...`);
+					// console.log(`DEBUG: About to call notifyAdmin...`);
 					try {
 						notifications.notifyAdmin(`not enough balance to claim ${dst_amount / 10 ** dst_asset_decimals} ${claimed_symbol} on ${dst_network} (${claimed_asset}) in transfer ${txid} from ${sender_address} (${src_network}) to ${dest_address}`);
-						console.log(`DEBUG: notifyAdmin call completed`);
+						// console.log(`DEBUG: notifyAdmin call completed`);
 					} catch (error) {
 						console.log(`DEBUG: notifyAdmin call failed:`, error);
 					}

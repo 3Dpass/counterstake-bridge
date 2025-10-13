@@ -56,6 +56,11 @@ node print_bridges.js
 node realtime_monitoring.js
 ```
 
+## Check recent transfers
+```bash
+ node check_transfers.js
+```
+
 ## Stop
 ```bash
 pkill -f "node run.js"
