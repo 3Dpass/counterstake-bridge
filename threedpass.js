@@ -743,25 +743,40 @@ class ThreeDPass extends EvmChain {
 		}
 	}
 
-	/**
-	 * Enhanced withdraw function for 3DPass precompiles
-	 */
-	async withdraw(contractAddress, claimId) {
-		const contract = this.getContractReference(contractAddress);
-		if (!contract) {
-			throw new Error(`Contract reference not found for ${contractAddress}`);
-		}
 
+	/**
+	 * Override sendWithdrawalRequest to use 3DPass-specific gas parameters
+	 */
+	async sendWithdrawalRequest(bridge_aa, claim_num, to_address) {
+		const unlock = await mutex.lock(this.network + 'Tx');
+		await this.waitBetweenTransactions();
+		const contract = this.getContractReference(bridge_aa);
+		
 		// 3DPass-specific gas parameters (very low gas costs)
-		const options = {
+		let opts = {
 			gasLimit: 500000,
 			maxFeePerGas: 100, // 100 wei (not gwei!)
 			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
 		};
-
-		console.log(`3DPass: Withdrawing for ${contractAddress}`, { claimId });
-
-		return await contract.withdraw(claimId, options);
+		
+		if (to_address) { // Assistant contract withdrawal
+			const code = await this.getProvider().getCode(to_address);
+			const masterAddress = ethers.utils.getAddress('0x' + code.slice(22, 62));
+			opts.accessList = [
+				{ address: masterAddress, storageKeys: [] },
+				{ address: to_address, storageKeys: ["0x0000000000000000000000000000000000000000000000000000000000000007"] },
+			];
+		}
+		
+		const res = to_address
+			? await contract['withdraw(uint256,address)'](claim_num, to_address, opts)
+			: await contract['withdraw(uint256)'](claim_num, opts);
+		
+		const txid = res.hash;
+		console.log(`3DPass: sent withdrawal request on claim ${claim_num} to ${to_address || 'self'}: ${txid}`);
+		// Note: last_tx_ts and wait for mined are handled by the parent class
+		unlock();
+		return txid;
 	}
 
 

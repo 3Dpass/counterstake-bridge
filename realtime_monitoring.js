@@ -106,6 +106,9 @@ const grepPattern = [
     // Balance and notification patterns
     'not enough balance', 'Insufficient balance', 'Skipping notification',
     'dst amount', 'staked_bal', 'claimed_bal', 'balance available for counterstaking',
+    // Withdrawal patterns
+    'checkUnfinishedClaims', 'unfinished claims', 'will withdraw', 'withdrawal', 'withdrawing',
+    'withdraw_delay', 'withdraw delay', 'withdraw eligibility', 'withdraw attempt',
     // 'bad initial state', 'Assistant.*has bad initial state', 'gross balance.*but total supply', 'will try to claim myself'
 ].join('|');
 
