@@ -23,6 +23,7 @@ Get the repo:
 ```bash
 git clone https://github.com/3Dpass/counterstake-bridge
 cd counterstake-bridge
+git checkout v1.1-substrate
 yarn
 ```
 

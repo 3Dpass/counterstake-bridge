@@ -196,7 +196,7 @@ exports.disableObyte = false; // Enable Obyte monitoring
 exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 0.5%
 
 // Anti-spam protection for admin notifications
-exports.admin_notification_threshold = 3788; // 6947 old value // Skip notifications for old transfers (transfer_id <= this value)
+exports.admin_notification_threshold = 3668; // 6947 old value // Skip notifications for old transfers (transfer_id <= this value)
 
 // Withdrawal delay for unfinished claims check
 exports.withdraw_delay = process.env.testnet || process.env.devnet ? '1 MINUTE' : '1 HOUR'; // How long to wait before checking claims for withdrawal
