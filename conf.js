@@ -182,9 +182,9 @@ exports.recheck_timeout = 15 * 60 * 1000; // 15 mins: when to recheck if a tx wa
 //exports.transfer_wait_time = 30 * 60; // 30 mins: how long to wait for a claimed transfer if it was not immediately found
 
 exports.bWatchdog = true;
-exports.bClaimForOthers = true;
+exports.bClaimForOthers = false;
 exports.bUseOwnFunds = true;
-exports.bAttack = true; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
+exports.bAttack = false; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
 
 // Disable networks
 exports.disablePolygon = true; // Disable Polygon monitoring
@@ -222,3 +222,37 @@ console.log('finished watchdog conf');
 
 // 3DPass native token Precompile address:
 exports.p3d_precompile_address = '0x0000000000000000000000000000000000000802';
+
+// 3DPass-specific gas parameters (very low gas costs)
+exports.threedpass_gas_config = {
+	// Standard gas parameters for most operations
+	standard: {
+		gasLimit: 100000,
+		maxFeePerGas: 100, // 100 wei (not gwei!)
+		maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+	},
+	// Gas parameters for claim operations
+	claim: {
+		gasLimit: 500000,
+		maxFeePerGas: 100, // 100 wei (not gwei!)
+		maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+	},
+	// Gas parameters for challenge operations
+	challenge: {
+		gasLimit: 500000,
+		maxFeePerGas: 100, // 100 wei (not gwei!)
+		maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+	},
+	// Gas parameters for assistant operations
+	assistant: {
+		gasLimit: 5000000,
+		maxFeePerGas: 100, // 100 wei (not gwei!)
+		maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+	},
+	// Gas parameters for withdraw operations
+	withdraw: {
+		gasLimit: 500000,
+		maxFeePerGas: 100, // 100 wei (not gwei!)
+		maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+	}
+};

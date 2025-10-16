@@ -249,9 +249,7 @@ class ThreeDPass extends EvmChain {
 	async approve(tokenAddress, spenderAddress) {
 		// 3DPass-specific gas parameters (very low gas costs)
 		const gasOptions = {
-			gasLimit: 100000,
-			maxFeePerGas: 100, // 100 wei (not gwei!)
-			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+			...conf.threedpass_gas_config.standard
 		};
 
 		if (this.isP3D(tokenAddress)) {
@@ -552,9 +550,7 @@ class ThreeDPass extends EvmChain {
 	async transferTokens(tokenAddress, recipientAddress, amount) {
 		// 3DPass-specific gas parameters (very low gas costs)
 		const gasOptions = {
-			gasLimit: 100000,
-			maxFeePerGas: 100, // 100 wei (not gwei!)
-			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+			...conf.threedpass_gas_config.standard
 		};
 
 		if (this.isP3D(tokenAddress)) {
@@ -596,9 +592,7 @@ class ThreeDPass extends EvmChain {
 			// 3DPass-specific gas parameters (very low gas costs)
 			let opts = {
 				value: 0, // Always 0 for 3DPass precompiles
-				gasLimit: 500000,
-				maxFeePerGas: 100, // 100 wei (not gwei!)
-				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+				...conf.threedpass_gas_config.claim
 			};
 			
 			await this.addAccessListIfNecessary(opts, claimed_asset, staked_asset, dest_address);
@@ -644,9 +638,7 @@ class ThreeDPass extends EvmChain {
 			// 3DPass-specific gas parameters (very low gas costs)
 			let opts = {
 				value: 0, // Always 0 for 3DPass precompiles
-				gasLimit: 5000000,
-				maxFeePerGas: 100, // 100 wei (not gwei!)
-				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+				...conf.threedpass_gas_config.assistant
 			};
 			
 			await this.addAccessListIfNecessary(opts, claimed_asset, staked_asset, dest_address);
@@ -688,9 +680,7 @@ class ThreeDPass extends EvmChain {
 			// 3DPass-specific gas parameters (very low gas costs)
 			let opts = {
 				value: 0, // Always 0 for 3DPass precompiles
-				gasLimit: 500000,
-				maxFeePerGas: 100, // 100 wei (not gwei!)
-				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+				...conf.threedpass_gas_config.challenge
 			};
 			
 			const res = await contract['challenge(uint256,uint8,uint256)'](claim_num, side, counterstake, opts);
@@ -723,9 +713,7 @@ class ThreeDPass extends EvmChain {
 			// 3DPass-specific gas parameters (very low gas costs)
 			let opts = {
 				value: 0, // Always 0 for 3DPass precompiles
-				gasLimit: 500000,
-				maxFeePerGas: 100, // 100 wei (not gwei!)
-				maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+				...conf.threedpass_gas_config.assistant
 			};
 			
 			const res = await contract.challenge(claim_num, side, counterstake, opts);
@@ -754,9 +742,7 @@ class ThreeDPass extends EvmChain {
 		
 		// 3DPass-specific gas parameters (very low gas costs)
 		let opts = {
-			gasLimit: 500000,
-			maxFeePerGas: 100, // 100 wei (not gwei!)
-			maxPriorityFeePerGas: 10 // 10 wei (not gwei!)
+			...conf.threedpass_gas_config.withdraw
 		};
 		
 		if (to_address) { // Assistant contract withdrawal
