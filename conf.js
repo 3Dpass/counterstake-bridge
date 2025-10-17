@@ -181,10 +181,13 @@ exports.max_exposure = 0.5; // up to 50% of the balance in asset can be sent in 
 exports.recheck_timeout = 15 * 60 * 1000; // 15 mins: when to recheck if a tx was removed
 //exports.transfer_wait_time = 30 * 60; // 30 mins: how long to wait for a claimed transfer if it was not immediately found
 
+// Sync statistics logging during catchup
+exports.statsLogPeriod = 10 * 1000; // 10 seconds: how often to log sync stats during catchup
+
 exports.bWatchdog = true;
-exports.bClaimForOthers = false;
+exports.bClaimForOthers = true;
 exports.bUseOwnFunds = true;
-exports.bAttack = false; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
+exports.bAttack = true; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
 
 // Disable networks
 exports.disablePolygon = true; // Disable Polygon monitoring
@@ -197,6 +200,8 @@ exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 
 
 // Anti-spam protection for admin notifications
 exports.admin_notification_threshold = 3668; // 6947 old value // Skip notifications for old transfers (transfer_id <= this value)
+// Email notification settings
+exports.disable_email_notifications = true; // Set to true to disable email notifications
 
 // Withdrawal delay for unfinished claims check
 exports.withdraw_delay = process.env.testnet || process.env.devnet ? '1 MINUTE' : '1 HOUR'; // How long to wait before checking claims for withdrawal

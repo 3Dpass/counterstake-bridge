@@ -877,31 +877,48 @@ class EvmChain {
 	async catchup() {
 		console.log(`will catch up ${this.network}, last caught up block ${this.#last_caughtup_block}`);
 
-		// get events that are beyond the block range
-		const last_block = this.#last_caughtup_block || Math.max(await this.getLastBlock() - 100, 0);
-		const top_available_block = await this.getTopAvailableBlock();
-		if (top_available_block > last_block) {
+		// Log initial sync stats
+		const transfers = require('./transfers.js');
+		const stats = await transfers.getSyncStats();
+		console.log(`🔄 Syncing ${this.network}... Total bridges: ${stats.bridgeCount} Total transfers: ${stats.transferCount} Transfer ID range: ${stats.minTransferId} to ${stats.maxTransferId}`);
+
+		// Set up periodic stat logging during catchup
+		const statInterval = setInterval(async () => {
+			const currentStats = await transfers.getSyncStats();
+			console.log(`🔄 Syncing ${this.network}... Total bridges: ${currentStats.bridgeCount} Total transfers: ${currentStats.transferCount} Transfer ID range: ${currentStats.minTransferId} to ${currentStats.maxTransferId}`);
+		}, conf.statsLogPeriod);
+
+		try {
+			// get events that are beyond the block range
+			const last_block = this.#last_caughtup_block || Math.max(await this.getLastBlock() - 100, 0);
+			const top_available_block = await this.getTopAvailableBlock();
+			if (top_available_block > last_block) {
+				for (let address in this.#contractsByAddress) {
+					const contract = this.#contractsByAddress[address];
+					if (!contract.filters.NewClaim) // not a bridge, must be an assistant
+						continue;
+					const blocks = await this.getAddressBlocks(address, last_block);
+					console.log(`${this.network} contract ${address} blocks of missed txs since ${last_block}`, blocks);
+					for (let blockNumber of blocks) {
+						const count = await this.processPastEventsOnBridgeContract(contract, blockNumber, blockNumber);
+						if (!count)
+							console.log(`no CS events on contract ${address}@${this.network} in block ${blockNumber}`);
+					}
+				}
+			}
+
+			const since_block = (top_available_block || !this.#last_caughtup_block) ? await this.getSinceBlock() : this.#last_caughtup_block;
 			for (let address in this.#contractsByAddress) {
 				const contract = this.#contractsByAddress[address];
 				if (!contract.filters.NewClaim) // not a bridge, must be an assistant
 					continue;
-				const blocks = await this.getAddressBlocks(address, last_block);
-				console.log(`${this.network} contract ${address} blocks of missed txs since ${last_block}`, blocks);
-				for (let blockNumber of blocks) {
-					const count = await this.processPastEventsOnBridgeContract(contract, blockNumber, blockNumber);
-					if (!count)
-						console.log(`no CS events on contract ${address}@${this.network} in block ${blockNumber}`);
-				}
+				await this.processPastEventsOnBridgeContract(contract, since_block, 0);
 			}
+		} finally {
+			// Clear the stat logging interval
+			clearInterval(statInterval);
 		}
 
-		const since_block = (top_available_block || !this.#last_caughtup_block) ? await this.getSinceBlock() : this.#last_caughtup_block;
-		for (let address in this.#contractsByAddress) {
-			const contract = this.#contractsByAddress[address];
-			if (!contract.filters.NewClaim) // not a bridge, must be an assistant
-				continue;
-			await this.processPastEventsOnBridgeContract(contract, since_block, 0);
-		}
 		const unlock = await mutex.lock(this.network + 'Event'); // take the last place in the queue after all real events
 		unlock();
 		console.log(`catching up ${this.network} done`);

@@ -19,9 +19,15 @@ eventBus.on('headless_wallet_ready', async () => {
 
 	if (!conf.export_factory_aas || !conf.import_factory_aas)
 		throw Error("Please specify export and import factory AAs in conf.json");
-	if (!conf.admin_email || !conf.from_email) {
+	
+	// Only require email configuration if email notifications are not disabled
+	if (!conf.disable_email_notifications && (!conf.admin_email || !conf.from_email)) {
 		console.log("please specify admin_email and from_email in your " + desktopApp.getAppDataDir() + "/conf.json");
 		process.exit(1);
+	}
+	
+	if (conf.disable_email_notifications) {
+		console.log("Email notifications are disabled - notifications will only be logged to console");
 	}
 
 //	network.start();

@@ -24,6 +24,41 @@ let bCatchingUpOrHandlingPostponedEvents = true;
 let unconfirmedClaims = {}; // transfer_id => {claim_txid, ts}
 let unconfirmeWithdrawals = {};
 
+/**
+ * Get current bridge and transfer statistics for sync logging
+ * @returns {Promise<Object>} Statistics object with bridge count, transfer count, and transfer ID range
+ */
+async function getSyncStats() {
+	try {
+		// Get bridge count
+		const [bridgeCount] = await db.query("SELECT COUNT(*) as count FROM bridges");
+		
+		// Get transfer count and range
+		const [transferStats] = await db.query(`
+			SELECT 
+				COUNT(*) as count,
+				MIN(transfer_id) as min_id,
+				MAX(transfer_id) as max_id
+			FROM transfers
+		`);
+		
+		return {
+			bridgeCount: bridgeCount.count,
+			transferCount: transferStats.count,
+			minTransferId: transferStats.min_id || 0,
+			maxTransferId: transferStats.max_id || 0
+		};
+	} catch (error) {
+		console.log('Error getting sync stats:', error.message);
+		return {
+			bridgeCount: 0,
+			transferCount: 0,
+			minTransferId: 0,
+			maxTransferId: 0
+		};
+	}
+}
+
 async function getBridge(bridge_id) {
 	const [bridge] = await db.query("SELECT * FROM bridges WHERE bridge_id=?", [bridge_id]);
 	if (!bridge)
@@ -1360,6 +1395,7 @@ Object.assign(module.exports, {
 	getActiveClaimants,
 	getMaxAmounts,
 	forgetUnconfirmedClaim,
+	getSyncStats,
 	start,
 });
 

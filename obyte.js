@@ -560,10 +560,26 @@ class Obyte {
 
 	// called on start-up to handle missed transfers
 	async catchup() {
-		await this.waitUntilSynced();
-		await this.waitForQueuedResponses();
-		await this.scanForMissedResponses();
-		await this.waitForQueuedResponses();
+		// Log initial sync stats
+		const transfers = require('./transfers.js');
+		const stats = await transfers.getSyncStats();
+		console.log(`🔄 Syncing ${this.network}... Total bridges: ${stats.bridgeCount} Total transfers: ${stats.transferCount} Transfer ID range: ${stats.minTransferId} to ${stats.maxTransferId}`);
+
+		// Set up periodic stat logging during catchup
+		const statInterval = setInterval(async () => {
+			const currentStats = await transfers.getSyncStats();
+			console.log(`🔄 Syncing ${this.network}... Total bridges: ${currentStats.bridgeCount} Total transfers: ${currentStats.transferCount} Transfer ID range: ${currentStats.minTransferId} to ${currentStats.maxTransferId}`);
+		}, conf.statsLogPeriod);
+
+		try {
+			await this.waitUntilSynced();
+			await this.waitForQueuedResponses();
+			await this.scanForMissedResponses();
+			await this.waitForQueuedResponses();
+		} finally {
+			// Clear the stat logging interval
+			clearInterval(statInterval);
+		}
 		console.log(`catching up ${this.network} done`);
 	}
 
