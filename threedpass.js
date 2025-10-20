@@ -310,13 +310,37 @@ class ThreeDPass extends EvmChain {
 	// Override startWatchingExportAssistantAA to use 3DPass ExportAssistant ABI
 	startWatchingExportAssistantAA(export_assistant_aa) {
 		const contract = new ethers.Contract(export_assistant_aa, exportAssistantJson.abi, this.getWallet());
+		
+		// Add NewManager event listener
+		const onNewManager = async (previousManager, newManager, event) => {
+			console.log(`NewManager event for 3DPass Export Assistant ${export_assistant_aa}`, { previousManager, newManager, network: this.network });
+			const transfers = require('./transfers.js');
+			await transfers.handleNewManager(export_assistant_aa, previousManager, newManager, this.network);
+		};
+		
+		contract.on('NewManager', onNewManager);
 		this._storeContractReference(export_assistant_aa, contract);
+		
+		// Process past NewManager events for this assistant
+		this.processPastNewManagerEvents(contract, export_assistant_aa, onNewManager);
 	}
 
 	// Override startWatchingImportAssistantAA to use ImportWrapperAssistant ABI
 	startWatchingImportAssistantAA(import_assistant_aa) {
 		const contract = new ethers.Contract(import_assistant_aa, importWrapperAssistantJson.abi, this.getWallet());
+		
+		// Add NewManager event listener
+		const onNewManager = async (previousManager, newManager, event) => {
+			console.log(`NewManager event for 3DPass Import Assistant ${import_assistant_aa}`, { previousManager, newManager, network: this.network });
+			const transfers = require('./transfers.js');
+			await transfers.handleNewManager(import_assistant_aa, previousManager, newManager, this.network);
+		};
+		
+		contract.on('NewManager', onNewManager);
 		this._storeContractReference(import_assistant_aa, contract);
+		
+		// Process past NewManager events for this assistant
+		this.processPastNewManagerEvents(contract, import_assistant_aa, onNewManager);
 	}
 
 	// Override startWatchingFactories to handle both Export and ImportWrapper events

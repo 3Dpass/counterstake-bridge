@@ -798,12 +798,47 @@ class EvmChain {
 
 	startWatchingExportAssistantAA(export_assistant_aa) {
 		const contract = new ethers.Contract(export_assistant_aa, exportAssistantJson.abi, this.#wallet);
+		
+		// Add NewManager event listener
+		const onNewManager = async (previousManager, newManager, event) => {
+			console.log(`NewManager event for Export Assistant ${export_assistant_aa}`, { previousManager, newManager, network: this.network });
+			await transfers.handleNewManager(export_assistant_aa, previousManager, newManager, this.network);
+		};
+		
+		contract.on('NewManager', onNewManager);
 		this.#contractsByAddress[export_assistant_aa] = contract;
+		
+		// Process past NewManager events for this assistant
+		this.processPastNewManagerEvents(contract, export_assistant_aa, onNewManager);
 	}
 
 	startWatchingImportAssistantAA(import_assistant_aa) {
 		const contract = new ethers.Contract(import_assistant_aa, importAssistantJson.abi, this.#wallet);
+		
+		// Add NewManager event listener
+		const onNewManager = async (previousManager, newManager, event) => {
+			console.log(`NewManager event for Import Assistant ${import_assistant_aa}`, { previousManager, newManager, network: this.network });
+			await transfers.handleNewManager(import_assistant_aa, previousManager, newManager, this.network);
+		};
+		
+		contract.on('NewManager', onNewManager);
 		this.#contractsByAddress[import_assistant_aa] = contract;
+		
+		// Process past NewManager events for this assistant
+		this.processPastNewManagerEvents(contract, import_assistant_aa, onNewManager);
+	}
+
+	async processPastNewManagerEvents(contract, assistant_aa, onNewManager) {
+		try {
+			const since_block = await this.getSinceBlock();
+			const last_block = await this.getLastBlock();
+			
+			console.log(`Processing past NewManager events for assistant ${assistant_aa} from block ${since_block} to ${last_block}`);
+			
+			await processPastEvents(contract, contract.filters.NewManager(), since_block, last_block, this, onNewManager);
+		} catch (err) {
+			console.log(`Error processing past NewManager events for assistant ${assistant_aa}: ${err.message}`);
+		}
 	}
 
 	async startWatchingAssistantFactories() {

@@ -370,6 +370,49 @@ async function setupCorrect3DPassBridges() {
                         await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
                             [assistant.address, bridgeId, bridgeAa, network, side, managerAddress, sharesAsset, sharesSymbol, version]);
                         console.log(`    ✅ Assistant added/updated in pooled_assistants table`);
+                        
+                        // Check if the bot is the manager and update the bridges table accordingly (inside the same scope)
+                        try {
+                            // Get bot's address from the same mnemonic used by the EVM chains
+                            const fs = require("fs");
+                            const desktopApp = require("ocore/desktop_app.js");
+                            const { ethers } = require("ethers");
+                            const botWallet = ethers.Wallet.fromMnemonic(JSON.parse(fs.readFileSync(desktopApp.getAppDataDir() + '/keys.json')).mnemonic_phrase);
+                            const botAddress = botWallet.address;
+                            
+                            if (botAddress && managerAddress.toLowerCase() === botAddress.toLowerCase()) {
+                                console.log(`    🤖 Bot is the manager of assistant ${assistant.address}, updating bridges table`);
+                                
+                                // Set the assistantAddress for the bridge update later
+                                assistantAddress = assistant.address;
+                                selectedAssistant = assistant;
+                                
+                                // Update the bridges table with the assistant address
+                                if (side === 'import') {
+                                    const updateResult = await db.query(`UPDATE bridges SET import_assistant_aa = ?, ia_v = ? WHERE bridge_id = ?`, 
+                                        [assistant.address, version, bridgeId]);
+                                    console.log(`    ✅ Updated bridges table: import_assistant_aa = ${assistant.address}`);
+                                    console.log(`    📊 Update result:`, updateResult);
+                                    
+                                    // Verify the update worked
+                                    const verifyResult = await db.query(`SELECT import_assistant_aa FROM bridges WHERE bridge_id = ?`, [bridgeId]);
+                                    console.log(`    🔍 Verification: import_assistant_aa = ${verifyResult[0].import_assistant_aa}`);
+                                } else if (side === 'export') {
+                                    const updateResult = await db.query(`UPDATE bridges SET export_assistant_aa = ?, ea_v = ? WHERE bridge_id = ?`, 
+                                        [assistant.address, version, bridgeId]);
+                                    console.log(`    ✅ Updated bridges table: export_assistant_aa = ${assistant.address}`);
+                                    console.log(`    📊 Update result:`, updateResult);
+                                    
+                                    // Verify the update worked
+                                    const verifyResult = await db.query(`SELECT export_assistant_aa FROM bridges WHERE bridge_id = ?`, [bridgeId]);
+                                    console.log(`    🔍 Verification: export_assistant_aa = ${verifyResult[0].export_assistant_aa}`);
+                                }
+                            } else {
+                                console.log(`    ℹ️  Bot is not the manager of assistant ${assistant.address} (manager: ${managerAddress}, bot: ${botAddress})`);
+                            }
+                        } catch (bridgeUpdateErr) {
+                            console.log(`    ⚠️  Could not update bridges table: ${bridgeUpdateErr.message}`);
+                        }
                     }
                 } catch (pooledErr) {
                     console.log(`    ⚠️  Could not add assistant to pooled_assistants table: ${pooledErr.message}`);

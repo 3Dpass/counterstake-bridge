@@ -1075,6 +1075,57 @@ async function handleNewAssistantAA(side, assistant_aa, bridge_aa, network, mana
 	return meIsManager;
 }
 
+async function handleNewManager(assistant_aa, previousManager, newManager, network) {
+	const unlock = await mutex.lock('new_manager');
+	console.log(`new manager for assistant ${assistant_aa}`, { previousManager, newManager, network });
+	
+	// Find the assistant in pooled_assistants table
+	const [assistant] = await db.query(`SELECT * FROM pooled_assistants WHERE assistant_aa = ? AND network = ?`, [assistant_aa, network]);
+	if (!assistant) {
+		console.log(`Assistant ${assistant_aa} not found in pooled_assistants table`);
+		return unlock();
+	}
+	
+	const { bridge_id, side, bridge_aa } = assistant;
+	
+	// Check if the bot is the new manager
+	const networkApiInstance = networkApi[network];
+	if (!networkApiInstance) {
+		console.log(`⚠️  Network API for ${network} not available, skipping manager check`);
+		return unlock();
+	}
+	
+	const botAddress = networkApiInstance.getMyAddress();
+	const meIsNewManager = botAddress.toLowerCase() === newManager.toLowerCase();
+	
+	if (meIsNewManager) {
+		console.log(`🤖 Bot became the manager of assistant ${assistant_aa}, updating bridges table`);
+		
+		// Update the bridges table with the assistant address
+		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, 
+			[assistant_aa, assistant.version, bridge_id]);
+		console.log(`✅ Updated bridges table: ${side}_assistant_aa = ${assistant_aa}`);
+	} else {
+		console.log(`ℹ️  Bot is not the new manager of assistant ${assistant_aa} (new manager: ${newManager}, bot: ${botAddress})`);
+		
+		// If the bot was previously the manager, clear the assistant from bridges table
+		const meWasPreviousManager = botAddress.toLowerCase() === previousManager.toLowerCase();
+		if (meWasPreviousManager) {
+			console.log(`🔄 Bot is no longer the manager of assistant ${assistant_aa}, clearing from bridges table`);
+			await db.query(`UPDATE bridges SET ${side}_assistant_aa=NULL, ${side === 'export' ? 'ea_v' : 'ia_v'}=NULL WHERE bridge_id=?`, [bridge_id]);
+			console.log(`✅ Cleared ${side}_assistant_aa from bridges table`);
+		}
+	}
+	
+	// Update the manager in pooled_assistants table
+	await db.query(`UPDATE pooled_assistants SET manager = ? WHERE assistant_aa = ? AND network = ?`, 
+		[newManager, assistant_aa, network]);
+	console.log(`✅ Updated manager in pooled_assistants table: ${newManager}`);
+	
+	unlock();
+	return meIsNewManager;
+}
+
 async function populatePooledAssistantsTable() {
 	const dag = require('aabot/dag.js');
 
@@ -1392,6 +1443,7 @@ Object.assign(module.exports, {
 	handleNewExportAA,
 	handleNewImportAA,
 	handleNewAssistantAA,
+	handleNewManager,
 	getActiveClaimants,
 	getMaxAmounts,
 	forgetUnconfirmedClaim,
