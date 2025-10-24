@@ -186,8 +186,6 @@ async function getBridgeDetails(bridgeAddress, bridgeType) {
             // Export bridge specific calls
             const foreignNetwork = await bridge.foreign_network();
             const foreignAsset = await bridge.foreign_asset();
-            const homeToken = await bridge.home_token();
-            const oracleAddr = await bridge.oracleAddress();
             const governanceAddr = await bridge.governance();
             
             // Get bridge settings
@@ -199,6 +197,9 @@ async function getBridgeDetails(bridgeAddress, bridgeType) {
                 }
             }
             
+            // For Export bridges, the home token is the tokenAddress from settings
+            const homeToken = settings.tokenAddress;
+            
             bridgeDetails = {
                 ...bridgeDetails,
                 homeNetwork: '3DPass',
@@ -206,7 +207,6 @@ async function getBridgeDetails(bridgeAddress, bridgeType) {
                 homeAsset: homeToken,
                 foreignAsset,
                 stakeAsset: settings.tokenAddress,
-                oracle: oracleAddr,
                 governance: governanceAddr,
                 ratio: settings.ratio100,
                 counterstakeCoef: settings.counterstake_coef100,

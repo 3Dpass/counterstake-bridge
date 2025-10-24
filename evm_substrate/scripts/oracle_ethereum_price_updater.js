@@ -33,7 +33,8 @@ const TOKEN_CONFIGS = {
     P3D: {
         symbol: 'P3D',
         coingeckoId: '3dpass',
-        decimals: 18
+        decimals: 18,
+        P3D_PRECOMPILE: '0x0000000000000000000000000000000000000802'
     },
     ETH: {
         symbol: 'ETH',
@@ -127,11 +128,11 @@ class OracleEthereumUpdater {
             
             log(`   ETH Balance: ${balanceFormatted} ETH`, colors.blue);
             
-            // Calculate required balance for transactions (2 price updates)
+            // Calculate required balance for transactions (3 price updates)
             // Using conservative gas estimates for Ethereum mainnet
             const gasLimit = ethers.BigNumber.from(200000); // Gas limit per transaction
             const gasPrice = await this.signer.getGasPrice();
-            const totalRequired = gasLimit.mul(gasPrice).mul(2); // 2 transactions
+            const totalRequired = gasLimit.mul(gasPrice).mul(3); // 3 transactions
             const totalRequiredFormatted = ethers.utils.formatEther(totalRequired);
             
             log(`   Required for transactions: ${totalRequiredFormatted} ETH`, colors.blue);
@@ -212,6 +213,18 @@ class OracleEthereumUpdater {
                 };
             } catch (err) {
                 prices['P3D_vs__NATIVE_'] = { error: err.message };
+            }
+            
+            // Fetch P3D precompile vs _NATIVE_
+            try {
+                const p3dPrecompileNativePrice = await this.oracle.getPrice(TOKEN_CONFIGS.P3D.P3D_PRECOMPILE, '_NATIVE_');
+                prices['P3D_PRECOMPILE_vs__NATIVE_'] = {
+                    numerator: ethers.utils.formatEther(p3dPrecompileNativePrice[0]),
+                    denominator: ethers.utils.formatEther(p3dPrecompileNativePrice[1]),
+                    ratio: parseFloat(ethers.utils.formatEther(p3dPrecompileNativePrice[0])) / parseFloat(ethers.utils.formatEther(p3dPrecompileNativePrice[1]))
+                };
+            } catch (err) {
+                prices['P3D_PRECOMPILE_vs__NATIVE_'] = { error: err.message };
             }
             
             return prices;
@@ -301,6 +314,7 @@ class OracleEthereumUpdater {
             log(`📊 Calculated Ratios (using adjusted P3D price):`, colors.magenta);
             log(`   ETH/P3D: ${ethToP3d}`, colors.magenta);
             log(`   P3D/ETH: ${p3dToEth}`, colors.magenta);
+            log(`   P3D_PRECOMPILE/ETH: ${p3dToEth} (same as P3D/ETH)`, colors.magenta);
             
             // Update _NATIVE_ vs P3D (ETH vs P3D)
             await this.updateOraclePrice('_NATIVE_', 'P3D', ethToP3d, 1, '_NATIVE_ vs P3D (ETH vs P3D)');
@@ -311,6 +325,13 @@ class OracleEthereumUpdater {
             
             // Update P3D vs _NATIVE_ (P3D vs ETH)
             await this.updateOraclePrice('P3D', '_NATIVE_', p3dToEth, 1, 'P3D vs _NATIVE_ (P3D vs ETH)');
+            
+            // Wait between transactions
+            log('⏳ Waiting 3 seconds between transactions...', colors.yellow);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Update P3D precompile address vs _NATIVE_ (same rate as P3D vs _NATIVE_)
+            await this.updateOraclePrice(TOKEN_CONFIGS.P3D.P3D_PRECOMPILE, '_NATIVE_', p3dToEth, 1, 'P3D Precompile vs _NATIVE_ (P3D Precompile vs ETH)');
             
             log('🎉 All oracle price updates completed successfully!', colors.green);
             
@@ -358,6 +379,10 @@ class OracleEthereumUpdater {
             // Check P3D vs _NATIVE_
             const p3dNativePrice = await this.oracle.getPrice('P3D', '_NATIVE_');
             log(`   P3D/_NATIVE_: ${ethers.utils.formatEther(p3dNativePrice[0])}/${ethers.utils.formatEther(p3dNativePrice[1])}`, colors.blue);
+            
+            // Check P3D precompile vs _NATIVE_
+            const p3dPrecompileNativePrice = await this.oracle.getPrice(TOKEN_CONFIGS.P3D.P3D_PRECOMPILE, '_NATIVE_');
+            log(`   P3D_PRECOMPILE/_NATIVE_: ${ethers.utils.formatEther(p3dPrecompileNativePrice[0])}/${ethers.utils.formatEther(p3dPrecompileNativePrice[1])}`, colors.blue);
             
             log('✅ Price verification completed', colors.green);
             
