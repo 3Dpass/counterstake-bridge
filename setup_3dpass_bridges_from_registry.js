@@ -356,39 +356,88 @@ async function setupCorrect3DPassBridges(networkApi) {
         let assistantAddress = null;
         let selectedAssistant = null;
         
+        // Store assistants that belong to this bridge but don't have a bridge record yet
+        const assistantsForNewBridge = [];
+        
         for (const assistant of matchingAssistants) {
                 try {
                     // Get the assistant's manager address directly from the assistant contract
                     const provider = getProviderSafe('3DPass');
-                const ImportWrapperAssistant = require('./evm_substrate/build/contracts/ImportWrapperAssistant.json');
-                const assistantContract = new ethers.Contract(assistant.address, ImportWrapperAssistant.abi, provider);
-                
-                // Get manager address and symbol directly from the assistant contract
-                const managerAddress = await assistantContract.managerAddress();
-                const assistantSymbol = await assistantContract.symbol();
-                
-                console.log(`  📋 Assistant found: ${assistant.address}`);
-                console.log(`    Manager: ${managerAddress}`);
-                console.log(`    Symbol: ${assistantSymbol}`);
-                
-                // Add ALL assistants to pooled_assistants table for monitoring (regardless of manager)
-                try {
-                    const bridgeToUpdate = existingBridgeByAddress || existingBridgeByAssets;
-                    if (bridgeToUpdate) {
-                        const bridgeId = bridgeToUpdate.bridge_id;
-                        const bridgeAa = bridge.address;
-                        const network = '3DPass';
-                        const side = bridge.type.toLowerCase(); // 'import' or 'export'
-                        const sharesAsset = assistant.address; // For 3DPass, shares_asset is the assistant address itself
-                        const sharesSymbol = assistantSymbol; // Use the actual symbol from the assistant contract
-                        const version = conf.version;
+                    
+                    // Use the correct ABI based on assistant type
+                    const AssistantAbi = assistant.type === 'Import' 
+                        ? require('./evm_substrate/build/contracts/ImportWrapperAssistant.json').abi
+                        : require('./evm_substrate/build/contracts/ExportAssistant.json').abi;
+                    
+                    const assistantContract = new ethers.Contract(assistant.address, AssistantAbi, provider);
+                    
+                    // Get the bridge address this assistant belongs to - this is the key matching criterion
+                    const assistantBridgeAddress = await assistantContract.bridgeAddress();
+                    const managerAddress = await assistantContract.managerAddress();
+                    const assistantSymbol = await assistantContract.symbol();
+                    
+                    console.log(`  📋 Assistant found: ${assistant.address}`);
+                    console.log(`    Bridge Address (from assistant): ${assistantBridgeAddress}`);
+                    console.log(`    Current Bridge Address: ${bridge.address}`);
+                    console.log(`    Manager: ${managerAddress}`);
+                    console.log(`    Symbol: ${assistantSymbol}`);
+                    
+                    // Only attach this assistant if it belongs to the current bridge
+                    if (assistantBridgeAddress.toLowerCase() !== bridge.address.toLowerCase()) {
+                        console.log(`    ⏭️  Skipping assistant ${assistant.address} - belongs to bridge ${assistantBridgeAddress}, not ${bridge.address}`);
+                        continue;
+                    }
+                    
+                    // Find the correct bridge record to attach this assistant to
+                    // First try by exact bridge address match, then by foreign_asset match
+                    let bridgeToUpdate = existingBridgeByAddress;
+                    if (!bridgeToUpdate) {
+                        // For Export assistants: find bridge where export_aa matches
+                        // For Import assistants: find bridge where import_aa matches
+                        if (bridge.type === 'Export') {
+                            bridgeToUpdate = existingBridges.find(existing => 
+                                existing.export_aa && existing.export_aa.toLowerCase() === bridge.address.toLowerCase()
+                            );
+                        } else {
+                            bridgeToUpdate = existingBridges.find(existing => 
+                                existing.import_aa && existing.import_aa.toLowerCase() === bridge.address.toLowerCase()
+                            );
+                        }
+                    }
+                    
+                    // If still not found, try matching by foreign_asset (for cases where bridge exists but not yet in DB)
+                    if (!bridgeToUpdate) {
+                        bridgeToUpdate = existingBridgeByAssets;
+                    }
+                    
+                    // The logic here ensures assistants to match the correct bridge each by checking:
+                    // assistant.bridgeAddress() === bridge.address
+                    //
+                    // There are TWO separate table updates here:
+                    // 1. pooled_assistants table: ALL assistants are added here for monitoring purposes,
+                    //    regardless of who the manager is. This is the primary fix.
+                    // 2. bridges table: Only updated if the bot is the manager of the assistant.
+                    //    This sets the primary assistant for the bridge (import_assistant_aa/export_assistant_aa).
+                    
+                    // Add assistant to pooled_assistants table for monitoring (regardless of manager)
+                    try {
+                        if (bridgeToUpdate) {
+                            const bridgeId = bridgeToUpdate.bridge_id;
+                            const bridgeAa = bridge.address;
+                            const network = '3DPass';
+                            const side = bridge.type.toLowerCase(); // 'import' or 'export'
+                            const sharesAsset = assistant.address; // For 3DPass, shares_asset is the assistant address itself
+                            const sharesSymbol = assistantSymbol; // Use the actual symbol from the assistant contract
+                            const version = conf.version;
+                            
+                            console.log(`    📝 Adding/updating assistant in pooled_assistants table: ${assistant.address}`);
+                            await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                                [assistant.address, bridgeId, bridgeAa, network, side, managerAddress, sharesAsset, sharesSymbol, version]);
+                            console.log(`    ✅ Assistant added/updated in pooled_assistants table`);
                         
-                        console.log(`    📝 Adding/updating assistant in pooled_assistants table: ${assistant.address}`);
-                        await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                            [assistant.address, bridgeId, bridgeAa, network, side, managerAddress, sharesAsset, sharesSymbol, version]);
-                        console.log(`    ✅ Assistant added/updated in pooled_assistants table`);
-                        
-                        // Check if the bot is the manager and update the bridges table accordingly (inside the same scope)
+                        // Separately: Update bridges table ONLY if bot is the manager (sets primary assistant)
+                        // This is a different concern from pooled_assistants - it's about which assistant
+                        // the bot manages for this bridge.
                         try {
                             // Get bot's address from the same mnemonic used by the EVM chains
                             const fs = require("fs");
@@ -430,10 +479,18 @@ async function setupCorrect3DPassBridges(networkApi) {
                         } catch (bridgeUpdateErr) {
                             console.log(`    ⚠️  Could not update bridges table: ${bridgeUpdateErr.message}`);
                         }
+                        } else {
+                            // Bridge doesn't exist yet - store assistant info to add after bridge creation
+                            console.log(`    📦 Storing assistant ${assistant.address} to add after bridge creation`);
+                            assistantsForNewBridge.push({
+                                address: assistant.address,
+                                managerAddress: managerAddress,
+                                symbol: assistantSymbol
+                            });
+                        }
+                    } catch (pooledErr) {
+                        console.log(`    ⚠️  Could not add assistant to pooled_assistants table: ${pooledErr.message}`);
                     }
-                } catch (pooledErr) {
-                    console.log(`    ⚠️  Could not add assistant to pooled_assistants table: ${pooledErr.message}`);
-                }
                 
             } catch (err) {
                 console.log(`  ⚠️  Could not process assistant: ${err.message}`);
@@ -574,7 +631,7 @@ async function setupCorrect3DPassBridges(networkApi) {
                 console.log(`  🔍 Error details:`, err);
             }
             
-    await db.query(`
+    const insertResult = await db.query(`
         INSERT INTO bridges (
             home_network, home_asset, home_asset_decimals, home_symbol,
             export_aa, export_assistant_aa,
@@ -595,6 +652,29 @@ async function setupCorrect3DPassBridges(networkApi) {
                 bridge.address, 
                 assistantAddress
             ]);
+            
+            // Get the bridge_id of the newly created bridge
+            const newBridgeRecord = await db.query(`SELECT bridge_id FROM bridges WHERE import_aa = ?`, [bridge.address]);
+            const newBridgeId = newBridgeRecord[0].bridge_id;
+            
+            // Add all assistants that belong to this bridge to pooled_assistants
+            for (const assistantInfo of assistantsForNewBridge) {
+                try {
+                    const network = '3DPass';
+                    const side = bridge.type.toLowerCase(); // 'import' or 'export'
+                    const sharesAsset = assistantInfo.address; // For 3DPass, shares_asset is the assistant address itself
+                    const sharesSymbol = assistantInfo.symbol;
+                    const version = conf.version;
+                    
+                    console.log(`    📝 Adding assistant ${assistantInfo.address} to pooled_assistants for new bridge ${newBridgeId}`);
+                    await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                        [assistantInfo.address, newBridgeId, bridge.address, network, side, assistantInfo.managerAddress, sharesAsset, sharesSymbol, version]);
+                    console.log(`    ✅ Assistant added to pooled_assistants table`);
+                } catch (err) {
+                    console.log(`    ⚠️  Could not add assistant ${assistantInfo.address} to pooled_assistants: ${err.message}`);
+                }
+            }
+            
             console.log(`  ✓ New Import bridge ${bridge.address} added with dynamic configuration`);
             newBridgesAdded++;
             
@@ -617,7 +697,7 @@ async function setupCorrect3DPassBridges(networkApi) {
                 console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
             }
             
-    await db.query(`
+    const insertResult = await db.query(`
         INSERT INTO bridges (
             home_network, home_asset, home_asset_decimals, home_symbol,
             export_aa, export_assistant_aa,
@@ -638,6 +718,29 @@ async function setupCorrect3DPassBridges(networkApi) {
                 bridgeDetails.stakeAsset, 
                 null, null // Import AA will be created later
             ]);
+            
+            // Get the bridge_id of the newly created bridge
+            const newBridgeRecord = await db.query(`SELECT bridge_id FROM bridges WHERE export_aa = ?`, [bridge.address]);
+            const newBridgeId = newBridgeRecord[0].bridge_id;
+            
+            // Add all assistants that belong to this bridge to pooled_assistants
+            for (const assistantInfo of assistantsForNewBridge) {
+                try {
+                    const network = '3DPass';
+                    const side = bridge.type.toLowerCase(); // 'import' or 'export'
+                    const sharesAsset = assistantInfo.address; // For 3DPass, shares_asset is the assistant address itself
+                    const sharesSymbol = assistantInfo.symbol;
+                    const version = conf.version;
+                    
+                    console.log(`    📝 Adding assistant ${assistantInfo.address} to pooled_assistants for new bridge ${newBridgeId}`);
+                    await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                        [assistantInfo.address, newBridgeId, bridge.address, network, side, assistantInfo.managerAddress, sharesAsset, sharesSymbol, version]);
+                    console.log(`    ✅ Assistant added to pooled_assistants table`);
+                } catch (err) {
+                    console.log(`    ⚠️  Could not add assistant ${assistantInfo.address} to pooled_assistants: ${err.message}`);
+                }
+            }
+            
             console.log(`  ✓ New Export bridge ${bridge.address} added with dynamic configuration`);
             newBridgesAdded++;
         }
