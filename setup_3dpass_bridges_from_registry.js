@@ -271,10 +271,26 @@ async function getBridgeDetails(bridgeAddress, bridgeType) {
     return bridgeDetails;
 }
 
-async function setupCorrect3DPassBridges() {
+async function setupCorrect3DPassBridges(networkApi) {
     console.log('Setting up correct 3DPass bridges in database...');
     
     await init();
+    
+    // Helper function to get provider, preferring networkApi if available
+    const getProviderSafe = (network) => {
+        if (networkApi && networkApi[network]) {
+            try {
+                const provider = networkApi[network].getProvider();
+                if (provider) {
+                    console.log(`  ✓ Using existing provider from networkApi for ${network}`);
+                    return provider;
+                }
+            } catch (e) {
+                console.log(`  ⚠️  Could not get provider from networkApi for ${network}, using getProvider: ${e.message}`);
+            }
+        }
+        return getProvider(network);
+    };
     
     // Discover bridges and assistants from registry
     const { bridges, assistants } = await discoverBridgesFromRegistry();
@@ -325,9 +341,11 @@ async function setupCorrect3DPassBridges() {
                 existing.foreign_asset === bridgeDetails.foreignAsset
             );
         } else if (bridge.type === 'Export') {
-            // For Export bridges: check if any bridge with the same home_asset already exists
+            // For Export bridges: check if any bridge with the same foreign_asset already exists
+            // This ensures we match the bridge that already has the correct foreign_asset
+            // (e.g., bridge 21 which was created from the Import side)
             existingBridgeByAssets = existingBridges.find(existing => 
-                existing.home_asset === bridgeDetails.homeAsset
+                existing.foreign_asset === bridgeDetails.foreignAsset
             );
         }
         
@@ -339,10 +357,9 @@ async function setupCorrect3DPassBridges() {
         let selectedAssistant = null;
         
         for (const assistant of matchingAssistants) {
-            try {
-                // Get the assistant's manager address directly from the assistant contract
-                const { getProvider } = require('./evm/provider.js');
-                const provider = getProvider('3DPass');
+                try {
+                    // Get the assistant's manager address directly from the assistant contract
+                    const provider = getProviderSafe('3DPass');
                 const ImportWrapperAssistant = require('./evm_substrate/build/contracts/ImportWrapperAssistant.json');
                 const assistantContract = new ethers.Contract(assistant.address, ImportWrapperAssistant.abi, provider);
                 
@@ -436,9 +453,8 @@ async function setupCorrect3DPassBridges() {
                 let homeSymbol = 'Unknown';
                 try {
                     console.log(`  🔍 Fetching symbol for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
-                    const { getProvider } = require('./evm/provider.js');
-                    const externalProvider = getProvider(bridgeDetails.homeNetwork);
-                    console.log(`  🔍 Provider created for ${bridgeDetails.homeNetwork}`);
+                    const externalProvider = getProviderSafe(bridgeDetails.homeNetwork);
+                    console.log(`  🔍 Provider obtained for ${bridgeDetails.homeNetwork}`);
                     const { ethers } = require("ethers");
                     const erc20Abi = [
                         { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
@@ -484,9 +500,8 @@ async function setupCorrect3DPassBridges() {
                 let foreignSymbol = 'Unknown';
                 try {
                     console.log(`  🔍 Fetching symbol for ${bridgeDetails.foreignAsset} on ${bridgeDetails.foreignNetwork}`);
-                    const { getProvider } = require('./evm/provider.js');
-                    const externalProvider = getProvider(bridgeDetails.foreignNetwork);
-                    console.log(`  🔍 Provider created for ${bridgeDetails.foreignNetwork}`);
+                    const externalProvider = getProviderSafe(bridgeDetails.foreignNetwork);
+                    console.log(`  🔍 Provider obtained for ${bridgeDetails.foreignNetwork}`);
                     const { ethers } = require("ethers");
                     const erc20Abi = [
                         { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
@@ -545,9 +560,8 @@ async function setupCorrect3DPassBridges() {
             try {
                 // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
                 console.log(`  🔍 Fetching symbol for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
-                const { getProvider } = require('./evm/provider.js');
-                const externalProvider = getProvider(bridgeDetails.homeNetwork);
-                console.log(`  🔍 Provider created for ${bridgeDetails.homeNetwork}`);
+                const externalProvider = getProviderSafe(bridgeDetails.homeNetwork);
+                console.log(`  🔍 Provider obtained for ${bridgeDetails.homeNetwork}`);
                 const { ethers } = require("ethers");
                 const erc20Abi = [
                     { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
@@ -591,8 +605,7 @@ async function setupCorrect3DPassBridges() {
             let foreignSymbol = 'Unknown';
             try {
                 // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
-                const { getProvider } = require('./evm/provider.js');
-                const externalProvider = getProvider(bridgeDetails.foreignNetwork);
+                const externalProvider = getProviderSafe(bridgeDetails.foreignNetwork);
                 const { ethers } = require("ethers");
                 const erc20Abi = [
                     { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }

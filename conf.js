@@ -174,6 +174,7 @@ else { // mainnet
 
 
 exports.infura_project_id = ''; // in conf.json
+exports.drpc_key = ''; // in conf.json
 exports.polygon_polling_interval = 120; // in seconds
 
 exports.max_exposure = 0.5; // up to 50% of the balance in asset can be sent in a counterstake
@@ -192,14 +193,14 @@ exports.bAttack = true; // whether to bite or just bark by emitting events (assu
 // Disable networks
 exports.disablePolygon = true; // Disable Polygon monitoring
 exports.disableKava = true; // Disable Kava monitoring
-exports.disableBSC = true; // Disable BSC monitoring
+exports.disableBSC = false; // Disable BSC monitoring
 exports.disableThreeDPass = false; // Enable 3DPass monitoring
 exports.disableObyte = false; // Enable Obyte monitoring
 
 exports.min_reward_ratio = 0.005; // claim for others if the reward is at least 0.5%
 
 // Anti-spam protection for admin notifications
-exports.admin_notification_threshold = 3668; // 6947 old value // Skip notifications for old transfers (transfer_id <= this value)
+exports.admin_notification_threshold = 10; // 6947 old value // Skip notifications for old transfers (transfer_id <= this value)
 // Email notification settings
 exports.disable_email_notifications = true; // Set to true to disable email notifications
 
@@ -222,6 +223,9 @@ exports.threedpass_bridges_registry_addresses = {
 exports.threedpass_oracle_addresses = {
     '3DPass': '0x237527b4F7bb0030Bd5B7B863839Aa121cefd5fB'
 };
+
+// API Keys
+exports.CONF_FILENAME = 'conf.json';
 
 console.log('finished watchdog conf');
 

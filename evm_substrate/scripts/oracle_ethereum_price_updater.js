@@ -174,10 +174,11 @@ class OracleEthereumUpdater {
             const rawP3dUsdPrice = await fetchCoingeckoExchangeRateCached('P3D', 'USD', true);
             
             // Apply EVM decimals multiplier adjustment
-            this.p3dUsdPrice = rawP3dUsdPrice / EVMdecimalsMultiplier;
+            // P3D on EVM (18 decimals) is worth 1,000,000 times more than on native chain (12 decimals)
+            this.p3dUsdPrice = rawP3dUsdPrice * EVMdecimalsMultiplier;
             
             log(`✅ Raw P3D/USD Price: $${rawP3dUsdPrice}`, colors.blue);
-            log(`✅ Adjusted P3D/USD Price to map 12 -> 18 decimals on EVM: $${this.p3dUsdPrice} (divided by ${EVMdecimalsMultiplier})`, colors.green);
+            log(`✅ Adjusted P3D/USD Price to map 12 -> 18 decimals on EVM: $${this.p3dUsdPrice} (multiplied by ${EVMdecimalsMultiplier})`, colors.green);
             return this.p3dUsdPrice;
         } catch (error) {
             log(`❌ Failed to fetch P3D price: ${error.message}`, colors.red);
@@ -305,7 +306,7 @@ class OracleEthereumUpdater {
             
             log(`📊 Price Summary:`, colors.magenta);
             log(`   ETH/USD: $${this.ethUsdPrice}`, colors.magenta);
-            log(`   P3D/USD (adjusted): $${this.p3dUsdPrice} (raw price divided by ${EVMdecimalsMultiplier})`, colors.magenta);
+            log(`   P3D/USD (adjusted): $${this.p3dUsdPrice} (raw price multiplied by ${EVMdecimalsMultiplier})`, colors.magenta);
             
             // Calculate price ratios
             const ethToP3d = this.ethUsdPrice / this.p3dUsdPrice;

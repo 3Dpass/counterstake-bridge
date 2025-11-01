@@ -1,61 +1,131 @@
 "use strict";
 const { ethers } = require("ethers");
-const conf = require('ocore/conf.js');
+const conf = require('../conf.js');
+
+// Cache providers to prevent multiple WebSocket connections to the same network
+const providerCache = {};
 
 function createProvider(url) {
 	return url.startsWith('wss://') ? new ethers.providers.WebSocketProvider(url) : new ethers.providers.JsonRpcProvider(url);
 }
 
 function getProvider(network, bFree) {
-	if (process.env.devnet)
-		return new ethers.providers.JsonRpcProvider("http://0.0.0.0:7545") // ganache
-	if (process.env[network + '_provider'])
-		return createProvider(process.env[network + '_provider']);
-	switch (network) {
-		case 'Ethereum':
-			if (process.env.testnet)
-				throw Error("rinkeby was discontinued");
-			return process.env.devnet
-				? new ethers.providers.JsonRpcProvider("http://0.0.0.0:7545") // ganache
-				: new ethers.providers.WebSocketProvider(`wss://mainnet.gateway.tenderly.co`);
-		//		: new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://eth-none.g.alchemy.com/v2/${conf.alchemy_keys.eth.testnet}` : `wss://eth-mainnet.g.alchemy.com/v2/${conf.alchemy_keys.eth.mainnet}`);
-		//		: ethers.providers.InfuraProvider.getWebSocketProvider(process.env.testnet ? "rinkeby" : "homestead", conf.infura_project_id);
-		//	return new ethers.providers.InfuraProvider(process.env.testnet ? "rinkeby" : "homestead", conf.infura_project_id);
-		
-		case 'BSC':
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.blockvision.org/v1/${conf.blockvision_key}` : `wss://bsc-mainnet.blockvision.org/v1/${conf.blockvision_key}`);
-			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.nodereal.io/ws/v1/${conf.nodereal_key}` : `wss://bsc-mainnet.nodereal.io/ws/v1/${conf.nodereal_key}`);
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc.getblock.io/${conf.getblock_key}/testnet/` : `wss://bsc.getblock.io/${conf.getblock_key}/mainnet/`);
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/bsc_testnet_chapel/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/bsc/ws/${conf.ankr_key}`);
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `https://speedy-nodes-nyc.moralis.io/${conf.moralis_key}/bsc/testnet/ws` : `wss://bsc--mainnet--ws.datahub.figment.io/apikey/${conf.datahub_key}`);
-		//	return new ethers.providers.JsonRpcProvider(process.env.testnet ? "https://data-seed-prebsc-1-s1.binance.org:8545" : "https://bsc-dataseed.binance.org");
-		//	return new ethers.providers.JsonRpcProvider(process.env.testnet ? "https://bsc-testnet.publicnode.com" : "https://bsc.publicnode.com");
-		
-		case 'Polygon':
-			/*
-			const url = bFree
-				? (process.env.testnet ? "https://matic-testnet-archive-rpc.bwarelabs.com" : "https://rpc-mainnet.maticvigil.com")
-				: (process.env.testnet ? `https://polygon-mumbai.infura.io/v3/${conf.infura_project_id}` : `https://polygon-mainnet.infura.io/v3/${conf.infura_project_id}`);
-			return new ethers.providers.JsonRpcProvider(url);
-			*/
-		//	return new ethers.providers.JsonRpcProvider((process.env.testnet ? `https://polygon-mumbai.infura.io/v3/${conf.infura_project_id}` : `https://polygon-mainnet.infura.io/v3/${conf.infura_project_id}`));
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://polygon-mumbai.infura.io/v3/ws/${conf.infura_project_id}` : `wss://polygon-mainnet.infura.io/ws/v3/${conf.infura_project_id}`);
-		//	return new ethers.providers.JsonRpcProvider((process.env.testnet ? `https://rpc.ankr.com/polygon_mumbai` : `https://polygon-rpc.com`));
-			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/polygon_mumbai/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/polygon/ws/${conf.ankr_key}`);
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://polygon-mumbai.g.alchemy.com/v2/${conf.alchemy_keys.polygon.testnet}` : `wss://polygon-mainnet.g.alchemy.com/v2/${conf.alchemy_keys.polygon.mainnet}`);
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://matic-mumbai--ws.datahub.figment.io/apikey/${conf.datahub_key}` : `wss://matic-mainnet--ws.datahub.figment.io/apikey/${conf.datahub_key}`);
-
-		case 'Kava':
-		//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava.io`);
-			return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava-rpc.com`);
-		
-		case '3DPass':
-			// JsonRpcProvider: https://rpc-http.3dpass.org (commented out)
-			// WebSocketProvider: wss://rpc.3dpass.org
-			//	return new ethers.providers.JsonRpcProvider(`https://rpc-http.3dpass.org`);
-			return new ethers.providers.WebSocketProvider(`wss://rpc.3dpass.org`);
+	// Create cache key that includes network and bFree flag
+	const cacheKey = `${network}_${bFree || false}`;
+	
+	// Return cached provider if available
+	if (providerCache[cacheKey]) {
+		return providerCache[cacheKey];
 	}
-	throw Error(`unknown network ` + network);
+	
+	let provider;
+	if (process.env.devnet)
+		provider = new ethers.providers.JsonRpcProvider("http://0.0.0.0:7545") // ganache
+	else if (process.env[network + '_provider'])
+		provider = createProvider(process.env[network + '_provider']);
+	else {
+		switch (network) {
+			case 'Ethereum':
+				if (process.env.testnet)
+					throw Error("rinkeby was discontinued");
+				provider = process.env.devnet
+					? new ethers.providers.JsonRpcProvider("http://0.0.0.0:7545") // ganache
+					: new ethers.providers.WebSocketProvider(`wss://mainnet.gateway.tenderly.co`);
+			//		: new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://eth-none.g.alchemy.com/v2/${conf.alchemy_keys.eth.testnet}` : `wss://eth-mainnet.g.alchemy.com/v2/${conf.alchemy_keys.eth.mainnet}`);
+			//		: ethers.providers.InfuraProvider.getWebSocketProvider(process.env.testnet ? "rinkeby" : "homestead", conf.infura_project_id);
+			//	return new ethers.providers.InfuraProvider(process.env.testnet ? "rinkeby" : "homestead", conf.infura_project_id);
+				break;
+			
+			case 'BSC':
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.blockvision.org/v1/${conf.blockvision_key}` : `wss://bsc-mainnet.blockvision.org/v1/${conf.blockvision_key}`);
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.nodereal.io/ws/v1/${conf.nodereal_key}` : `wss://bsc-mainnet.nodereal.io/ws/v1/${conf.nodereal_key}`);
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc.getblock.io/${conf.getblock_key}/testnet/` : `wss://bsc.getblock.io/${conf.getblock_key}/mainnet/`);
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/bsc_testnet_chapel/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/bsc/ws/${conf.ankr_key}`);
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `https://speedy-nodes-nyc.moralis.io/${conf.moralis_key}/bsc/testnet/ws` : `wss://speedy-nodes-nyc.moralis.io/${conf.moralis_key}/bsc/mainnet/ws`);
+				// Use Infura for BSC - load from conf.json
+				let infuraApiKey = conf.infura_project_id || '';
+				if (!infuraApiKey) {
+					try {
+						const fs = require('fs');
+						const desktopApp = require('ocore/desktop_app.js');
+						const confJsonPath = desktopApp.getAppDataDir() + '/' + conf.CONF_FILENAME;
+						if (fs.existsSync(confJsonPath)) {
+							const externalConf = JSON.parse(fs.readFileSync(confJsonPath, 'utf8'));
+							infuraApiKey = externalConf.infura_project_id || '';
+						}
+					} catch (err) {
+						console.log('Could not load infura_project_id from conf.json:', err.message);
+					}
+				}
+				if (!infuraApiKey) {
+					throw Error('BSC Infura API key (infura_project_id) not found in conf.json');
+				}
+				// Try both URL formats in case one works
+				provider = new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.infura.io/ws/v3/${infuraApiKey}` : `wss://bsc-mainnet.infura.io/ws/v3/${infuraApiKey}`);
+				// Alternative WebSocket providers (commented out for easy switching)
+				//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://bsc-testnet.nodereal.io/ws/v1/${conf.nodereal_key}` : `wss://bsc-mainnet.nodereal.io/ws/v1/${conf.nodereal_key}`);
+				//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/bsc_testnet_chapel/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/bsc/ws/${conf.ankr_key}`);
+				break;
+			
+			case 'Polygon':
+				/*
+				const url = bFree
+					? (process.env.testnet ? "https://matic-testnet-archive-rpc.bwarelabs.com" : "https://rpc-mainnet.maticvigil.com")
+					: (process.env.testnet ? `https://polygon-mumbai.infura.io/v3/${conf.infura_project_id}` : `https://polygon-mainnet.infura.io/v3/${conf.infura_project_id}`);
+				return new ethers.providers.JsonRpcProvider(url);
+				*/
+			//	return new ethers.providers.JsonRpcProvider((process.env.testnet ? `https://polygon-mumbai.infura.io/v3/${conf.infura_project_id}` : `https://polygon-mainnet.infura.io/v3/${conf.infura_project_id}`));
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://polygon-mumbai.infura.io/v3/ws/${conf.infura_project_id}` : `wss://polygon-mainnet.infura.io/ws/v3/${conf.infura_project_id}`);
+			//	return new ethers.providers.JsonRpcProvider((process.env.testnet ? `https://rpc.ankr.com/polygon_mumbai` : `https://polygon-rpc.com`));
+				provider = new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://rpc.ankr.com/polygon_mumbai/ws/${conf.ankr_key}` : `wss://rpc.ankr.com/polygon/ws/${conf.ankr_key}`);
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://polygon-mumbai.g.alchemy.com/v2/${conf.alchemy_keys.polygon.testnet}` : `wss://polygon-mainnet.g.alchemy.com/v2/${conf.alchemy_keys.polygon.mainnet}`);
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://matic-mumbai--ws.datahub.figment.io/apikey/${conf.datahub_key}` : `wss://matic-mainnet--ws.datahub.figment.io/apikey/${conf.datahub_key}`);
+				break;
+
+			case 'Kava':
+			//	return new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava.io`);
+				provider = new ethers.providers.WebSocketProvider(process.env.testnet ? `wss://wevm.testnet.kava.io` : `wss://wevm.kava-rpc.com`);
+				break;
+			
+			case '3DPass':
+				// JsonRpcProvider: https://rpc-http.3dpass.org 
+				// WebSocketProvider: wss://rpc.3dpass.org
+				//	return new ethers.providers.JsonRpcProvider(`https://rpc-http.3dpass.org`);
+				provider = new ethers.providers.WebSocketProvider(`wss://rpc.3dpass.org`);
+				break;
+			
+			default:
+				throw Error(`unknown network ` + network);
+		}
+	}
+	
+	// Cache and return the provider
+	if (provider) {
+		providerCache[cacheKey] = provider;
+		return provider;
+	}
+	
+	throw Error(`failed to create provider for network ` + network);
 }
 
 exports.getProvider = getProvider;
+
+// Function to clear provider cache for a specific network (useful when network disconnects)
+function clearProviderCache(network) {
+	if (network) {
+		// Clear all cache entries for this network
+		Object.keys(providerCache).forEach(key => {
+			if (key.startsWith(network + '_')) {
+				console.log(`Clearing provider cache for ${key}`);
+				delete providerCache[key];
+			}
+		});
+	} else {
+		// Clear all cached providers
+		console.log('Clearing all provider cache');
+		Object.keys(providerCache).forEach(key => delete providerCache[key]);
+	}
+}
+
+exports.clearProviderCache = clearProviderCache;
+

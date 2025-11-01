@@ -89,13 +89,34 @@ class EvmChain {
 	}
 
 	async getBlockNumber() {
+		return await this.getBlockNumberWithRetry(0);
+	}
+
+	async getBlockNumberWithRetry(retryCount) {
+		const maxRetries = 5;
 		try {
 			return await this.#provider.getBlockNumber();
 		}
 		catch (e) {
-			console.log(`getBlockNumber ${this.network} failed, will try again after waiting`, e);
-			await wait(100);
-			return await this.getBlockNumber();
+			const errMsg = e.toString();
+			console.log(`getBlockNumber ${this.network} failed (attempt ${retryCount + 1}/${maxRetries}), will try again after waiting`, e);
+			
+			if (retryCount >= maxRetries) {
+				console.error(`getBlockNumber ${this.network} failed after ${maxRetries} retries, throwing error`);
+				throw e;
+			}
+			
+			// Handle "internal error" with longer delay (like processPastEvents)
+			if (errMsg.includes("internal error") || errMsg.includes("temporarily unavailable")) {
+				const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff: 1s, 2s, 4s, 8s, 10s max
+				console.log(`getBlockNumber ${this.network} internal error detected, waiting ${delay}ms before retry`);
+				await wait(delay);
+			} else {
+				// Other errors: shorter delay
+				await wait(100 * (retryCount + 1)); // 100ms, 200ms, 300ms, 400ms, 500ms
+			}
+			
+			return await this.getBlockNumberWithRetry(retryCount + 1);
 		}
 	}
 
@@ -731,6 +752,14 @@ class EvmChain {
 	}
 
 	async startWatchingFactories() {
+		console.log(`🏭 Starting factory monitoring for ${this.network}...`);
+		try {
+			if (!this.#factory_contract_addresses || Object.keys(this.#factory_contract_addresses).length === 0) {
+				console.log(`⚠️  No factory contract addresses configured for ${this.network}`);
+				return;
+			}
+			console.log(`📋 ${this.network} factory addresses:`, Object.values(this.#factory_contract_addresses));
+		
 		const onNewExport = async (contractAddress, tokenAddress, foreign_network, foreign_asset, event) => {
 			const decimals = await this.getDecimals(tokenAddress);
 			if (decimals === null)
@@ -766,6 +795,7 @@ class EvmChain {
 		};
 		for (let v in this.#factory_contract_addresses) {
 			const factory_contract_address = this.#factory_contract_addresses[v];
+			console.log(`🔧 Setting up factory ${factory_contract_address} (version ${v}) for ${this.network}...`);
 			const contract = new ethers.Contract(factory_contract_address, factoryJson.abi, this.#provider);
 			contract.on('NewExport', onNewExport);
 			contract.on('NewImport', onNewImport);
@@ -776,20 +806,75 @@ class EvmChain {
 				await processPastEvents(contract, contract.filters.NewImport(), from_block, to_block, null, onNewImport);
 			};
 		
-			// get factory events that are beyond the block range
-			const last_block = Math.max(await this.getLastBlock() - 100, 0);
-			const top_available_block = await this.getTopAvailableBlock();
-			if (top_available_block > last_block) {
-				console.log(this.network, 'factories top available block', top_available_block, '> last block', last_block);
-				const blocks = await this.getAddressBlocks(factory_contract_address, last_block);
-				console.log('factories blocks of missed txs', this.network, blocks);
-				for (let blockNumber of blocks) {
-					await processPastEventsOnContract(blockNumber, blockNumber);
+			try {
+				// Check if connection is still alive before making provider calls
+				const provider = this.getProvider();
+				const isConnected = provider && provider._websocket && provider._websocket.readyState === 1;
+				
+				if (!isConnected) {
+					console.log(`⚠️  ${this.network} WebSocket not connected, skipping block number checks but will still call getAddressBlocks for factory ${factory_contract_address}`);
+					// Even if disconnected, try to get address blocks - this uses Etherscan API, not WebSocket
+					try {
+						console.log(`📡 Calling getAddressBlocks for factory ${factory_contract_address} on ${this.network} via Etherscan API (chainid ${this.network === 'BSC' ? 56 : this.network === 'Ethereum' ? 1 : 'unknown'})...`);
+						const blocks = await Promise.race([
+							this.getAddressBlocks(factory_contract_address, 0), // Start from block 0 if we can't get current block
+							new Promise((_, reject) => setTimeout(() => reject(new Error(`getAddressBlocks timeout after 30s`)), 30000))
+						]);
+						console.log(`✅ ${this.network} factory ${factory_contract_address} blocks of missed txs:`, blocks);
+						for (let blockNumber of blocks) {
+							await processPastEventsOnContract(blockNumber, blockNumber);
+						}
+					} catch (err) {
+						console.error(`⚠️  Failed to get address blocks for factory ${factory_contract_address} on ${this.network}:`, err.message);
+						console.error(`   This may be due to network disconnection, API timeout, or rate limiting. Will continue with regular event processing.`);
+					}
+					// Skip the rest if disconnected
+					continue;
 				}
-			}
+				
+				// get factory events that are beyond the block range
+				console.log(`📊 Getting block info for ${this.network} factory ${factory_contract_address}...`);
+				const last_block = Math.max(await this.getLastBlock() - 100, 0);
+				const top_available_block = await this.getTopAvailableBlock();
+				console.log(`📊 ${this.network} factory ${factory_contract_address}: last_block=${last_block}, top_available_block=${top_available_block}`);
+				
+				if (top_available_block > last_block) {
+					console.log(this.network, 'factories top available block', top_available_block, '> last block', last_block);
+					try {
+						console.log(`📡 Calling getAddressBlocks for factory ${factory_contract_address} on ${this.network} from block ${last_block} via Etherscan API (chainid ${this.network === 'BSC' ? 56 : this.network === 'Ethereum' ? 1 : 'unknown'})...`);
+						// Add timeout to prevent hanging - 30 seconds should be enough for API calls
+						const blocks = await Promise.race([
+							this.getAddressBlocks(factory_contract_address, last_block),
+							new Promise((_, reject) => setTimeout(() => reject(new Error(`getAddressBlocks timeout after 30s`)), 30000))
+						]);
+						console.log('factories blocks of missed txs', this.network, blocks);
+						for (let blockNumber of blocks) {
+							await processPastEventsOnContract(blockNumber, blockNumber);
+						}
+					} catch (err) {
+						console.error(`⚠️  Failed to get address blocks for factory ${factory_contract_address} on ${this.network}:`, err.message);
+						console.error(`   This may be due to network disconnection, API timeout, or rate limiting. Will continue with regular event processing.`);
+					}
+				} else {
+					console.log(`ℹ️  ${this.network} factory ${factory_contract_address}: no missed blocks (top_available_block=${top_available_block} <= last_block=${last_block})`);
+				}
 
-			const since_block = await this.getSinceBlock();
-			await processPastEventsOnContract(since_block, 0);
+				const since_block = await this.getSinceBlock();
+				console.log(`📜 Processing past events for ${this.network} factory ${factory_contract_address} from block ${since_block}...`);
+				await processPastEventsOnContract(since_block, 0);
+				console.log(`✅ Completed factory monitoring setup for ${factory_contract_address} on ${this.network}`);
+			} catch (err) {
+				console.error(`❌ Error in startWatchingFactories for ${this.network}:`, err.message);
+				console.error(`   Factory address: ${factory_contract_address}`);
+				console.error(`   Error stack:`, err.stack);
+				// Continue with other factories even if one fails
+			}
+		}
+		console.log(`✅ Factory monitoring setup completed for ${this.network}`);
+		} catch (err) {
+			console.error(`❌ Error in startWatchingFactories for ${this.network}:`, err.message);
+			console.error(`   Error stack:`, err.stack);
+			throw err; // Re-throw so transfers.js can catch it
 		}
 	}
 
@@ -842,6 +927,14 @@ class EvmChain {
 	}
 
 	async startWatchingAssistantFactories() {
+		console.log(`🏭 Starting assistant factory monitoring for ${this.network}...`);
+		try {
+			if (!this.#assistant_factory_contract_addresses || Object.keys(this.#assistant_factory_contract_addresses).length === 0) {
+				console.log(`⚠️  No assistant factory contract addresses configured for ${this.network}`);
+				return;
+			}
+			console.log(`📋 ${this.network} assistant factory addresses:`, Object.values(this.#assistant_factory_contract_addresses));
+		
 		const onNewExportAssistant = async (assistantAddress, bridgeAddress, manager, symbol, event) => {
 		//	if (manager !== this.#wallet.address)
 		//		return console.log(`new assistant ${assistantAddress} with another manager, will skip`);
@@ -866,6 +959,7 @@ class EvmChain {
 		};
 		for (let v in this.#assistant_factory_contract_addresses) {
 			const assistant_factory_contract_address = this.#assistant_factory_contract_addresses[v];
+			console.log(`🔧 Setting up assistant factory ${assistant_factory_contract_address} (version ${v}) for ${this.network}...`);
 			const contract = new ethers.Contract(assistant_factory_contract_address, assistantFactoryJson.abi, this.#provider);
 			contract.on('NewExportAssistant', onNewExportAssistant);
 			contract.on('NewImportAssistant', onNewImportAssistant);
@@ -876,20 +970,75 @@ class EvmChain {
 				await processPastEvents(contract, contract.filters.NewImportAssistant(), from_block, to_block, null, onNewImportAssistant);
 			};
 
-			// get factory events that are beyond the block range
-			const last_block = Math.max(await this.getLastBlock() - 100, 0);
-			const top_available_block = await this.getTopAvailableBlock();
-			if (top_available_block > last_block) {
-				console.log(this.network, 'assistants top available block', top_available_block, '> last block', last_block);
-				const blocks = await this.getAddressBlocks(assistant_factory_contract_address, last_block);
-				console.log('assistants blocks of missed txs', this.network, blocks);
-				for (let blockNumber of blocks) {
-					await processPastEventsOnContract(blockNumber, blockNumber);
+			try {
+				// Check if connection is still alive before making provider calls
+				const provider = this.getProvider();
+				const isConnected = provider && provider._websocket && provider._websocket.readyState === 1;
+				
+				if (!isConnected) {
+					console.log(`⚠️  ${this.network} WebSocket not connected, skipping block number checks but will still call getAddressBlocks for assistant factory ${assistant_factory_contract_address}`);
+					// Even if disconnected, try to get address blocks - this uses Etherscan API, not WebSocket
+					try {
+						console.log(`📡 Calling getAddressBlocks for assistant factory ${assistant_factory_contract_address} on ${this.network} via Etherscan API (chainid ${this.network === 'BSC' ? 56 : this.network === 'Ethereum' ? 1 : 'unknown'})...`);
+						const blocks = await Promise.race([
+							this.getAddressBlocks(assistant_factory_contract_address, 0), // Start from block 0 if we can't get current block
+							new Promise((_, reject) => setTimeout(() => reject(new Error(`getAddressBlocks timeout after 30s`)), 30000))
+						]);
+						console.log(`✅ ${this.network} assistant factory ${assistant_factory_contract_address} blocks of missed txs:`, blocks);
+						for (let blockNumber of blocks) {
+							await processPastEventsOnContract(blockNumber, blockNumber);
+						}
+					} catch (err) {
+						console.error(`⚠️  Failed to get address blocks for assistant factory ${assistant_factory_contract_address} on ${this.network}:`, err.message);
+						console.error(`   This may be due to network disconnection, API timeout, or rate limiting. Will continue with regular event processing.`);
+					}
+					// Skip the rest if disconnected
+					continue;
 				}
-			}
+				
+				// get factory events that are beyond the block range
+				console.log(`📊 Getting block info for ${this.network} assistant factory ${assistant_factory_contract_address}...`);
+				const last_block = Math.max(await this.getLastBlock() - 100, 0);
+				const top_available_block = await this.getTopAvailableBlock();
+				console.log(`📊 ${this.network} assistant factory ${assistant_factory_contract_address}: last_block=${last_block}, top_available_block=${top_available_block}`);
+				
+				if (top_available_block > last_block) {
+					console.log(this.network, 'assistants top available block', top_available_block, '> last block', last_block);
+					try {
+						console.log(`📡 Calling getAddressBlocks for assistant factory ${assistant_factory_contract_address} on ${this.network} from block ${last_block} via Etherscan API (chainid ${this.network === 'BSC' ? 56 : this.network === 'Ethereum' ? 1 : 'unknown'})...`);
+						// Add timeout to prevent hanging - 30 seconds should be enough for API calls
+						const blocks = await Promise.race([
+							this.getAddressBlocks(assistant_factory_contract_address, last_block),
+							new Promise((_, reject) => setTimeout(() => reject(new Error(`getAddressBlocks timeout after 30s`)), 30000))
+						]);
+						console.log('assistants blocks of missed txs', this.network, blocks);
+						for (let blockNumber of blocks) {
+							await processPastEventsOnContract(blockNumber, blockNumber);
+						}
+					} catch (err) {
+						console.error(`⚠️  Failed to get address blocks for assistant factory ${assistant_factory_contract_address} on ${this.network}:`, err.message);
+						console.error(`   This may be due to network disconnection, API timeout, or rate limiting. Will continue with regular event processing.`);
+					}
+				} else {
+					console.log(`ℹ️  ${this.network} assistant factory ${assistant_factory_contract_address}: no missed blocks (top_available_block=${top_available_block} <= last_block=${last_block})`);
+				}
 
-			const since_block = await this.getSinceBlock();
-			await processPastEventsOnContract(since_block, 0);
+				const since_block = await this.getSinceBlock();
+				console.log(`📜 Processing past events for ${this.network} assistant factory ${assistant_factory_contract_address} from block ${since_block}...`);
+				await processPastEventsOnContract(since_block, 0);
+				console.log(`✅ Completed assistant factory monitoring setup for ${assistant_factory_contract_address} on ${this.network}`);
+			} catch (err) {
+				console.error(`❌ Error in startWatchingAssistantFactories for ${this.network}:`, err.message);
+				console.error(`   Assistant factory address: ${assistant_factory_contract_address}`);
+				console.error(`   Error stack:`, err.stack);
+				// Continue with other factories even if one fails
+			}
+		}
+		console.log(`✅ Assistant factory monitoring setup completed for ${this.network}`);
+		} catch (err) {
+			console.error(`❌ Error in startWatchingAssistantFactories for ${this.network}:`, err.message);
+			console.error(`   Error stack:`, err.stack);
+			throw err; // Re-throw so transfers.js can catch it
 		}
 	}
 
@@ -927,22 +1076,68 @@ class EvmChain {
 			// get events that are beyond the block range
 			const last_block = this.#last_caughtup_block || Math.max(await this.getLastBlock() - 100, 0);
 			const top_available_block = await this.getTopAvailableBlock();
+			console.log(`${this.network} catchup: last_block=${last_block}, top_available_block=${top_available_block}, contractsByAddress keys: ${Object.keys(this.#contractsByAddress).length}`);
+			
+			// Get all addresses that need checking, including factory contracts
+			const addressesToCheck = new Set();
+			
+			// Add bridge contracts
+			for (let address in this.#contractsByAddress) {
+				const contract = this.#contractsByAddress[address];
+				if (contract.filters.NewClaim) { // bridge contract
+					addressesToCheck.add(address);
+				}
+			}
+			
+			// Also check factory contracts even if they're not in contractsByAddress yet
+			// This handles cases where BSC disconnected before factory monitoring completed
+			for (let v in this.#factory_contract_addresses) {
+				const factoryAddress = this.#factory_contract_addresses[v];
+				if (factoryAddress) {
+					addressesToCheck.add(factoryAddress);
+				}
+			}
+			for (let v in this.#assistant_factory_contract_addresses) {
+				const assistantFactoryAddress = this.#assistant_factory_contract_addresses[v];
+				if (assistantFactoryAddress) {
+					addressesToCheck.add(assistantFactoryAddress);
+				}
+			}
+			
+			console.log(`${this.network} catchup: will check ${addressesToCheck.size} addresses (${Object.keys(this.#contractsByAddress).length} contracts + ${addressesToCheck.size - Object.keys(this.#contractsByAddress).length} factories)`);
+			
 			if (top_available_block > last_block) {
-				for (let address in this.#contractsByAddress) {
-					const contract = this.#contractsByAddress[address];
-					if (!contract.filters.NewClaim) // not a bridge, must be an assistant
-						continue;
-					const blocks = await this.getAddressBlocks(address, last_block);
-					console.log(`${this.network} contract ${address} blocks of missed txs since ${last_block}`, blocks);
-					for (let blockNumber of blocks) {
-						const count = await this.processPastEventsOnBridgeContract(contract, blockNumber, blockNumber);
-						if (!count)
-							console.log(`no CS events on contract ${address}@${this.network} in block ${blockNumber}`);
+				for (let address of addressesToCheck) {
+					try {
+						console.log(`${this.network} catchup: calling getAddressBlocks for ${address} from block ${last_block}`);
+						const blocks = await this.getAddressBlocks(address, last_block);
+						console.log(`${this.network} address ${address} blocks of missed txs since ${last_block}:`, blocks);
+						
+						// Only process events if we have a contract instance for this address
+						const contract = this.#contractsByAddress[address];
+						if (contract && contract.filters.NewClaim) {
+							// It's a bridge contract, process events
+							for (let blockNumber of blocks) {
+								const count = await this.processPastEventsOnBridgeContract(contract, blockNumber, blockNumber);
+								if (!count)
+									console.log(`no CS events on contract ${address}@${this.network} in block ${blockNumber}`);
+							}
+						} else {
+							// Factory contract - events will be processed when factory monitoring completes
+							console.log(`${this.network} address ${address} is a factory contract, events will be processed by factory monitoring`);
+						}
+					} catch (err) {
+						console.error(`⚠️  Failed to get address blocks for ${address} during catchup on ${this.network}:`, err.message);
+						console.error(`   Error stack:`, err.stack);
+						// Continue with other addresses
 					}
 				}
+			} else {
+				console.log(`${this.network} catchup: top_available_block (${top_available_block}) <= last_block (${last_block}), skipping address blocks check`);
 			}
 
 			const since_block = (top_available_block || !this.#last_caughtup_block) ? await this.getSinceBlock() : this.#last_caughtup_block;
+			console.log(`${this.network} catchup: processing events from block ${since_block}`);
 			for (let address in this.#contractsByAddress) {
 				const contract = this.#contractsByAddress[address];
 				if (!contract.filters.NewClaim) // not a bridge, must be an assistant
@@ -979,13 +1174,27 @@ class EvmChain {
 
 		if (provider._websocket && !process.env.devnet) {
 			let closed = false;
+			let connectionStable = false;
+			let connectionStartTime = Date.now();
+			let closeEventTimeout = null;
+			let firstBlockReceived = false;
+			let firstPongReceived = false;
+			
 			const forgetAndEmitDisconnected = () => {
 				clearTimeout(scheduledReconnectTimeout);
-				clearInterval(interval);
+				if (interval) clearInterval(interval);
 				clearInterval(catchupInterval);
+				if (closeEventTimeout) clearTimeout(closeEventTimeout);
 				closed = true;
 				this.forget();
 				provider._websocket.removeAllListeners();
+				// Clear provider cache to allow reconnection with fresh provider
+				try {
+					const { clearProviderCache } = require('./evm/provider.js');
+					clearProviderCache(this.network);
+				} catch (e) {
+					console.log(`Could not clear provider cache for ${this.network}:`, e.message);
+				}
 				console.log(`will wait before emitting disconnection event on`, this.network);
 				setTimeout(() => eventBus.emit('network_disconnected', this.network), 60 * 1000);
 			};
@@ -1006,53 +1215,107 @@ class EvmChain {
 				}
 			};
 			let last_pong_ts = Date.now();
-			if (conf[network + '_noblocks']) {
-				var interval = setInterval(() => {
-					pingSocket();
-					if (Date.now() - last_pong_ts > 5 * 60 * 1000) {
-						console.log(`====== no new pongs on ${this.network} in more than 5 mins, will reset websocket connection`);
-						forgetAndEmitDisconnected();
-						closeSocket();
-					}
-				}, 60 * 1000);
-			}
-			else {
-				let last_block_ts = Date.now();
-				var interval = setInterval(() => {
-					if (Date.now() - last_block_ts > 15 * 60 * 1000) {
-						console.log(`====== no new blocks on ${this.network} in more than 15 mins, will reset websocket connection`);
-						forgetAndEmitDisconnected();
-						closeSocket();
-					}
-				}, 60 * 1000);
-				provider.on('block', (blockNumber) => {
-					console.log('new block', this.network, blockNumber);
+			let last_block_ts = Date.now(); // Initialize early for block handler
+			let interval = null; // Declare in outer scope so forgetAndEmitDisconnected can access it
+			
+			// Wait for initial connection to stabilize before starting health checks
+			// This prevents false positives from immediate disconnections
+			setTimeout(() => {
+				if (closed) return; // Don't start if already closed
+				
+				if (conf[network + '_noblocks']) {
+					interval = setInterval(() => {
+						if (closed) return;
+						pingSocket();
+						if (Date.now() - last_pong_ts > 5 * 60 * 1000) {
+							console.log(`====== no new pongs on ${this.network} in more than 5 mins, will reset websocket connection`);
+							forgetAndEmitDisconnected();
+							closeSocket();
+						}
+					}, 60 * 1000);
+				}
+				else {
+					interval = setInterval(() => {
+						if (closed) return;
+						if (Date.now() - last_block_ts > 15 * 60 * 1000) {
+							console.log(`====== no new blocks on ${this.network} in more than 15 mins, will reset websocket connection`);
+							forgetAndEmitDisconnected();
+							closeSocket();
+						}
+					}, 60 * 1000);
+				}
+			}, 30000); // Start health checks after 30 seconds
+			
+			provider.on('block', (blockNumber) => {
+				console.log('new block', this.network, blockNumber);
+				if (!firstBlockReceived) {
+					firstBlockReceived = true;
+					console.log(`✅ ${this.network} received first block: ${blockNumber}`);
+				}
+				if (!conf[network + '_noblocks']) {
 					last_block_ts = Date.now();
 					pingSocket();
-				});
-			}
+				}
+				// Mark connection as stable after first block
+				if (!connectionStable) {
+					connectionStable = true;
+					console.log(`✅ ${this.network} WebSocket connection marked as stable (first block received)`);
+				}
+			});
+			
 			var scheduledReconnectTimeout = setTimeout(() => {
 				console.log(`====== scheduled reconnect on ${this.network}`);
 				forgetAndEmitDisconnected();
 				closeSocket();
 			}, 23 * 3600 * 1000);
+			
 			provider._websocket.on('pong', () => {
 				last_pong_ts = Date.now();
+				if (!firstPongReceived) {
+					firstPongReceived = true;
+					console.log(`✅ ${this.network} received first pong`);
+				}
 				console.log('pong', this.network);
+				// Mark connection as stable after first pong
+				if (!connectionStable) {
+					connectionStable = true;
+					console.log(`✅ ${this.network} WebSocket connection marked as stable`);
+				}
 			});
 			provider._websocket.on('ping', () => console.log('ping', this.network));
-			provider._websocket.on('close', () => {
-				console.log('====== !!!!! websocket connection closed', this.network);
+			provider._websocket.on('close', (code, reason) => {
+				console.log(`====== !!!!! websocket connection closed ${this.network}`, { code, reason: reason?.toString() });
 				if (closed)
 					return console.log('close event: ws already closed');
-				forgetAndEmitDisconnected();
+				
+				// Check if connection was stable before closing
+				const connectionAge = Date.now() - connectionStartTime;
+				const isStableConnection = connectionStable || connectionAge > 10000; // 10 seconds
+				
+				if (!isStableConnection) {
+					console.log(`⚠️  ${this.network} WebSocket closed too early (${connectionAge}ms), code=${code}, reason=${reason?.toString() || 'none'}`);
+					console.log(`   This may indicate a connection limit or resource conflict`);
+					
+					// Delay disconnection to allow for potential reconnection
+					closeEventTimeout = setTimeout(() => {
+						console.log(`🔄 ${this.network} delayed disconnection timeout reached, proceeding with disconnection`);
+						forgetAndEmitDisconnected();
+					}, 5000); // Wait 5 seconds before disconnecting
+				} else {
+					console.log(`ℹ️  ${this.network} WebSocket closed after stable connection (${connectionAge}ms), proceeding with disconnection`);
+					forgetAndEmitDisconnected();
+				}
 			});
 			provider._websocket.on('error', (error) => {
 				console.log('====== !!!!! websocket error', this.network, error);
 				if (closed)
 					return console.log('error event: ws already closed');
+				console.log(`   Error details:`, { code: error.code, message: error.message });
 				closeSocket();
 				forgetAndEmitDisconnected();
+			});
+			provider._websocket.on('open', () => {
+				console.log(`✅ ${this.network} WebSocket opened successfully`);
 			});
 			console.log(`${this.network} constructor done`);
 		}
@@ -1074,9 +1337,10 @@ function getType(address, bridge) {
 	throw Error(`unable to determine transfer type on address ${address} and bridge ${bridge_id}, export_aa=${export_aa}, import_aa=${import_aa}`);
 }
 
-async function processPastEvents(contract, filter, since_block, to_block, thisArg, handler) {
+async function processPastEvents(contract, filter, since_block, to_block, thisArg, handler, retryCount = 0) {
 	const network = thisArg ? thisArg.network : null;
-	console.log('processPastEvents', network, contract.address, since_block, to_block, filter);
+	const maxRetries = 10; // Maximum retries for transient errors
+	console.log('processPastEvents', network, contract.address, since_block, to_block, filter, retryCount > 0 ? `(retry ${retryCount})` : '');
 	try {
 		var events = await contract.queryFilter(filter, since_block, to_block || 'latest');
 	}
@@ -1084,14 +1348,25 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 		console.log(`processPastEvents failed`, network, contract.address, since_block, to_block, e);
 		const errMsg = e.toString();
 		if (isRateLimitError(errMsg)) {
-			console.log(`will retry later`);
-			await wait(100);
-			return processPastEvents(contract, filter, since_block, to_block, thisArg, handler);
+			if (retryCount >= maxRetries) {
+				console.error(`processPastEvents ${network} failed after ${maxRetries} retries (rate limit), throwing error`);
+				throw e;
+			}
+			console.log(`will retry later (rate limit, attempt ${retryCount + 1}/${maxRetries})`);
+			const delay = Math.min(100 * Math.pow(2, retryCount), 5000); // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1.6s, 3.2s, 5s max
+			await wait(delay);
+			return processPastEvents(contract, filter, since_block, to_block, thisArg, handler, retryCount + 1);
 		}
 		if (errMsg.includes("internal error") || errMsg.includes("temporarily unavailable")) {
-			console.log(`transient, will retry later`);
-			await wait(10_000);
-			return processPastEvents(contract, filter, since_block, to_block, thisArg, handler);
+			if (retryCount >= maxRetries) {
+				console.error(`processPastEvents ${network} failed after ${maxRetries} retries (internal error), throwing error`);
+				throw e;
+			}
+			console.log(`transient, will retry later (attempt ${retryCount + 1}/${maxRetries})`);
+			const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s max
+			console.log(`Waiting ${delay}ms before retry...`);
+			await wait(delay);
+			return processPastEvents(contract, filter, since_block, to_block, thisArg, handler, retryCount + 1);
 		}
 		throw e;
 	}

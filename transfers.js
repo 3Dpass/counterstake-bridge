@@ -1290,22 +1290,34 @@ const setup3DPassBridges = require('./setup_3dpass_bridges_from_registry.js');
 
 async function start() {
 	networkApi.Obyte = new Obyte();
-	if (!process.env.testnet)
+	
+	// Initialize networks with staggered delays to avoid connection conflicts
+	// This helps prevent WebSocket server-side rate limiting or connection limits
+	if (!process.env.testnet) {
 		networkApi.Ethereum = new Ethereum();
-	if (!conf.disableBSC)
+		await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before next chain
+	}
+	
+	if (!conf.disableBSC) {
 		networkApi.BSC = new BSC();
+		await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before next chain
+	}
+	
 	if (!conf.disablePolygon)
 		networkApi.Polygon = new Polygon();
 	if (!conf.disableKava)
 		networkApi.Kava = new Kava();
-	if (!conf.disableThreeDPass)
+	if (!conf.disableThreeDPass) {
 		networkApi['3DPass'] = new ThreeDPass();
+		await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay after last chain
+	}
 
 	// Note: 3DPass Registry discovery moved to after factory monitoring starts
 	// to ensure proper timing and network connectivity
 
 	let caughtUp = {};
 	let disconnected_ts = {};
+	let reconnectAttempts = {}; // Track reconnection attempts for exponential backoff
 
 	setInterval(() => {
 		console.log('disconnected networks', disconnected_ts);
@@ -1319,25 +1331,132 @@ async function start() {
 	// reconnect to Ethereum websocket
 	eventBus.on('network_disconnected', async (network) => {
 		if (!caughtUp[network]) {
-			throw Error(`${network} disconnected before having caught up`);
+			console.log(`⚠️  ${network} disconnected during catch-up - will retry catch-up process`);
+			// Don't throw error, instead retry the catch-up process
+			setTimeout(async () => {
+				try {
+					console.log(`🔄 Retrying catch-up for ${network}...`);
+					
+					// Check if network instance still exists and is connected
+					if (!networkApi[network]) {
+						console.log(`⚠️  ${network} instance not found, will recreate it`);
+						// Recreate network instance
+						if (network === 'Ethereum')
+							networkApi.Ethereum = new Ethereum();
+						else if (network === 'BSC')
+							networkApi.BSC = new BSC();
+						else if (network === 'Polygon')
+							networkApi.Polygon = new Polygon();
+						else if (network === 'Kava')
+							networkApi.Kava = new Kava();
+						else if (network === '3DPass')
+							networkApi['3DPass'] = new ThreeDPass();
+						
+						// Wait for connection and restart factory monitoring
+						if (network === 'BSC') {
+							console.log(`⏳ Waiting 10 seconds for ${network} connection to stabilize...`);
+							await new Promise(resolve => setTimeout(resolve, 10000));
+						} else {
+							await new Promise(resolve => setTimeout(resolve, 3000));
+						}
+						
+						// Restart factory monitoring
+						await networkApi[network].startWatchingSymbolUpdates();
+						await networkApi[network].startWatchingFactories();
+						await networkApi[network].startWatchingAssistantFactories();
+					}
+					
+					await networkApi[network].catchup();
+					caughtUp[network] = true;
+					console.log(`✅ ${network} catch-up completed successfully`);
+				} catch (error) {
+					console.log(`❌ ${network} catch-up retry failed:`, error.message);
+					// If retry fails, we'll try again on the next disconnection
+				}
+			}, 5000); // Wait 5 seconds before retrying
+			return;
 		}
-		console.log('will reconnect to', network);
+		
+		// Calculate exponential backoff delay for BSC (and other networks)
+		const attempt = reconnectAttempts[network] || 0;
+		const maxDelay = network === 'BSC' ? 300000 : 60000; // 5 minutes max for BSC, 1 minute for others
+		const baseDelay = network === 'BSC' ? 2000 : 5000; // Start with 2s for BSC, 5s for others
+		const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+		
+		console.log(`🔄 ${network} disconnected - will reconnect in ${delay/1000}s (attempt ${attempt + 1})`);
+		
 		if (!disconnected_ts[network])
 			disconnected_ts[network] = Date.now();
-		if (network === 'Ethereum')
-			networkApi.Ethereum = new Ethereum();
-		else if (network === 'BSC')
-			networkApi.BSC = new BSC();
-		else if (network === 'Polygon')
-			networkApi.Polygon = new Polygon();
-		else if (network === 'Kava')
-			networkApi.Kava = new Kava();
-		else if (network === '3DPass')
-			networkApi['3DPass'] = new ThreeDPass();
-		else
-			throw Error(`unknown network disconnected ${network}`);
-		await restartNetwork(network);
-		delete disconnected_ts[network];
+		
+		// Increment attempt counter
+		reconnectAttempts[network] = attempt + 1;
+		
+		setTimeout(async () => {
+			try {
+				console.log(`🔌 Reconnecting to ${network}...`);
+				
+				// Clean up old instance if it exists
+				if (networkApi[network]) {
+					try {
+						networkApi[network].forget();
+					} catch (e) {
+						console.log(`⚠️  Error forgetting ${network} instance:`, e.message);
+					}
+				}
+				
+				// Create new instance
+				if (network === 'Ethereum')
+					networkApi.Ethereum = new Ethereum();
+				else if (network === 'BSC')
+					networkApi.BSC = new BSC();
+				else if (network === 'Polygon')
+					networkApi.Polygon = new Polygon();
+				else if (network === 'Kava')
+					networkApi.Kava = new Kava();
+				else if (network === '3DPass')
+					networkApi['3DPass'] = new ThreeDPass();
+				else
+					throw Error(`unknown network disconnected ${network}`);
+				
+				// Wait a bit for WebSocket to connect
+				await new Promise(resolve => setTimeout(resolve, 3000));
+				
+				// Restart network monitoring
+				await restartNetwork(network);
+				
+				// If 3DPass reconnected, retry bridge discovery
+				if (network === '3DPass') {
+					console.log(`🔍 Retrying 3DPass bridge discovery after reconnection...`);
+					try {
+						// Wait a bit for connection to stabilize
+						await new Promise(resolve => setTimeout(resolve, 5000));
+						
+						// Check if still connected
+						const provider = networkApi['3DPass']?.getProvider();
+						const isConnected = provider && provider._websocket && provider._websocket.readyState === 1;
+						
+						if (isConnected) {
+							await setup3DPassBridges.setupCorrect3DPassBridges(networkApi);
+							console.log('✅ 3DPass bridge discovery completed after reconnection');
+						} else {
+							console.log(`⚠️  3DPass disconnected again, will retry discovery on next reconnection`);
+						}
+					} catch (err) {
+						console.error(`❌ 3DPass bridge discovery failed after reconnection:`, err.message);
+						console.log(`   Will retry on next reconnection`);
+					}
+				}
+				
+				// Reset attempt counter on successful reconnection
+				delete reconnectAttempts[network];
+				delete disconnected_ts[network];
+				console.log(`✅ ${network} reconnected and restarted successfully`);
+			} catch (error) {
+				console.error(`❌ Failed to reconnect ${network}:`, error.message);
+				// Don't reset attempt counter, so next attempt will use longer delay
+				// The event will be emitted again if connection fails
+			}
+		}, delay);
 	});
 
 	// some bridges might be incomplete: only import or only export
@@ -1359,31 +1478,202 @@ async function start() {
 	}
 
 	let starters = [];
-	for (let net in networkApi) {
+	const networkNames = Object.keys(networkApi);
+	console.log(`📋 Networks to start: ${networkNames.join(', ')}`);
+	for (let net of networkNames) {
 		const f = async () => {
-			console.log(`starting`, net);
-			await networkApi[net].startWatchingSymbolUpdates();
-			await networkApi[net].startWatchingFactories();
-			await networkApi[net].startWatchingAssistantFactories();
-			// called after adding watched addresses so that they are included in the first history request
-			if (net === 'Obyte')
-				network.start();
-			console.log(`started`, net);
+			try {
+				if (!networkApi[net]) {
+					console.log(`⚠️  ${net} not available in networkApi, skipping`);
+					return;
+				}
+				console.log(`starting`, net);
+				
+				// For BSC, wait a bit longer for connection to stabilize before starting factory monitoring
+				// BSC tends to disconnect quickly if we start monitoring too soon
+				if (net === 'BSC') {
+					console.log(`⏳ Waiting 10 seconds for BSC connection to stabilize before starting factory monitoring...`);
+					await new Promise(resolve => setTimeout(resolve, 10000));
+					
+					// Check if BSC is still connected before proceeding
+					const provider = networkApi[net].getProvider();
+					const isConnected = provider && provider._websocket && provider._websocket.readyState === 1;
+					if (!isConnected) {
+						console.log(`⚠️  BSC disconnected during stabilization wait, but will proceed with factory monitoring anyway`);
+						console.log(`   Factory monitoring will use Etherscan API fallback since WebSocket is disconnected`);
+					} else {
+						console.log(`✅ BSC connection stable, proceeding with factory monitoring`);
+					}
+				}
+				
+				// Add timeout to prevent hanging indefinitely
+				// BSC might need more time due to etherscan API calls, so use longer timeout
+				const timeoutDuration = net === 'BSC' ? 120000 : 60000; // 2 minutes for BSC, 1 minute for others
+				console.log(`📊 ${net} startup timeout: ${timeoutDuration/1000}s`);
+				const startPromise = Promise.all([
+					networkApi[net].startWatchingSymbolUpdates(),
+					networkApi[net].startWatchingFactories(),
+					networkApi[net].startWatchingAssistantFactories()
+				]);
+				
+				// Wait with a configurable timeout
+				await Promise.race([
+					startPromise,
+					new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout starting ${net} after ${timeoutDuration/1000}s`)), timeoutDuration))
+				]);
+				
+				// called after adding watched addresses so that they are included in the first history request
+				if (net === 'Obyte')
+					network.start();
+				console.log(`started`, net);
+			} catch (err) {
+				console.error(`❌ Failed to start ${net}:`, err.message);
+				// Don't throw - allow other networks to continue
+				console.error(`Error stack for ${net}:`, err.stack);
+			}
 		};
 		starters.push(f());
 	}
-	await Promise.all(starters);
+	// Use allSettled instead of all to prevent one network failure from blocking others
+	const results = await Promise.allSettled(starters);
+	// Log results
+	for (let i = 0; i < networkNames.length; i++) {
+		const net = networkNames[i];
+		const result = results[i];
+		if (result.status === 'rejected') {
+			console.error(`❌ ${net} startup rejected:`, result.reason?.message || result.reason);
+		} else if (result.status === 'fulfilled') {
+			console.log(`✓ ${net} startup completed`);
+		}
+	}
+	console.log('✅ All network factory monitoring started (or attempted)');
 
-	// Discover bridges from 3DPass Registry after factory monitoring has started
-	// This ensures proper timing and network connectivity
+	// Wait for networks to be stable before running 3DPass bridge discovery
+	// This ensures WebSocket connections are established and stable
+	console.log('⏳ Waiting for networks to stabilize before 3DPass bridge discovery...');
+	const waitForStability = async (network, timeoutMs = 30000) => {
+		const startTime = Date.now();
+		let lastState = null;
+		while (Date.now() - startTime < timeoutMs) {
+			try {
+				// Check if network instance exists
+				if (!networkApi[network]) {
+					console.log(`  ⚠️  ${network} not available, skipping stability check`);
+					return false;
+				}
+				
+				const provider = networkApi[network]?.getProvider();
+				if (provider && provider._websocket) {
+					const readyState = provider._websocket.readyState;
+					if (readyState !== lastState) {
+						console.log(`  🔄 ${network} WebSocket state changed: ${readyState} (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED)`);
+						lastState = readyState;
+					}
+					
+					if (readyState === 1) {
+						// WebSocket is open and ready - wait a bit longer to ensure it's stable
+						console.log(`  ✓ ${network} WebSocket connection is open, waiting 5 seconds to ensure stability...`);
+						await new Promise(resolve => setTimeout(resolve, 5000));
+						
+						// Check again after waiting
+						if (provider._websocket.readyState === 1) {
+							console.log(`  ✅ ${network} WebSocket connection is stable`);
+							return true;
+						} else {
+							console.log(`  ⚠️  ${network} WebSocket disconnected during stability wait`);
+							return false;
+						}
+					} else if (readyState === 3) {
+						// WebSocket is already closed/disconnected
+						console.log(`  ⚠️  ${network} WebSocket is disconnected, skipping stability check`);
+						return false;
+					}
+				} else {
+					console.log(`  ⚠️  ${network} provider or WebSocket not available`);
+					return false;
+				}
+				
+				// Wait a bit before checking again
+				await new Promise(resolve => setTimeout(resolve, 1000));
+			} catch (err) {
+				console.log(`  ⚠️  Error checking ${network} stability:`, err.message);
+				return false;
+			}
+		}
+		console.log(`  ⚠️  ${network} stability check timed out after ${timeoutMs/1000}s`);
+		return false;
+	};
+	
+	// Wait for BSC and 3DPass to be stable if they're enabled
+	// Use Promise.allSettled to ensure we don't block if one network fails
+	const stabilityChecks = [];
+	if (!conf.disableBSC && networkApi.BSC) {
+		stabilityChecks.push(waitForStability('BSC').catch(err => {
+			console.log(`  ⚠️  BSC stability check failed: ${err.message}`);
+			return false;
+		}));
+	}
 	if (!conf.disableThreeDPass && networkApi['3DPass']) {
-		try {
-			console.log('🔍 Discovering bridges from 3DPass Registry...');
-			await setup3DPassBridges.setupCorrect3DPassBridges();
-			console.log('✅ 3DPass Registry discovery completed successfully');
-		} catch (err) {
-			console.error('❌ Failed to discover bridges from 3DPass Registry:', err.message);
-			console.error('Error stack:', err.stack);
+		stabilityChecks.push(waitForStability('3DPass').catch(err => {
+			console.log(`  ⚠️  3DPass stability check failed: ${err.message}`);
+			return false;
+		}));
+	}
+	
+	if (stabilityChecks.length > 0) {
+		const stabilityResults = await Promise.allSettled(stabilityChecks);
+		console.log('📊 Stability check results:', stabilityResults.map((r, i) => {
+			const networkName = i === 0 && !conf.disableBSC ? 'BSC' : '3DPass';
+			return {
+				network: networkName,
+				stable: r.status === 'fulfilled' && r.value === true
+			};
+		}));
+	}
+	console.log('✅ Network stability check completed');
+
+	// 3DPass bridge discovery - retry if it fails or if 3DPass disconnects
+	if (!conf.disableThreeDPass && networkApi['3DPass']) {
+		const maxDiscoveryRetries = 3;
+		let discoverySuccess = false;
+		
+		for (let attempt = 1; attempt <= maxDiscoveryRetries; attempt++) {
+			try {
+				// Check if 3DPass is still connected before discovery
+				const provider = networkApi['3DPass']?.getProvider();
+				const isConnected = provider && provider._websocket && provider._websocket.readyState === 1;
+				
+				if (!isConnected) {
+					console.log(`⚠️  3DPass disconnected before discovery attempt ${attempt}, waiting for reconnection...`);
+					// Wait for potential reconnection with exponential backoff
+					const waitTime = Math.min(10000 * Math.pow(2, attempt - 1), 60000); // 10s, 20s, 40s, max 60s
+					console.log(`⏳ Waiting ${waitTime/1000}s before retry ${attempt + 1}...`);
+					await new Promise(resolve => setTimeout(resolve, waitTime));
+					continue;
+				}
+				
+				console.log(`🔍 Discovering bridges from 3DPass Registry (attempt ${attempt}/${maxDiscoveryRetries})...`);
+				// Pass networkApi to use existing providers and avoid creating duplicate connections
+				await setup3DPassBridges.setupCorrect3DPassBridges(networkApi);
+				console.log('✅ 3DPass Registry discovery completed successfully');
+				discoverySuccess = true;
+				break;
+			} catch (err) {
+				console.error(`❌ 3DPass Registry discovery attempt ${attempt} failed:`, err.message);
+				console.error(`   Error details:`, err);
+				if (attempt < maxDiscoveryRetries) {
+					const waitTime = Math.min(10000 * Math.pow(2, attempt - 1), 60000); // 10s, 20s, 40s, max 60s
+					console.log(`⏳ Waiting ${waitTime/1000}s before retry ${attempt + 1}...`);
+					await new Promise(resolve => setTimeout(resolve, waitTime));
+				} else {
+					console.error('❌ Failed to discover bridges from 3DPass Registry after all retries');
+					console.error('Error stack:', err.stack);
+				}
+			}
+		}
+		
+		if (!discoverySuccess) {
+			console.log(`⚠️  3DPass bridge discovery will be retried when 3DPass reconnects`);
 		}
 	}
 
@@ -1393,8 +1683,29 @@ async function start() {
 	let catchups = [];
 	for (let net in networkApi) {
 		const f = async () => {
-			await networkApi[net].catchup();
-			caughtUp[net] = true;
+			let retryCount = 0;
+			const maxRetries = 3;
+			
+			while (retryCount < maxRetries) {
+				try {
+					console.log(`🔄 Starting catch-up for ${net} (attempt ${retryCount + 1}/${maxRetries})`);
+					await networkApi[net].catchup();
+					caughtUp[net] = true;
+					console.log(`✅ ${net} catch-up completed successfully`);
+					break;
+				} catch (error) {
+					retryCount++;
+					console.log(`❌ ${net} catch-up attempt ${retryCount} failed:`, error.message);
+					
+					if (retryCount < maxRetries) {
+						console.log(`⏳ Waiting 10 seconds before retry ${retryCount + 1} for ${net}...`);
+						await new Promise(resolve => setTimeout(resolve, 10000));
+					} else {
+						console.log(`💥 ${net} catch-up failed after ${maxRetries} attempts - will retry on disconnection`);
+						// Don't set caughtUp[net] = true, so it will retry on disconnection
+					}
+				}
+			}
 		};
 		catchups.push(f());
 	}
