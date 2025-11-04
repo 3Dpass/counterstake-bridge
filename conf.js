@@ -182,6 +182,11 @@ exports.max_exposure = 0.5; // up to 50% of the balance in asset can be sent in 
 exports.recheck_timeout = 15 * 60 * 1000; // 15 mins: when to recheck if a tx was removed
 //exports.transfer_wait_time = 30 * 60; // 30 mins: how long to wait for a claimed transfer if it was not immediately found
 
+// Progressive retry strategy for missing transfers during catch-up
+exports.catchup_retry_max_before_refresh = 3; // Number of retries before calling refresh() to expand search range
+exports.catchup_retry_max_total = 10; // Total number of retries before giving up and logging as invalid claim (about 10 minutes during catch-up)
+exports.catchup_retry_interval = 60; // Seconds between retries during catch-up
+
 // Sync statistics logging during catchup
 exports.statsLogPeriod = 10 * 1000; // 10 seconds: how often to log sync stats during catchup
 

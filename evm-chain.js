@@ -1057,6 +1057,111 @@ class EvmChain {
 		return count;
 	}
 
+	/**
+	 * Process events from specific transactions using transaction receipts
+	 * This is a fallback when block range queries fail
+	 * @param {Object} contract - Contract instance
+	 * @param {Array} transactionHashes - Array of transaction hashes to query
+	 * @param {Object} thisArg - Context object (network instance)
+	 * @param {Function} handler - Event handler function
+	 * @param {Object} filter - Optional event filter to match specific event types
+	 * @returns {Promise<number>} Number of events processed
+	 */
+	async processEventsFromTransactions(contract, transactionHashes, thisArg, handler, filter = null) {
+		const network = thisArg ? thisArg.network : null;
+		const contractAddress = contract.address.toLowerCase();
+		let eventCount = 0;
+		
+		console.log(`processEventsFromTransactions ${network}: processing ${transactionHashes.length} transactions for contract ${contractAddress}${filter ? ' with filter' : ''}`);
+		
+		// Extract event topic from filter if provided (for filtering specific event types)
+		let targetEventTopic = null;
+		if (filter && filter.topics && filter.topics[0]) {
+			// Filter topics[0] is the event signature hash
+			targetEventTopic = filter.topics[0];
+		}
+		
+		for (const txHash of transactionHashes) {
+			try {
+				// Get transaction receipt to access logs
+				const receipt = await thisArg.getProvider().getTransactionReceipt(txHash);
+				
+				if (!receipt || !receipt.logs) {
+					console.log(`  ⚠️  No receipt or logs for tx ${txHash.substring(0, 10)}...`);
+					continue;
+				}
+				
+				// Filter logs by contract address
+				const contractLogs = receipt.logs.filter(log => {
+					if (!log.address || log.address.toLowerCase() !== contractAddress) {
+						return false;
+					}
+					// If we have a filter, also check if the log topic matches
+					if (targetEventTopic && log.topics && log.topics[0] !== targetEventTopic) {
+						return false;
+					}
+					return true;
+				});
+				
+				if (contractLogs.length === 0) {
+					continue; // No matching logs from this contract
+				}
+				
+				// Parse each log as an event
+				for (const log of contractLogs) {
+					try {
+						// Try to parse the log as an event
+						const parsedLog = contract.interface.parseLog(log);
+						
+						if (parsedLog) {
+							// If we have a filter, check if this event matches
+							if (filter) {
+								// Check if event name matches (if filter has event name)
+								// For now, we rely on topic matching which was done above
+								// But we could also check event name if needed
+							}
+							
+							// Create an event-like object that matches the handler signature
+							const event = {
+								...parsedLog,
+								transactionHash: txHash,
+								blockNumber: receipt.blockNumber,
+								blockHash: receipt.blockHash,
+								address: log.address,
+								args: parsedLog.args,
+								event: parsedLog.name,
+								eventSignature: parsedLog.signature,
+								removed: false
+							};
+							
+							// Call handler with event args (matching the format from queryFilter)
+							const handlerArgs = parsedLog.args.slice();
+							handlerArgs.push(event);
+							
+							await handler.apply(thisArg, handlerArgs);
+							eventCount++;
+						}
+					} catch (parseError) {
+						// Log parsing failed - might not match any event signature
+						// This is normal for logs that don't match our contract's events
+						continue;
+					}
+				}
+				
+				// Small delay between transactions to avoid rate limiting
+				await wait(50);
+				
+			} catch (error) {
+				console.error(`  ❌ Error processing tx ${txHash.substring(0, 10)}...: ${error.message}`);
+				// Continue with next transaction
+				continue;
+			}
+		}
+		
+		console.log(`processEventsFromTransactions ${network}: processed ${eventCount} events from ${transactionHashes.length} transactions`);
+		return eventCount;
+	}
+
 	// called on start-up to handle missed transfers
 	async catchup() {
 		console.log(`will catch up ${this.network}, last caught up block ${this.#last_caughtup_block}`);
@@ -1340,6 +1445,50 @@ function getType(address, bridge) {
 async function processPastEvents(contract, filter, since_block, to_block, thisArg, handler, retryCount = 0) {
 	const network = thisArg ? thisArg.network : null;
 	const maxRetries = 10; // Maximum retries for transient errors
+	const MAX_BLOCK_RANGE = 950; // Maximum blocks per query (slightly less than typical 1000 limit to be safe)
+	
+	// If to_block is 'latest' or 0, we need to get the current block number
+	let actual_to_block = to_block;
+	if (!to_block || to_block === 'latest' || to_block === 0) {
+		if (thisArg) {
+			actual_to_block = await thisArg.getBlockNumber();
+		} else {
+			// Fallback: use a reasonable default if we can't get block number
+			actual_to_block = since_block + MAX_BLOCK_RANGE;
+		}
+	}
+	
+	// Calculate block range
+	const blockRange = actual_to_block - since_block;
+	
+	// If range exceeds limit, chunk it into smaller queries
+	if (blockRange > MAX_BLOCK_RANGE) {
+		console.log(`processPastEvents ${network}: block range ${blockRange} exceeds limit ${MAX_BLOCK_RANGE}, chunking into smaller queries`);
+		let totalEvents = 0;
+		let current_from = since_block;
+		
+		while (current_from < actual_to_block) {
+			const current_to = Math.min(current_from + MAX_BLOCK_RANGE - 1, actual_to_block);
+			console.log(`processPastEvents ${network}: processing chunk ${current_from} to ${current_to} (${current_to - current_from + 1} blocks)`);
+			
+			try {
+				const chunkEvents = await processPastEvents(contract, filter, current_from, current_to, thisArg, handler, 0);
+				totalEvents += chunkEvents;
+			} catch (e) {
+				console.error(`processPastEvents ${network}: chunk ${current_from}-${current_to} failed:`, e.message);
+				// Continue with next chunk even if one fails
+			}
+			
+			current_from = current_to + 1;
+			// Small delay between chunks to avoid rate limiting
+			await wait(50);
+		}
+		
+		console.log(`processPastEvents ${network}: completed chunked processing, found ${totalEvents} total events`);
+		return totalEvents;
+	}
+	
+	// Normal processing for ranges within limit
 	console.log('processPastEvents', network, contract.address, since_block, to_block, filter, retryCount > 0 ? `(retry ${retryCount})` : '');
 	try {
 		var events = await contract.queryFilter(filter, since_block, to_block || 'latest');
@@ -1347,6 +1496,74 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 	catch (e) {
 		console.log(`processPastEvents failed`, network, contract.address, since_block, to_block, e);
 		const errMsg = e.toString();
+		
+		// Check if error is due to block range limit
+		if (errMsg.includes("max range limit") || errMsg.includes("Exceeded max range") || errMsg.includes("query returned more than")) {
+			// First try chunking if range is large
+			if (blockRange > MAX_BLOCK_RANGE) {
+				console.log(`processPastEvents ${network}: block range limit error detected for range ${blockRange}, chunking into smaller pieces`);
+				// Chunk the range - this will recursively call processPastEvents with smaller chunks
+				let totalEvents = 0;
+				let current_from = since_block;
+				
+				while (current_from < actual_to_block) {
+					const current_to = Math.min(current_from + MAX_BLOCK_RANGE - 1, actual_to_block);
+					console.log(`processPastEvents ${network}: processing chunk ${current_from} to ${current_to} after range limit error`);
+					
+					try {
+						const chunkEvents = await processPastEvents(contract, filter, current_from, current_to, thisArg, handler, 0);
+						totalEvents += chunkEvents;
+					} catch (chunkError) {
+						console.error(`processPastEvents ${network}: chunk ${current_from}-${current_to} failed:`, chunkError.message);
+						// Continue with next chunk even if one fails
+					}
+					
+					current_from = current_to + 1;
+					await wait(50);
+				}
+				
+				return totalEvents;
+			}
+			
+			// If chunking isn't possible or also fails, try transaction-based fallback
+			if (thisArg && thisArg.getAddressBlocks) {
+				console.log(`processPastEvents ${network}: block range limit error, attempting transaction-based fallback...`);
+				try {
+					// Try to get transaction hashes from HTML parser fallback
+					const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
+					const parserResult = await parseBSCScanBlockNumbers(contract.address, { 
+						delay: 2000, 
+						retries: 2,
+						includeTransactions: true
+					});
+					
+					if (parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
+						// Filter transactions by block range
+						const relevantTxs = parserResult.transactions
+							.filter(tx => tx.blockNumber >= since_block && tx.blockNumber <= actual_to_block)
+							.map(tx => tx.txHash);
+						
+						if (relevantTxs.length > 0) {
+							console.log(`processPastEvents ${network}: found ${relevantTxs.length} transactions in range, querying individually...`);
+							// Pass the filter to only process matching events
+							const txEventCount = await thisArg.processEventsFromTransactions(contract, relevantTxs, thisArg, handler, filter);
+							if (txEventCount > 0) {
+								console.log(`processPastEvents ${network}: transaction-based fallback processed ${txEventCount} events`);
+								return txEventCount;
+							}
+						}
+					}
+				} catch (fallbackError) {
+					console.log(`processPastEvents ${network}: transaction-based fallback failed:`, fallbackError.message);
+					// Continue to throw original error
+				}
+			}
+			
+			// If range is already small but still failing, this might be a different issue
+			console.error(`processPastEvents ${network}: block range limit error but range is only ${blockRange} blocks, this may indicate a provider issue`);
+			throw e;
+		}
+		
 		if (isRateLimitError(errMsg)) {
 			if (retryCount >= maxRetries) {
 				console.error(`processPastEvents ${network} failed after ${maxRetries} retries (rate limit), throwing error`);

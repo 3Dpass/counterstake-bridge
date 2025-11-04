@@ -23,6 +23,7 @@ let bCatchingUp = true;
 let bCatchingUpOrHandlingPostponedEvents = true;
 let unconfirmedClaims = {}; // transfer_id => {claim_txid, ts}
 let unconfirmeWithdrawals = {};
+let claimRetryCounts = {}; // claim key => retry count for tracking missing transfers during catch-up
 
 /**
  * Get current bridge and transfer statistics for sync logging
@@ -66,6 +67,88 @@ async function getBridge(bridge_id) {
 	return bridge;
 }
 
+/**
+ * Link orphaned claims (claims with null transfer_id) to a newly found transfer
+ * This handles the case where a claim was received during catch-up but the transfer wasn't found yet
+ * @param {Object} transfer - The transfer object that was just added
+ * @param {number} transfer_id - The transfer_id of the newly inserted transfer
+ */
+async function linkOrphanedClaimsToTransfer(transfer, transfer_id) {
+	const { bridge_id, type, txid, txts, sender_address, dest_address } = transfer;
+	
+	try {
+		// Find orphaned claims (transfer_id IS NULL) that match this transfer's txid
+		const orphanedClaims = await db.query(
+			`SELECT * FROM claims 
+			WHERE bridge_id=? AND type=? AND txid=? AND txts=? AND sender_address=? AND dest_address=? 
+			AND transfer_id IS NULL`,
+			[bridge_id, type, txid, txts, sender_address, dest_address]
+		);
+		
+		if (orphanedClaims.length === 0) {
+			return; // No orphaned claims found
+		}
+		
+		console.log(`🔗 Found ${orphanedClaims.length} orphaned claim(s) matching transfer ${transfer_id} (txid ${txid})`);
+		
+		for (const claim of orphanedClaims) {
+			const { claim_num, bridge_id: claim_bridge_id, type: claim_type } = claim;
+			
+			// Verify the transfer matches the claim by checking amounts and decimals
+			const bridge = await getBridge(bridge_id);
+			const { home_asset_decimals, foreign_asset_decimals } = bridge;
+			const src_asset_decimals = type === 'expatriation' ? home_asset_decimals : foreign_asset_decimals;
+			const dst_asset_decimals = type === 'expatriation' ? foreign_asset_decimals : home_asset_decimals;
+			
+			// Get the transfer to verify amounts match
+			const [db_transfer] = await db.query("SELECT * FROM transfers WHERE transfer_id=?", [transfer_id]);
+			if (!db_transfer) {
+				console.log(`⚠️  Transfer ${transfer_id} not found when linking orphaned claim ${claim_num}`);
+				continue;
+			}
+			
+			// Check if amounts match (same logic as in handleNewClaim)
+			const transferAmount = BigNumber.from(db_transfer.amount);
+			const claimAmount = BigNumber.from(claim.amount);
+			const transferReward = BigNumber.from(db_transfer.reward);
+			const claimReward = BigNumber.from(claim.reward);
+			
+			if (!amountsMatch(transferAmount, src_asset_decimals, claimAmount, dst_asset_decimals) ||
+				!amountsMatch(transferReward, src_asset_decimals, claimReward, dst_asset_decimals)) {
+				console.log(`⚠️  Orphaned claim ${claim_num} amounts don't match transfer ${transfer_id}, skipping link`);
+				continue;
+			}
+			
+			// Check if data matches
+			const network = type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
+			const api = networkApi[network];
+			if (api && !api.dataMatches(db_transfer.data, claim.data)) {
+				console.log(`⚠️  Orphaned claim ${claim_num} data doesn't match transfer ${transfer_id}, skipping link`);
+				continue;
+			}
+			
+			// Link the claim to the transfer
+			console.log(`✅ Linking orphaned claim ${claim_num} to transfer ${transfer_id} (txid ${txid})`);
+			await db.query("UPDATE claims SET transfer_id=? WHERE claim_num=? AND bridge_id=? AND type=?", 
+				[transfer_id, claim_num, claim_bridge_id, claim_type]);
+			
+			// Clear retry count for this claim
+			const claimKey = `${claim_bridge_id}-${claim_type}-${claim_num}`;
+			delete claimRetryCounts[claimKey];
+			
+			console.log(`✅ Successfully linked orphaned claim ${claim_num} to transfer ${transfer_id}`);
+			
+			// Note: We don't re-attack the claim here because:
+			// 1. The claim may have already been challenged/attacked
+			// 2. The claim status should be checked via checkUnfinishedClaims() or by monitoring the chain
+			// 3. If the claim was invalid, it's already been handled
+		}
+	} catch (error) {
+		console.error(`❌ Error linking orphaned claims to transfer ${transfer_id}:`, error.message);
+		// Don't throw - this is a recovery mechanism, shouldn't block transfer processing
+	}
+}
+
 
 async function getBridgeByAddress(bridge_aa, bThrowIfNotFound) {
 	const [bridge] = await db.query("SELECT * FROM bridges WHERE export_aa=? OR import_aa=?", [bridge_aa, bridge_aa]);
@@ -100,6 +183,12 @@ async function addTransfer(transfer, bRewritable) {
 	}
 	console.log(`emitting txid`, txid);
 	eventBus.emit(txid);
+	
+	// If this is a newly inserted transfer, check for orphaned claims (claims with null transfer_id) that match this transfer
+	if (bInserted) {
+		await linkOrphanedClaimsToTransfer(transfer, res.insertId);
+	}
+	
 	if (bCatchingUp)
 		return console.log(`will not try to claim transfer ${txid} as we are still catching up`);
 	if (bInserted)
@@ -478,6 +567,14 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 		transfers = await findTransfers();
 	if (!transfers[0] && amountsValid && txidValid) {
 		console.log(`no transfer found matching claim ${claim_num} of txid ${txid} in claim tx ${claim_txid} bridge ${bridge_id}`);
+		
+		// Track retry count for this claim to prevent infinite loops during catch-up
+		const claimKey = `${bridge_id}-${type}-${claim_num}`;
+		const retryCount = claimRetryCounts[claimKey] || 0;
+		const maxRetriesBeforeRefresh = conf.catchup_retry_max_before_refresh || 3;
+		const maxRetriesTotal = conf.catchup_retry_max_total || 10;
+		const retryInterval = conf.catchup_retry_interval || 60;
+		
 		const retryAfterTxOrTimeout = (timeout) => {
 			const t = setTimeout(tryAgain, timeout * 1000);
 			eventBus.once(txid, () => {
@@ -486,24 +583,70 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 				tryAgain();
 			});
 		};
+		
 		// it might be not confirmed yet
 	//	const tx = await networkApi[opposite_network].getTransaction(txid);
 		const stable_ts = await networkApi[opposite_network].getLastStableTimestamp();
 		const bTooYoung = txts >= stable_ts;
-		if (txts < Date.now() / 1000 + conf.max_ts_error && (bTooYoung || bCatchingUp)) {
-			// schedule another check
-			const timeout = bTooYoung ? (txts - stable_ts + 60) : 60;
-			retryAfterTxOrTimeout(timeout);
-			return unlock(`the claimed transfer ${claim_num} ${bTooYoung ? 'is too young' : 'not found while catching up'}, will check again in ${timeout} s, maybe it appears in the source chain`);
+		
+		// If we've exceeded max retries, give up and log the claim without transfer
+		if (retryCount >= maxRetriesTotal) {
+			console.log(`⚠️  Claim ${claim_num} (txid ${txid}) has been retried ${retryCount} times without finding transfer. Giving up - will log as invalid claim.`);
+			// Clear retry count and proceed to log the claim as invalid (no transfer_id)
+			delete claimRetryCounts[claimKey];
+			// Continue to the end of the function where it will be logged as invalid claim
 		}
-		const bMightUpdate = await networkApi[opposite_network].refresh(txid);
-		if (bMightUpdate) { // try again
-			console.log(`will try to find the transfer ${txid} again`);
-			// if we see a new transfer after refresh, we'll try to claim it but the destination network is still locked by mutex here. We'll finish here first, insert this claim, unlock the mutex, and our claim attempt will see that a claim already exists
-			transfers = await findTransfers();
-			if (transfers.length === 0) { // events might be emitted but not handled yet
-				await wait(30000);
+		// If we've retried several times, try refresh() to expand search range even during catch-up
+		else if (retryCount >= maxRetriesBeforeRefresh && bCatchingUp && !bTooYoung) {
+			console.log(`🔄 Claim ${claim_num} (txid ${txid}) retried ${retryCount} times during catch-up. Attempting refresh() to expand search range...`);
+			claimRetryCounts[claimKey] = retryCount + 1;
+			
+			const bMightUpdate = await networkApi[opposite_network].refresh(txid);
+			if (bMightUpdate) {
+				console.log(`will try to find the transfer ${txid} again after refresh`);
 				transfers = await findTransfers();
+				if (transfers.length === 0) {
+					// events might be emitted but not handled yet
+					await wait(30000);
+					transfers = await findTransfers();
+				}
+				if (transfers.length > 0) {
+					// Found it! Clear retry count
+					delete claimRetryCounts[claimKey];
+				} else {
+					// Still not found, retry again
+					retryAfterTxOrTimeout(retryInterval);
+					return unlock(`the claimed transfer ${claim_num} not found after refresh, will check again in ${retryInterval} s`);
+				}
+			} else {
+				// Refresh didn't help, continue with normal retry logic
+				retryAfterTxOrTimeout(retryInterval);
+				return unlock(`the claimed transfer ${claim_num} not found while catching up, refresh() returned false, will check again in ${retryInterval} s`);
+			}
+		}
+		// Normal retry logic for first few attempts or too-young transfers
+		else if (txts < Date.now() / 1000 + conf.max_ts_error && (bTooYoung || bCatchingUp)) {
+			// Increment retry count
+			claimRetryCounts[claimKey] = retryCount + 1;
+			
+			// schedule another check
+			const timeout = bTooYoung ? (txts - stable_ts + retryInterval) : retryInterval;
+			retryAfterTxOrTimeout(timeout);
+			return unlock(`the claimed transfer ${claim_num} ${bTooYoung ? 'is too young' : 'not found while catching up'} (retry ${retryCount + 1}/${maxRetriesTotal}), will check again in ${timeout} s, maybe it appears in the source chain`);
+		}
+		// After catch-up or if timestamp is too old, try refresh
+		else {
+			// Clear retry count since we're trying refresh now
+			delete claimRetryCounts[claimKey];
+			const bMightUpdate = await networkApi[opposite_network].refresh(txid);
+			if (bMightUpdate) { // try again
+				console.log(`will try to find the transfer ${txid} again`);
+				// if we see a new transfer after refresh, we'll try to claim it but the destination network is still locked by mutex here. We'll finish here first, insert this claim, unlock the mutex, and our claim attempt will see that a claim already exists
+				transfers = await findTransfers();
+				if (transfers.length === 0) { // events might be emitted but not handled yet
+					await wait(30000);
+					transfers = await findTransfers();
+				}
 			}
 		}
 	}
@@ -534,6 +677,10 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 		throw Error(`more than 1 transfer? ${JSON.stringify(transfers)}`);
 	const transfer = transfers[0];
 	if (transfer) {
+		// Clear retry count since we found the transfer
+		const claimKey = `${bridge_id}-${type}-${claim_num}`;
+		delete claimRetryCounts[claimKey];
+		
 		const min_transfer_age = networkApi[opposite_network].getMinTransferAge();
 		if (transfer && txts > Date.now() / 1000 - min_transfer_age) {
 			setTimeout(tryAgain, (txts + min_transfer_age + 1) * 1000 - Date.now());
@@ -1712,6 +1859,9 @@ async function start() {
 	await Promise.all(catchups);
 	console.log('catching up done');
 	bCatchingUp = false;
+	// Clear retry counts after catch-up completes (any remaining are likely invalid claims)
+	console.log(`Clearing ${Object.keys(claimRetryCounts).length} pending claim retry counts after catch-up completion`);
+	claimRetryCounts = {};
 	setTimeout(() => { bCatchingUpOrHandlingPostponedEvents = false; }, 3 * 60 * 1000);
 
 	await checkUnfinishedClaims();
