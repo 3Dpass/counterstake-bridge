@@ -1225,15 +1225,22 @@ async function handleNewImportAA(import_aa, home_network, home_asset, foreign_ne
 async function handleNewAssistantAA(side, assistant_aa, bridge_aa, network, manager, assistant_shares_asset, assistant_shares_symbol, version) {
 	const unlock = await mutex.lock('new_bridge');
 	console.log(`new assistant`, { side, assistant_aa, bridge_aa, manager, assistant_shares_asset, assistant_shares_symbol, version });
-	const [bridge] = await db.query(`SELECT * FROM bridges WHERE ${side}_aa=? AND ${side === 'export' ? 'home_network' : 'foreign_network'}=?`, [bridge_aa, network]);
+	// Normalize address to lowercase for case-insensitive comparison (addresses are case-insensitive)
+	const normalized_bridge_aa = bridge_aa ? bridge_aa.toLowerCase() : bridge_aa;
+	const [bridge] = await db.query(`SELECT * FROM bridges WHERE LOWER(${side}_aa)=? AND ${side === 'export' ? 'home_network' : 'foreign_network'}=?`, [normalized_bridge_aa, network]);
 	if (!bridge)
 		return unlock(`got new ${side} assistant for AA ${bridge_aa} but the bridge not found`);
 	const { bridge_id } = bridge;
 	// Use network name directly as networkApi key (network names are consistent)
 	const meIsManager = networkApi[network].getMyAddress() === manager;
+	
+	// Normalize addresses to lowercase before inserting/updating (addresses are case-insensitive)
+	const normalized_assistant_aa = assistant_aa ? assistant_aa.toLowerCase() : assistant_aa;
+	const normalized_bridge_aa_for_insert = bridge_aa ? bridge_aa.toLowerCase() : bridge_aa;
+	
 	if (meIsManager)
-		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, [assistant_aa, version, bridge_id]);
-	await db.query(`INSERT ${db.getIgnore()} INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [assistant_aa, bridge_id, bridge_aa, network, side, manager, assistant_shares_asset, assistant_shares_symbol, version]);
+		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, [normalized_assistant_aa, version, bridge_id]);
+	await db.query(`INSERT ${db.getIgnore()} INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [normalized_assistant_aa, bridge_id, normalized_bridge_aa_for_insert, network, side, manager, assistant_shares_asset, assistant_shares_symbol, version]);
 	unlock();
 	return meIsManager;
 }
