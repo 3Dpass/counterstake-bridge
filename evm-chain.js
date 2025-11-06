@@ -907,8 +907,8 @@ class EvmChain {
 
 			const processPastEventsOnContract = async (from_block, to_block) => {
 				console.log('factories processPastEventsOnContract', this.network, from_block, to_block);
-				await processPastEvents(contract, contract.filters.NewExport(), from_block, to_block, null, onNewExport);
-				await processPastEvents(contract, contract.filters.NewImport(), from_block, to_block, null, onNewImport);
+				await processPastEvents(contract, contract.filters.NewExport(), from_block, to_block, this, onNewExport);
+				await processPastEvents(contract, contract.filters.NewImport(), from_block, to_block, this, onNewImport);
 			};
 		
 			try {
@@ -1071,8 +1071,8 @@ class EvmChain {
 
 			const processPastEventsOnContract = async (from_block, to_block) => {
 				console.log('assistants processPastEventsOnContract', this.network, from_block, to_block);
-				await processPastEvents(contract, contract.filters.NewExportAssistant(), from_block, to_block, null, onNewExportAssistant);
-				await processPastEvents(contract, contract.filters.NewImportAssistant(), from_block, to_block, null, onNewImportAssistant);
+				await processPastEvents(contract, contract.filters.NewExportAssistant(), from_block, to_block, this, onNewExportAssistant);
+				await processPastEvents(contract, contract.filters.NewImportAssistant(), from_block, to_block, this, onNewImportAssistant);
 			};
 
 			try {
@@ -1251,24 +1251,113 @@ class EvmChain {
 						continue;
 					}
 					
-					// Build event args from log data
+					// Get event fragment from contract interface to get parameter order
+					let eventFragment = null;
+					try {
+						eventFragment = contract.interface.getEvent(eventName);
+					} catch (e) {
+						console.log(`processPastEventsFromParserCache ${network}: event ${eventName} not found in contract interface, trying to decode from raw data...`);
+					}
+					
+					// Build event args from log data in the correct order
+					// Event args must be in the order they appear in the event signature
+					// (indexed parameters first, then non-indexed parameters)
 					const eventArgs = [];
-					if (log.data) {
-						// Extract values from data object in order
-						// This is a simplified approach - may need refinement based on actual event signatures
-						for (const key in log.data) {
-							eventArgs.push(log.data[key]);
+					
+					if (eventFragment && eventFragment.inputs) {
+						// Use contract interface to get parameter order
+						// eventFragment.inputs is an array of parameters in the correct order
+						for (const input of eventFragment.inputs) {
+							let paramValue = null;
+							
+							if (input.indexed) {
+								// Indexed parameters are in topics (topics[0] is event signature, topics[1+] are indexed params)
+								const indexedIndex = eventFragment.inputs.filter(inp => inp.indexed).indexOf(input);
+								if (log.topics && log.topics.length > indexedIndex + 1) {
+									const topicValue = log.topics[indexedIndex + 1].value;
+									
+									// Decode topic value based on type
+									if (input.type === 'uint256' || input.type === 'uint128' || input.type === 'uint64' || input.type === 'uint32' || input.type === 'uint8') {
+										try {
+											const { BigNumber } = require('ethers');
+											paramValue = BigNumber.from(topicValue);
+										} catch (e) {
+											paramValue = topicValue;
+										}
+									} else if (input.type === 'address') {
+										paramValue = topicValue.toLowerCase();
+									} else {
+										paramValue = topicValue;
+									}
+								}
+							} else {
+								// Non-indexed parameters are in data
+								if (log.data && log.data[input.name] !== undefined) {
+									paramValue = log.data[input.name];
+									
+									// Convert to appropriate type if needed
+									if (input.type === 'uint256' || input.type === 'uint128' || input.type === 'uint64' || input.type === 'uint32' || input.type === 'uint8') {
+										try {
+											const { BigNumber } = require('ethers');
+											paramValue = BigNumber.from(paramValue);
+										} catch (e) {
+											// Keep as string if conversion fails
+										}
+									} else if (input.type === 'int256' || input.type === 'int128' || input.type === 'int64' || input.type === 'int32' || input.type === 'int8') {
+										try {
+											const { BigNumber } = require('ethers');
+											paramValue = BigNumber.from(paramValue);
+										} catch (e) {
+											// Keep as string if conversion fails
+										}
+									} else if (input.type === 'address') {
+										paramValue = paramValue.toLowerCase();
+									}
+								}
+							}
+							
+							eventArgs.push(paramValue);
+						}
+					} else {
+						// Fallback: if we can't get event fragment, try to use raw data decoding
+						if (log.rawData && log.rawData !== '0x') {
+							try {
+								// Try to decode using contract interface
+								const topics = log.topics ? log.topics.map(t => t.value) : [];
+								const decodedLog = contract.interface.parseLog({
+									topics: topics,
+									data: log.rawData
+								});
+								if (decodedLog) {
+									// Use decoded args from ethers (already in correct order)
+									eventArgs.push(...decodedLog.args);
+								}
+							} catch (decodeError) {
+								console.log(`processPastEventsFromParserCache ${network}: failed to decode raw data for ${eventName}: ${decodeError.message}`);
+								// Last resort: use data object values (may be in wrong order)
+								for (const key in log.data) {
+									eventArgs.push(log.data[key]);
+								}
+							}
+						} else {
+							// No raw data, use data object values (may be in wrong order)
+							for (const key in log.data) {
+								eventArgs.push(log.data[key]);
+							}
 						}
 					}
 					
 					// Create a mock event object similar to ethers event
+					// Normalize address to lowercase for consistency (addresses are case-insensitive)
+					const eventAddress = (log.address || contractAddress).toLowerCase();
 					const mockEvent = {
 						args: eventArgs,
 						event: eventName,
-						eventSignature: eventName,
-						address: log.address || contractAddress,
+						eventSignature: eventFragment ? eventFragment.format('full') : eventName,
+						address: eventAddress,
 						transactionHash: tx.txHash,
 						blockNumber: tx.blockNumber,
+						blockHash: null, // Not available from parser
 						topics: log.topics ? log.topics.map(t => t.value) : [],
 						data: log.rawData || '0x',
 						removed: false
@@ -1283,6 +1372,7 @@ class EvmChain {
 					
 				} catch (error) {
 					console.log(`processPastEventsFromParserCache ${network}: error processing event log from tx ${tx.txHash.substring(0, 10)}...: ${error.message}`);
+					console.log(`  Error stack:`, error.stack);
 					continue;
 				}
 			}
@@ -1660,9 +1750,14 @@ class EvmChain {
 
 function getType(address, bridge) {
 	const { bridge_id, export_aa, import_aa } = bridge;
-	if (export_aa && address === export_aa)
+	// Normalize addresses to lowercase for case-insensitive comparison (addresses are case-insensitive)
+	const normalizedAddress = address ? address.toLowerCase() : address;
+	const normalizedExportAa = export_aa ? export_aa.toLowerCase() : export_aa;
+	const normalizedImportAa = import_aa ? import_aa.toLowerCase() : import_aa;
+	
+	if (normalizedExportAa && normalizedAddress === normalizedExportAa)
 		return 'repatriation';
-	if (import_aa && address === import_aa)
+	if (normalizedImportAa && normalizedAddress === normalizedImportAa)
 		return 'expatriation';
 	throw Error(`unable to determine transfer type on address ${address} and bridge ${bridge_id}, export_aa=${export_aa}, import_aa=${import_aa}`);
 }

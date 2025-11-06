@@ -27,9 +27,13 @@ function watchForDeadlock(key) {
 }
 
 function getVersion(versions, aa) {
-	for (let v in versions)
-		if (versions[v] === aa)
+	// Normalize addresses to lowercase for comparison (addresses are case-insensitive)
+	const normalizedAa = aa ? aa.toLowerCase() : aa;
+	for (let v in versions) {
+		const normalizedVersion = versions[v] ? versions[v].toLowerCase() : versions[v];
+		if (normalizedVersion === normalizedAa)
 			return v;
+	}
 	return null;
 }
 

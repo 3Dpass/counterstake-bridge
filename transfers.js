@@ -151,7 +151,9 @@ async function linkOrphanedClaimsToTransfer(transfer, transfer_id) {
 
 
 async function getBridgeByAddress(bridge_aa, bThrowIfNotFound) {
-	const [bridge] = await db.query("SELECT * FROM bridges WHERE export_aa=? OR import_aa=?", [bridge_aa, bridge_aa]);
+	// Normalize address to lowercase for case-insensitive comparison (addresses are case-insensitive)
+	const normalized_bridge_aa = bridge_aa ? bridge_aa.toLowerCase() : bridge_aa;
+	const [bridge] = await db.query("SELECT * FROM bridges WHERE LOWER(export_aa)=? OR LOWER(import_aa)=?", [normalized_bridge_aa, normalized_bridge_aa]);
 	if (!bridge && bThrowIfNotFound)
 		throw Error(`bridge not found by address ${bridge_aa}`);
 	return bridge;
@@ -1119,7 +1121,9 @@ function forgetUnconfirmedClaim(claim_txid) {
 async function handleNewExportAA(export_aa, home_network, home_asset, home_asset_decimals, foreign_network, foreign_asset, version) {
 	const unlock = await mutex.lock('new_bridge');
 	console.log('new export', { export_aa, home_network, home_asset, home_asset_decimals, foreign_network, foreign_asset, version });
-	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE export_aa=?", [export_aa]);
+	// Normalize address to lowercase for case-insensitive comparison (addresses are case-insensitive)
+	const normalized_export_aa = export_aa ? export_aa.toLowerCase() : export_aa;
+	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE LOWER(export_aa)=?", [normalized_export_aa]);
 	if (existing_bridge)
 		return unlock(`export AA ${export_aa} already belongs to bridge ${existing_bridge.bridge_id}`);
 //	if (!networkApi[home_network])
@@ -1150,7 +1154,9 @@ async function handleNewExportAA(export_aa, home_network, home_asset, home_asset
 		const [claim] = await db.query(`SELECT * FROM claims WHERE bridge_id=? AND transfer_id IS NULL LIMIT 1`);
 		if (claim)
 			return unlock(`already had at least one invalid claim ${claim.claim_num} on half-complete import-only bridge ${bridge_id}, will not complete the bridge`);
-		await db.query(`UPDATE bridges SET export_aa=?, home_asset_decimals=?, home_symbol=?, foreign_symbol=?, e_v=? WHERE bridge_id=?`, [export_aa, home_asset_decimals, home_symbol, foreign_symbol, version, bridge_id]);
+		// Normalize export_aa to lowercase before updating (addresses are case-insensitive)
+		const normalized_export_aa_for_update = export_aa ? export_aa.toLowerCase() : export_aa;
+		await db.query(`UPDATE bridges SET export_aa=?, home_asset_decimals=?, home_symbol=?, foreign_symbol=?, e_v=? WHERE bridge_id=?`, [normalized_export_aa_for_update, home_asset_decimals, home_symbol, foreign_symbol, version, bridge_id]);
 		unlock(`completed bridge ${bridge_id} ${home_symbol} ${home_network}->${foreign_network} by adding export AA ${export_aa}`);
 		if (networkApi[foreign_network])
 			networkApi[foreign_network].startWatchingImportAA(import_aa);
@@ -1158,6 +1164,9 @@ async function handleNewExportAA(export_aa, home_network, home_asset, home_asset
 		return true;
 	}
 	const params = [export_aa, home_network, home_asset, home_asset_decimals, home_symbol, foreign_network, foreign_asset, foreign_symbol, version, '', '', ''];
+	// Normalize export_aa to lowercase before inserting (addresses are case-insensitive)
+	const normalized_export_aa_for_insert = export_aa ? export_aa.toLowerCase() : export_aa;
+	params[0] = normalized_export_aa_for_insert; // Replace export_aa in params with normalized version
 	await db.query(`INSERT INTO bridges (export_aa, home_network, home_asset, home_asset_decimals, home_symbol, foreign_network, foreign_asset, foreign_symbol, e_v, i_v, ea_v, ia_v) VALUES (${Array(params.length).fill('?').join(', ')})`, params);
 	unlock(`created a new half-bridge ${export_aa} ${home_symbol} ${home_network}->${foreign_network} with only export end`);
 	return true;
@@ -1167,7 +1176,9 @@ async function handleNewExportAA(export_aa, home_network, home_asset, home_asset
 async function handleNewImportAA(import_aa, home_network, home_asset, foreign_network, foreign_asset, foreign_asset_decimals, stake_asset, version) {
 	const unlock = await mutex.lock('new_bridge');
 	console.log('new import', { import_aa, home_network, home_asset, foreign_network, foreign_asset, foreign_asset_decimals, stake_asset, version });
-	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE import_aa=?", [import_aa]);
+	// Normalize address to lowercase for case-insensitive comparison (addresses are case-insensitive)
+	const normalized_import_aa = import_aa ? import_aa.toLowerCase() : import_aa;
+	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE LOWER(import_aa)=?", [normalized_import_aa]);
 	if (existing_bridge)
 		return unlock(`import AA ${import_aa} already belongs to bridge ${existing_bridge.bridge_id}`);
 //	if (!networkApi[home_network])
@@ -1193,7 +1204,9 @@ async function handleNewImportAA(import_aa, home_network, home_asset, foreign_ne
 		const [claim] = await db.query(`SELECT * FROM claims WHERE bridge_id=? AND transfer_id IS NULL LIMIT 1`);
 		if (claim)
 			return unlock(`already had at least one invalid claim ${claim.claim_num} on half-complete export-only bridge ${bridge_id}, will not complete the bridge`);
-		await db.query(`UPDATE bridges SET import_aa=?, foreign_asset_decimals=?, stake_asset=?, home_symbol=?, foreign_symbol=?, i_v=? WHERE bridge_id=?`, [import_aa, foreign_asset_decimals, stake_asset, home_symbol, foreign_symbol, version, bridge_id]);
+		// Normalize import_aa to lowercase before updating (addresses are case-insensitive)
+		const normalized_import_aa_for_update = import_aa ? import_aa.toLowerCase() : import_aa;
+		await db.query(`UPDATE bridges SET import_aa=?, foreign_asset_decimals=?, stake_asset=?, home_symbol=?, foreign_symbol=?, i_v=? WHERE bridge_id=?`, [normalized_import_aa_for_update, foreign_asset_decimals, stake_asset, home_symbol, foreign_symbol, version, bridge_id]);
 		unlock(`completed bridge ${bridge_id} ${import_aa} ${foreign_symbol} ${home_network}->${foreign_network} by adding import AA ${import_aa}`);
 		networkApi[foreign_network].startWatchingImportAA(import_aa);
 		if (networkApi[home_network])
@@ -1201,6 +1214,9 @@ async function handleNewImportAA(import_aa, home_network, home_asset, foreign_ne
 		return true;
 	}
 	const params = [import_aa, home_network, home_asset, home_symbol, foreign_network, foreign_asset, foreign_asset_decimals, foreign_symbol, stake_asset, '', version, '', ''];
+	// Normalize import_aa to lowercase before inserting (addresses are case-insensitive)
+	const normalized_import_aa_for_insert = import_aa ? import_aa.toLowerCase() : import_aa;
+	params[0] = normalized_import_aa_for_insert; // Replace import_aa in params with normalized version
 	await db.query(`INSERT INTO bridges (import_aa, home_network, home_asset, home_symbol, foreign_network, foreign_asset, foreign_asset_decimals, foreign_symbol, stake_asset, e_v, i_v, ea_v, ia_v) VALUES (${Array(params.length).fill('?').join(', ')})`, params);
 	unlock(`created a new half-bridge ${import_aa} ${foreign_symbol} ${home_network}->${foreign_network} with only import end`);
 	return true;
