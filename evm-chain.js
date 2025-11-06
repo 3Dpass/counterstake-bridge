@@ -38,6 +38,8 @@ class EvmChain {
 	#last_tx_ts = 0;
 	#bWaitForMined = false; // set to true for unreliable providers that might lose a transaction
 	#approved = {};
+	#cachedTransactions = {}; // address => { transactions: [{ txHash, blockNumber, eventLogs? }], timestamp }
+	#cachedEventLogs = {}; // txHash => { eventLogs: [...], timestamp }
 
 	getProvider() {
 		return this.#provider;
@@ -71,6 +73,82 @@ class EvmChain {
 		throw Error(`getAddressBlocks() unimplemented on ${this.network}`);
 	}
 
+	/**
+	 * Store transaction hashes for an address (from HTML parser)
+	 * @param {string} address - Contract address
+	 * @param {Array} transactions - Array of { txHash, blockNumber } objects
+	 */
+	storeCachedTransactions(address, transactions) {
+		if (transactions && transactions.length > 0) {
+			this.#cachedTransactions[address.toLowerCase()] = {
+				transactions: transactions,
+				timestamp: Date.now()
+			};
+			console.log(`📦 Cached ${transactions.length} transactions for ${address.substring(0, 10)}...`);
+		}
+	}
+
+	/**
+	 * Get cached transaction hashes for an address
+	 * @param {string} address - Contract address
+	 * @param {number} maxAge - Maximum age of cache in milliseconds (default: 5 minutes)
+	 * @returns {Array|null} Array of { txHash, blockNumber, eventLogs? } objects or null if not cached/expired
+	 */
+	getCachedTransactions(address, maxAge = 5 * 60 * 1000) {
+		const cacheKey = address.toLowerCase();
+		const cached = this.#cachedTransactions[cacheKey];
+		
+		if (!cached) {
+			return null;
+		}
+		
+		// Check if cache is still valid
+		if (Date.now() - cached.timestamp > maxAge) {
+			delete this.#cachedTransactions[cacheKey];
+			return null;
+		}
+		
+		return cached.transactions;
+	}
+
+	/**
+	 * Store event logs for a transaction hash
+	 * @param {string} txHash - Transaction hash
+	 * @param {Array} eventLogs - Array of event log objects
+	 */
+	storeCachedEventLogs(txHash, eventLogs) {
+		if (eventLogs && eventLogs.length > 0) {
+			this.#cachedEventLogs[txHash.toLowerCase()] = {
+				eventLogs: eventLogs,
+				timestamp: Date.now()
+			};
+			console.log(`📦 Cached ${eventLogs.length} event logs for transaction ${txHash.substring(0, 16)}...`);
+		}
+	}
+
+	/**
+	 * Get cached event logs for a transaction hash
+	 * @param {string} txHash - Transaction hash
+	 * @param {number} maxAge - Maximum age of cache in milliseconds (default: 5 minutes)
+	 * @returns {Array|null} Array of event log objects or null if not cached/expired
+	 */
+	getCachedEventLogs(txHash, maxAge = 5 * 60 * 1000) {
+		const cacheKey = txHash.toLowerCase();
+		const cached = this.#cachedEventLogs[cacheKey];
+		
+		if (!cached) {
+			return null;
+		}
+		
+		// Check if cache is still valid
+		if (Date.now() - cached.timestamp > maxAge) {
+			delete this.#cachedEventLogs[cacheKey];
+			return null;
+		}
+		
+		return cached.eventLogs;
+	}
+
 	async waitBetweenTransactions() {
 		while (this.#last_tx_ts > Date.now() - TIMEOUT_BETWEEN_TRANSACTIONS) {
 			console.log(`will wait after the previous tx`);
@@ -101,6 +179,28 @@ class EvmChain {
 			const errMsg = e.toString();
 			console.log(`getBlockNumber ${this.network} failed (attempt ${retryCount + 1}/${maxRetries}), will try again after waiting`, e);
 			
+			// Check for "could not detect network" error - this usually means WebSocket connection is broken
+			if (errMsg.includes("could not detect network") || errMsg.includes("NETWORK_ERROR")) {
+				console.log(`getBlockNumber ${this.network}: network detection failed, attempting provider reconnection...`);
+				
+				// Try to reconnect the provider if it's a WebSocket provider
+				const provider = this.#provider;
+				if (provider && provider._websocket) {
+					try {
+						// Close existing connection if it exists
+						if (provider._websocket.readyState !== 3) { // 3 = CLOSED
+							console.log(`getBlockNumber ${this.network}: closing existing WebSocket connection...`);
+							provider._websocket.close();
+						}
+					} catch (closeError) {
+						console.log(`getBlockNumber ${this.network}: error closing WebSocket:`, closeError.message);
+					}
+					
+					// Wait a bit before retrying to allow connection to reset
+					await wait(2000);
+				}
+			}
+			
 			if (retryCount >= maxRetries) {
 				console.error(`getBlockNumber ${this.network} failed after ${maxRetries} retries, throwing error`);
 				throw e;
@@ -110,6 +210,11 @@ class EvmChain {
 			if (errMsg.includes("internal error") || errMsg.includes("temporarily unavailable")) {
 				const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff: 1s, 2s, 4s, 8s, 10s max
 				console.log(`getBlockNumber ${this.network} internal error detected, waiting ${delay}ms before retry`);
+				await wait(delay);
+			} else if (errMsg.includes("could not detect network") || errMsg.includes("NETWORK_ERROR")) {
+				// Network errors: longer delay to allow reconnection
+				const delay = Math.min(2000 * (retryCount + 1), 10000); // 2s, 4s, 6s, 8s, 10s max
+				console.log(`getBlockNumber ${this.network} network error, waiting ${delay}ms before retry`);
 				await wait(delay);
 			} else {
 				// Other errors: shorter delay
@@ -1529,17 +1634,38 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 			if (thisArg && thisArg.getAddressBlocks) {
 				console.log(`processPastEvents ${network}: block range limit error, attempting transaction-based fallback...`);
 				try {
-					// Try to get transaction hashes from HTML parser fallback
-					const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
-					const parserResult = await parseBSCScanBlockNumbers(contract.address, { 
-						delay: 2000, 
-						retries: 2,
-						includeTransactions: true
-					});
+					// First check if we have cached transactions from previous parser call
+					let transactions = thisArg.getCachedTransactions(contract.address);
 					
-					if (parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
+					if (!transactions || transactions.length === 0) {
+						// No cache, try to get transaction hashes from HTML parser fallback
+						const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
+						const parserResult = await parseBSCScanBlockNumbers(contract.address, { 
+							delay: 2000, 
+							retries: 2,
+							includeTransactions: true,
+							includeEventLogs: true // Include event logs when parsing
+						});
+						
+						if (parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
+							transactions = parserResult.transactions;
+							// Cache them for future use
+							thisArg.storeCachedTransactions(contract.address, transactions);
+							
+							// Also cache event logs for each transaction if they exist
+							transactions.forEach(tx => {
+								if (tx.eventLogs && tx.eventLogs.length > 0) {
+									thisArg.storeCachedEventLogs(tx.txHash, tx.eventLogs);
+								}
+							});
+						}
+					} else {
+						console.log(`processPastEvents ${network}: using cached transactions (${transactions.length} transactions)`);
+					}
+					
+					if (transactions && transactions.length > 0) {
 						// Filter transactions by block range
-						const relevantTxs = parserResult.transactions
+						const relevantTxs = transactions
 							.filter(tx => tx.blockNumber >= since_block && tx.blockNumber <= actual_to_block)
 							.map(tx => tx.txHash);
 						
@@ -1575,6 +1701,54 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 			return processPastEvents(contract, filter, since_block, to_block, thisArg, handler, retryCount + 1);
 		}
 		if (errMsg.includes("internal error") || errMsg.includes("temporarily unavailable")) {
+			// If we've retried a few times, try transaction-based fallback instead of continuing to retry
+			if (retryCount >= 3 && thisArg && thisArg.getAddressBlocks) {
+				console.log(`processPastEvents ${network}: internal error after ${retryCount} retries, attempting transaction-based fallback...`);
+				try {
+					// First check if we have cached transactions from previous parser call
+					let transactions = thisArg.getCachedTransactions(contract.address);
+					
+					if (!transactions || transactions.length === 0) {
+						// No cache, try to get transaction hashes from HTML parser fallback
+						const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
+						const parserResult = await parseBSCScanBlockNumbers(contract.address, { 
+							delay: 2000, 
+							retries: 2,
+							includeTransactions: true
+						});
+						
+						if (parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
+							transactions = parserResult.transactions;
+							// Cache them for future use
+							thisArg.storeCachedTransactions(contract.address, transactions);
+						}
+					} else {
+						console.log(`processPastEvents ${network}: using cached transactions after internal error (${transactions.length} transactions)`);
+					}
+					
+					if (transactions && transactions.length > 0) {
+						// Filter transactions by block range
+						const relevantTxs = transactions
+							.filter(tx => tx.blockNumber >= since_block && tx.blockNumber <= actual_to_block)
+							.map(tx => tx.txHash);
+						
+						if (relevantTxs.length > 0) {
+							console.log(`processPastEvents ${network}: found ${relevantTxs.length} transactions in range, querying individually after internal error...`);
+							// Pass the filter to only process matching events
+							const txEventCount = await thisArg.processEventsFromTransactions(contract, relevantTxs, thisArg, handler, filter);
+							if (txEventCount > 0) {
+								console.log(`processPastEvents ${network}: transaction-based fallback processed ${txEventCount} events after internal error`);
+								return txEventCount;
+							}
+						}
+					}
+				} catch (fallbackError) {
+					console.log(`processPastEvents ${network}: transaction-based fallback failed after internal error:`, fallbackError.message);
+					// Continue with normal retry logic
+				}
+			}
+			
+			// Continue with normal retry logic if fallback didn't work or retryCount < 3
 			if (retryCount >= maxRetries) {
 				console.error(`processPastEvents ${network} failed after ${maxRetries} retries (internal error), throwing error`);
 				throw e;

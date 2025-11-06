@@ -110,7 +110,8 @@ async function getAddressHistory({ base_url, chainid, address, startblock, start
 	return history;
 }
 
-async function getAddressBlocks({ base_url, chainid, address, startblock, startts, api_key, getUrl, getOptions, count = 0 }) {
+
+async function getAddressBlocks({ base_url, chainid, address, startblock, startts, api_key, getUrl, getOptions, count = 0, networkApi = null }) {
 	try {
 		const ext_history = await getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal: false, getUrl, getOptions });
 		const int_history = await getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal: true, getUrl, getOptions });
@@ -146,14 +147,26 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				if (chainid === 56) {
 					// BSC fallback
 					console.log(`📡 Calling BSCScan HTML parser for ${address}...`);
-					const result = await parseBSCScanBlockNumbers(address, { delay: 2000, retries: 2, includeTransactions: true });
+					const result = await parseBSCScanBlockNumbers(address, { delay: 2000, retries: 2, includeTransactions: true, includeEventLogs: true });
 					console.log(`📡 BSCScan parser result:`, { success: result.success, blockCount: result.blockNumbers?.length, txCount: result.transactions?.length, error: result.error });
 					if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
 						fallbackBlocks = result.blockNumbers;
 						console.log(`✅ BSCScan HTML fallback succeeded: found ${fallbackBlocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''}`);
-						// Store transaction hashes for potential use in transaction-based queries
-						// Note: We can't return both blocks and transactions from this function without changing signature
-						// But the transaction hashes are available in processPastEvents fallback
+						
+					// Store transaction hashes in cache for later use in processPastEvents fallback
+					if (result.transactions && result.transactions.length > 0 && networkApi) {
+						const network = chainid === 56 ? 'BSC' : chainid === 1 ? 'Ethereum' : null;
+						if (network && networkApi[network]) {
+							networkApi[network].storeCachedTransactions(address, result.transactions);
+							
+							// Also cache event logs for each transaction if they exist
+							result.transactions.forEach(tx => {
+								if (tx.eventLogs && tx.eventLogs.length > 0) {
+									networkApi[network].storeCachedEventLogs(tx.txHash, tx.eventLogs);
+								}
+							});
+						}
+					}
 					} else {
 						console.log(`⚠️  BSCScan HTML fallback found no blocks: ${result.error || 'unknown error'}`);
 					}
@@ -198,7 +211,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 		console.log(`will retry getAddressBlocks ${base_url} in ${retryDelay / 1000} sec${isRateLimitError ? ' (rate limit error)' : ''}`);
 		await wait(retryDelay);
 		count++;
-		return await getAddressBlocks({ base_url, chainid, address, startblock, startts, api_key, getUrl, getOptions, count });
+		return await getAddressBlocks({ base_url, chainid, address, startblock, startts, api_key, getUrl, getOptions, count, networkApi });
 	}
 }
 

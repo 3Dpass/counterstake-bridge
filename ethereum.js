@@ -43,7 +43,7 @@ class Ethereum extends EvmChain {
 	}
 
 	async getAddressBlocks(address, startblock, startts) {
-		return await getAddressBlocks({ base_url: etherscan_base_url, chainid: 1, address, startblock, startts, api_key: conf.etherscan_api_key });
+		return await getAddressBlocks({ base_url: etherscan_base_url, chainid: 1, address, startblock, startts, api_key: conf.etherscan_api_key, networkApi: { Ethereum: this } });
 	}
 
 }
