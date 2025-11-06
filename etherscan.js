@@ -4,6 +4,7 @@ const { request } = require('./request.js');
 const { wait } = require('./utils.js');
 const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
 const { parseEtherscanBlockNumbers } = require('./etherscan-simple-parser.js');
+const db = require('ocore/db.js');
 
 let last_req_ts = {};
 
@@ -118,12 +119,33 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 	if (conf.AlwaysUseBSCscanParser && chainid === 56) {
 		console.log(`📡 AlwaysUseBSCscanParser enabled: using BSCScan HTML parser as only source for ${address}...`);
 		try {
+			// Create function to check if transaction already exists in database
+			const checkTransactionExists = async (txHash) => {
+				try {
+					// Check if transaction exists in transfers, claims, or challenges tables
+					const [transfer] = await db.query("SELECT 1 FROM transfers WHERE txid=? LIMIT 1", [txHash]);
+					if (transfer) return true;
+					
+					const [claim] = await db.query("SELECT 1 FROM claims WHERE txid=? OR claim_txid=? LIMIT 1", [txHash, txHash]);
+					if (claim) return true;
+					
+					const [challenge] = await db.query("SELECT 1 FROM challenges WHERE challenge_txid=? LIMIT 1", [txHash]);
+					if (challenge) return true;
+					
+					return false;
+				} catch (error) {
+					console.log(`⚠️  Error checking transaction ${txHash}: ${error.message}`);
+					return false; // Return false on error to allow fetching
+				}
+			};
+			
 			const result = await parseBSCScanBlockNumbers(address, { 
 				delay: 2000, 
 				retries: 2, 
 				includeTransactions: true, 
 				includeEventLogs: true,
-				maxPages: 0 // Fetch all pages
+				maxPages: 0, // Fetch all pages
+				checkTransactionExists: checkTransactionExists
 			});
 			
 			if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
@@ -168,12 +190,33 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 	if (conf.AlwaysUseEtherscanParser && chainid === 1) {
 		console.log(`📡 AlwaysUseEtherscanParser enabled: using Etherscan HTML parser as only source for ${address}...`);
 		try {
+			// Create function to check if transaction already exists in database
+			const checkTransactionExists = async (txHash) => {
+				try {
+					// Check if transaction exists in transfers, claims, or challenges tables
+					const [transfer] = await db.query("SELECT 1 FROM transfers WHERE txid=? LIMIT 1", [txHash]);
+					if (transfer) return true;
+					
+					const [claim] = await db.query("SELECT 1 FROM claims WHERE txid=? OR claim_txid=? LIMIT 1", [txHash, txHash]);
+					if (claim) return true;
+					
+					const [challenge] = await db.query("SELECT 1 FROM challenges WHERE challenge_txid=? LIMIT 1", [txHash]);
+					if (challenge) return true;
+					
+					return false;
+				} catch (error) {
+					console.log(`⚠️  Error checking transaction ${txHash}: ${error.message}`);
+					return false; // Return false on error to allow fetching
+				}
+			};
+			
 			const result = await parseEtherscanBlockNumbers(address, { 
 				delay: 2000, 
 				retries: 2, 
 				includeTransactions: true, 
 				includeEventLogs: true,
-				maxPages: 0 // Fetch all pages
+				maxPages: 0, // Fetch all pages
+				checkTransactionExists: checkTransactionExists
 			});
 			
 			if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
@@ -250,7 +293,28 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				if (chainid === 56) {
 					// BSC fallback
 					console.log(`📡 Calling BSCScan HTML parser for ${address}...`);
-					const result = await parseBSCScanBlockNumbers(address, { delay: 2000, retries: 2, includeTransactions: true, includeEventLogs: true });
+					// Create function to check if transaction already exists in database
+					const checkTransactionExists = async (txHash) => {
+						try {
+							const [transfer] = await db.query("SELECT 1 FROM transfers WHERE txid=? LIMIT 1", [txHash]);
+							if (transfer) return true;
+							const [claim] = await db.query("SELECT 1 FROM claims WHERE txid=? OR claim_txid=? LIMIT 1", [txHash, txHash]);
+							if (claim) return true;
+							const [challenge] = await db.query("SELECT 1 FROM challenges WHERE challenge_txid=? LIMIT 1", [txHash]);
+							if (challenge) return true;
+							return false;
+						} catch (error) {
+							return false; // Return false on error to allow fetching
+						}
+					};
+					
+					const result = await parseBSCScanBlockNumbers(address, { 
+						delay: 2000, 
+						retries: 2, 
+						includeTransactions: true, 
+						includeEventLogs: true,
+						checkTransactionExists: checkTransactionExists
+					});
 					console.log(`📡 BSCScan parser result:`, { success: result.success, blockCount: result.blockNumbers?.length, txCount: result.transactions?.length, error: result.error });
 					if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
 						fallbackBlocks = result.blockNumbers;
@@ -276,7 +340,28 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				} else if (chainid === 1) {
 					// Ethereum fallback
 					console.log(`📡 Calling Etherscan HTML parser for ${address}...`);
-					const result = await parseEtherscanBlockNumbers(address, { delay: 2000, retries: 2, includeTransactions: true, includeEventLogs: true });
+					// Create function to check if transaction already exists in database
+					const checkTransactionExists = async (txHash) => {
+						try {
+							const [transfer] = await db.query("SELECT 1 FROM transfers WHERE txid=? LIMIT 1", [txHash]);
+							if (transfer) return true;
+							const [claim] = await db.query("SELECT 1 FROM claims WHERE txid=? OR claim_txid=? LIMIT 1", [txHash, txHash]);
+							if (claim) return true;
+							const [challenge] = await db.query("SELECT 1 FROM challenges WHERE challenge_txid=? LIMIT 1", [txHash]);
+							if (challenge) return true;
+							return false;
+						} catch (error) {
+							return false; // Return false on error to allow fetching
+						}
+					};
+					
+					const result = await parseEtherscanBlockNumbers(address, { 
+						delay: 2000, 
+						retries: 2, 
+						includeTransactions: true, 
+						includeEventLogs: true,
+						checkTransactionExists: checkTransactionExists
+					});
 					console.log(`📡 Etherscan parser result:`, { success: result.success, blockCount: result.blockNumbers?.length, txCount: result.transactions?.length, error: result.error });
 					if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
 						fallbackBlocks = result.blockNumbers;

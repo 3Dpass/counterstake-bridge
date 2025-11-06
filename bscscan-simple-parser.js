@@ -97,13 +97,36 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
     if (includeEventLogs && sortedTransactions.length > 0) {
       console.log(`\n📋 Fetching event logs for ${sortedTransactions.length} transactions...`);
       
+      // Optional function to check if transaction already has events in database
+      const checkTransactionExists = options.checkTransactionExists || null;
+      
+      let skippedCount = 0;
+      let fetchedCount = 0;
+      
       for (let i = 0; i < sortedTransactions.length; i++) {
         const tx = sortedTransactions[i];
+        
+        // Check if transaction already exists in database
+        if (checkTransactionExists) {
+          try {
+            const exists = await checkTransactionExists(tx.txHash);
+            if (exists) {
+              console.log(`  [${i + 1}/${sortedTransactions.length}] ⏭️  Skipping ${tx.txHash.substring(0, 16)}... (already in database)`);
+              tx.eventLogs = []; // Mark as skipped
+              skippedCount++;
+              continue;
+            }
+          } catch (error) {
+            console.log(`  [${i + 1}/${sortedTransactions.length}] ⚠️  Error checking transaction existence: ${error.message}, will fetch anyway`);
+          }
+        }
+        
         console.log(`  [${i + 1}/${sortedTransactions.length}] Fetching event logs for ${tx.txHash.substring(0, 16)}...`);
         
         try {
           const eventLogs = await fetchTransactionEventLogs(tx.txHash, { retries, delay });
           tx.eventLogs = eventLogs;
+          fetchedCount++;
           
           if (eventLogs.length > 0) {
             console.log(`    ✅ Found ${eventLogs.length} event log(s)`);
@@ -123,6 +146,12 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
       
       const totalEventLogs = sortedTransactions.reduce((sum, tx) => sum + (tx.eventLogs?.length || 0), 0);
       console.log(`\n✅ Event log fetching complete: ${totalEventLogs} total event logs found`);
+      if (skippedCount > 0) {
+        console.log(`   ⏭️  Skipped ${skippedCount} transactions (already in database)`);
+      }
+      if (fetchedCount > 0) {
+        console.log(`   📥 Fetched ${fetchedCount} new transactions`);
+      }
     }
     
     return {
