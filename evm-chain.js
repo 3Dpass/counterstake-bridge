@@ -1172,6 +1172,126 @@ class EvmChain {
 	 * @param {Object} filter - Optional event filter to match specific event types
 	 * @returns {Promise<number>} Number of events processed
 	 */
+	/**
+	 * Process past events from parser cache (when AlwaysUseBSCscanParser or AlwaysUseEtherscanParser is enabled)
+	 * @param {Object} contract - Contract instance
+	 * @param {Object} filter - Event filter
+	 * @param {number} since_block - Starting block number
+	 * @param {number} to_block - Ending block number
+	 * @param {Object} thisArg - Network instance
+	 * @param {Function} handler - Event handler function
+	 * @returns {Promise<number>} Number of events processed
+	 */
+	async processPastEventsFromParserCache(contract, filter, since_block, to_block, thisArg, handler) {
+		const network = thisArg ? thisArg.network : null;
+		const contractAddress = contract.address.toLowerCase();
+		
+		// Get cached transactions for this contract
+		const transactions = thisArg.getCachedTransactions(contractAddress);
+		
+		if (!transactions || transactions.length === 0) {
+			console.log(`processPastEventsFromParserCache ${network}: no cached transactions for ${contractAddress}`);
+			return 0;
+		}
+		
+		// Determine actual_to_block
+		let actual_to_block = to_block;
+		if (!to_block || to_block === 'latest' || to_block === 0) {
+			actual_to_block = await thisArg.getBlockNumber();
+		}
+		
+		// Filter transactions by block range
+		const relevantTxs = transactions.filter(tx => 
+			tx.blockNumber >= since_block && tx.blockNumber <= actual_to_block
+		);
+		
+		console.log(`processPastEventsFromParserCache ${network}: found ${relevantTxs.length} transactions in range ${since_block}-${actual_to_block} (from ${transactions.length} total)`);
+		
+		let eventCount = 0;
+		
+		// Get event filter topic if available
+		let targetEventTopic = null;
+		if (filter && filter.topics && filter.topics[0]) {
+			targetEventTopic = filter.topics[0];
+		}
+		
+		// Process each transaction's event logs
+		for (const tx of relevantTxs) {
+			const eventLogs = thisArg.getCachedEventLogs(tx.txHash);
+			
+			if (!eventLogs || eventLogs.length === 0) {
+				continue;
+			}
+			
+			// Filter event logs by contract address and event topic
+			const matchingLogs = eventLogs.filter(log => {
+				// Check contract address
+				if (log.address && log.address.toLowerCase() !== contractAddress) {
+					return false;
+				}
+				
+				// Check event topic if filter is provided
+				if (targetEventTopic && log.topics && log.topics.length > 0) {
+					// First topic is usually the event signature hash
+					const logTopic = log.topics[0]?.value;
+					if (logTopic && logTopic.toLowerCase() !== targetEventTopic.toLowerCase()) {
+						return false;
+					}
+				}
+				
+				return true;
+			});
+			
+			// Convert parser event logs to ethers event format and process them
+			for (const log of matchingLogs) {
+				try {
+					// Try to decode the event using contract interface
+					const eventName = log.name;
+					if (!eventName) {
+						continue;
+					}
+					
+					// Build event args from log data
+					const eventArgs = [];
+					if (log.data) {
+						// Extract values from data object in order
+						// This is a simplified approach - may need refinement based on actual event signatures
+						for (const key in log.data) {
+							eventArgs.push(log.data[key]);
+						}
+					}
+					
+					// Create a mock event object similar to ethers event
+					const mockEvent = {
+						args: eventArgs,
+						event: eventName,
+						eventSignature: eventName,
+						address: log.address || contractAddress,
+						transactionHash: tx.txHash,
+						blockNumber: tx.blockNumber,
+						topics: log.topics ? log.topics.map(t => t.value) : [],
+						data: log.rawData || '0x',
+						removed: false
+					};
+					
+					// Call handler with event args and event object
+					const handlerArgs = eventArgs.slice();
+					handlerArgs.push(mockEvent);
+					
+					await handler.apply(thisArg, handlerArgs);
+					eventCount++;
+					
+				} catch (error) {
+					console.log(`processPastEventsFromParserCache ${network}: error processing event log from tx ${tx.txHash.substring(0, 10)}...: ${error.message}`);
+					continue;
+				}
+			}
+		}
+		
+		console.log(`processPastEventsFromParserCache ${network}: processed ${eventCount} events from ${relevantTxs.length} transactions`);
+		return eventCount;
+	}
+
 	async processEventsFromTransactions(contract, transactionHashes, thisArg, handler, filter = null) {
 		const network = thisArg ? thisArg.network : null;
 		const contractAddress = contract.address.toLowerCase();
@@ -1548,9 +1668,22 @@ function getType(address, bridge) {
 }
 
 async function processPastEvents(contract, filter, since_block, to_block, thisArg, handler, retryCount = 0) {
+	const conf = require('./conf.js');
 	const network = thisArg ? thisArg.network : null;
 	const maxRetries = 10; // Maximum retries for transient errors
 	const MAX_BLOCK_RANGE = 950; // Maximum blocks per query (slightly less than typical 1000 limit to be safe)
+	
+	// If AlwaysUseBSCscanParser is enabled and this is BSC, use cached event logs instead of provider queries
+	if (conf.AlwaysUseBSCscanParser && network === 'BSC' && thisArg) {
+		console.log(`processPastEvents ${network}: AlwaysUseBSCscanParser enabled, using cached event logs from parser...`);
+		return await thisArg.processPastEventsFromParserCache(contract, filter, since_block, to_block, thisArg, handler);
+	}
+	
+	// If AlwaysUseEtherscanParser is enabled and this is Ethereum, use cached event logs instead of provider queries
+	if (conf.AlwaysUseEtherscanParser && network === 'Ethereum' && thisArg) {
+		console.log(`processPastEvents ${network}: AlwaysUseEtherscanParser enabled, using cached event logs from parser...`);
+		return await thisArg.processPastEventsFromParserCache(contract, filter, since_block, to_block, thisArg, handler);
+	}
 	
 	// If to_block is 'latest' or 0, we need to get the current block number
 	let actual_to_block = to_block;
@@ -1639,15 +1772,26 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 					
 					if (!transactions || transactions.length === 0) {
 						// No cache, try to get transaction hashes from HTML parser fallback
-						const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
-						const parserResult = await parseBSCScanBlockNumbers(contract.address, { 
-							delay: 2000, 
-							retries: 2,
-							includeTransactions: true,
-							includeEventLogs: true // Include event logs when parsing
-						});
+						let parserResult;
+						if (network === 'BSC') {
+							const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
+							parserResult = await parseBSCScanBlockNumbers(contract.address, { 
+								delay: 2000, 
+								retries: 2,
+								includeTransactions: true,
+								includeEventLogs: true // Include event logs when parsing
+							});
+						} else if (network === 'Ethereum') {
+							const { parseEtherscanBlockNumbers } = require('./etherscan-simple-parser.js');
+							parserResult = await parseEtherscanBlockNumbers(contract.address, { 
+								delay: 2000, 
+								retries: 2,
+								includeTransactions: true,
+								includeEventLogs: true // Include event logs when parsing
+							});
+						}
 						
-						if (parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
+						if (parserResult && parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
 							transactions = parserResult.transactions;
 							// Cache them for future use
 							thisArg.storeCachedTransactions(contract.address, transactions);
@@ -1710,17 +1854,36 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 					
 					if (!transactions || transactions.length === 0) {
 						// No cache, try to get transaction hashes from HTML parser fallback
-						const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
-						const parserResult = await parseBSCScanBlockNumbers(contract.address, { 
-							delay: 2000, 
-							retries: 2,
-							includeTransactions: true
-						});
+						let parserResult;
+						if (network === 'BSC') {
+							const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
+							parserResult = await parseBSCScanBlockNumbers(contract.address, { 
+								delay: 2000, 
+								retries: 2,
+								includeTransactions: true,
+								includeEventLogs: true
+							});
+						} else if (network === 'Ethereum') {
+							const { parseEtherscanBlockNumbers } = require('./etherscan-simple-parser.js');
+							parserResult = await parseEtherscanBlockNumbers(contract.address, { 
+								delay: 2000, 
+								retries: 2,
+								includeTransactions: true,
+								includeEventLogs: true
+							});
+						}
 						
-						if (parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
+						if (parserResult && parserResult.success && parserResult.transactions && parserResult.transactions.length > 0) {
 							transactions = parserResult.transactions;
 							// Cache them for future use
 							thisArg.storeCachedTransactions(contract.address, transactions);
+							
+							// Also cache event logs for each transaction if they exist
+							transactions.forEach(tx => {
+								if (tx.eventLogs && tx.eventLogs.length > 0) {
+									thisArg.storeCachedEventLogs(tx.txHash, tx.eventLogs);
+								}
+							});
 						}
 					} else {
 						console.log(`processPastEvents ${network}: using cached transactions after internal error (${transactions.length} transactions)`);

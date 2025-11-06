@@ -187,6 +187,12 @@ exports.catchup_retry_max_before_refresh = 3; // Number of retries before callin
 exports.catchup_retry_max_total = 10; // Total number of retries before giving up and logging as invalid claim (about 10 minutes during catch-up)
 exports.catchup_retry_interval = 60; // Seconds between retries during catch-up
 
+// BSCScan parser configuration
+exports.AlwaysUseBSCscanParser = true; // When true, use BSCScan HTML parser as the only source for blocks and event logs (skips provider calls during the catch up)
+
+// Etherscan parser configuration
+exports.AlwaysUseEtherscanParser = false; // When true, use Etherscan HTML parser as the only source for blocks and event logs (skips provider calls during the catch up)
+
 // Sync statistics logging during catchup
 exports.statsLogPeriod = 10 * 1000; // 10 seconds: how often to log sync stats during catchup
 

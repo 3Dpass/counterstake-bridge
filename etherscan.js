@@ -112,6 +112,109 @@ async function getAddressHistory({ base_url, chainid, address, startblock, start
 
 
 async function getAddressBlocks({ base_url, chainid, address, startblock, startts, api_key, getUrl, getOptions, count = 0, networkApi = null }) {
+	const conf = require('./conf.js');
+	
+	// If AlwaysUseBSCscanParser is enabled and this is BSC, skip API calls and use parser only
+	if (conf.AlwaysUseBSCscanParser && chainid === 56) {
+		console.log(`📡 AlwaysUseBSCscanParser enabled: using BSCScan HTML parser as only source for ${address}...`);
+		try {
+			const result = await parseBSCScanBlockNumbers(address, { 
+				delay: 2000, 
+				retries: 2, 
+				includeTransactions: true, 
+				includeEventLogs: true,
+				maxPages: 0 // Fetch all pages
+			});
+			
+			if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
+				let blocks = result.blockNumbers;
+				
+				// Filter by startblock if provided
+				if (startblock) {
+					const initLen = blocks.length;
+					blocks = blocks.filter(b => b >= startblock);
+					console.log(`Filtered parser blocks: ${initLen} -> ${blocks.length} (startblock: ${startblock})`);
+				}
+				
+				blocks.sort();
+				
+				// Store transaction hashes and event logs in cache
+				if (result.transactions && result.transactions.length > 0 && networkApi) {
+					const network = 'BSC';
+					if (networkApi[network]) {
+						networkApi[network].storeCachedTransactions(address, result.transactions);
+						
+						// Cache event logs for each transaction
+						result.transactions.forEach(tx => {
+							if (tx.eventLogs && tx.eventLogs.length > 0) {
+								networkApi[network].storeCachedEventLogs(tx.txHash, tx.eventLogs);
+							}
+						});
+					}
+				}
+				
+				console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${blocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''}`);
+				return blocks;
+			} else {
+				throw new Error(`BSCScan parser failed: ${result.error || 'unknown error'}`);
+			}
+		} catch (parserError) {
+			console.error(`❌ BSCScan parser failed (AlwaysUseBSCscanParser enabled):`, parserError.message);
+			throw parserError;
+		}
+	}
+	
+	// If AlwaysUseEtherscanParser is enabled and this is Ethereum, skip API calls and use parser only
+	if (conf.AlwaysUseEtherscanParser && chainid === 1) {
+		console.log(`📡 AlwaysUseEtherscanParser enabled: using Etherscan HTML parser as only source for ${address}...`);
+		try {
+			const result = await parseEtherscanBlockNumbers(address, { 
+				delay: 2000, 
+				retries: 2, 
+				includeTransactions: true, 
+				includeEventLogs: true,
+				maxPages: 0 // Fetch all pages
+			});
+			
+			if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
+				let blocks = result.blockNumbers;
+				
+				// Filter by startblock if provided
+				if (startblock) {
+					const initLen = blocks.length;
+					blocks = blocks.filter(b => b >= startblock);
+					console.log(`Filtered parser blocks: ${initLen} -> ${blocks.length} (startblock: ${startblock})`);
+				}
+				
+				blocks.sort();
+				
+				// Store transaction hashes and event logs in cache
+				if (result.transactions && result.transactions.length > 0 && networkApi) {
+					const network = 'Ethereum';
+					if (networkApi[network]) {
+						networkApi[network].storeCachedTransactions(address, result.transactions);
+						
+						// Cache event logs for each transaction
+						result.transactions.forEach(tx => {
+							if (tx.eventLogs && tx.eventLogs.length > 0) {
+								networkApi[network].storeCachedEventLogs(tx.txHash, tx.eventLogs);
+							}
+						});
+					}
+				}
+				
+				console.log(`✅ Etherscan parser (AlwaysUseEtherscanParser): found ${blocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''}`);
+				return blocks;
+			} else {
+				throw new Error(`Etherscan parser failed: ${result.error || 'unknown error'}`);
+			}
+		} catch (parserError) {
+			console.error(`❌ Etherscan parser failed (AlwaysUseEtherscanParser enabled):`, parserError.message);
+			throw parserError;
+		}
+	}
+	
+	// Normal API-based flow
 	try {
 		const ext_history = await getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal: false, getUrl, getOptions });
 		const int_history = await getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal: true, getUrl, getOptions });
@@ -173,11 +276,26 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				} else if (chainid === 1) {
 					// Ethereum fallback
 					console.log(`📡 Calling Etherscan HTML parser for ${address}...`);
-					const result = await parseEtherscanBlockNumbers(address, { delay: 2000, retries: 2 });
-					console.log(`📡 Etherscan parser result:`, { success: result.success, blockCount: result.blockNumbers?.length, error: result.error });
+					const result = await parseEtherscanBlockNumbers(address, { delay: 2000, retries: 2, includeTransactions: true, includeEventLogs: true });
+					console.log(`📡 Etherscan parser result:`, { success: result.success, blockCount: result.blockNumbers?.length, txCount: result.transactions?.length, error: result.error });
 					if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
 						fallbackBlocks = result.blockNumbers;
-						console.log(`✅ Etherscan HTML fallback succeeded: found ${fallbackBlocks.length} blocks`);
+						console.log(`✅ Etherscan HTML fallback succeeded: found ${fallbackBlocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''}`);
+						
+						// Store transaction hashes in cache for later use in processPastEvents fallback
+						if (result.transactions && result.transactions.length > 0 && networkApi) {
+							const network = chainid === 56 ? 'BSC' : chainid === 1 ? 'Ethereum' : null;
+							if (network && networkApi[network]) {
+								networkApi[network].storeCachedTransactions(address, result.transactions);
+								
+								// Also cache event logs for each transaction if they exist
+								result.transactions.forEach(tx => {
+									if (tx.eventLogs && tx.eventLogs.length > 0) {
+										networkApi[network].storeCachedEventLogs(tx.txHash, tx.eventLogs);
+									}
+								});
+							}
+						}
 					} else {
 						console.log(`⚠️  Etherscan HTML fallback found no blocks: ${result.error || 'unknown error'}`);
 					}
