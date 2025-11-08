@@ -110,10 +110,57 @@ function getProvider(network, bFree) {
 
 exports.getProvider = getProvider;
 
+// Function to get a listener provider (for listening to network events only)
+// This is separate from the main provider which is used for transactions and calls
+function getListenerProvider(network) {
+	const cacheKey = `${network}_listener`;
+	
+	// Return cached listener provider if available
+	if (providerCache[cacheKey]) {
+		return providerCache[cacheKey];
+	}
+	
+	let listenerProvider;
+	
+	if (process.env.devnet) {
+		// Use same provider for devnet
+		return getProvider(network);
+	}
+	
+	switch (network) {
+		case 'BSC':
+			// Use BSC public RPC WebSocket for listening
+			let bscListenerUrl;
+			if (process.env.testnet) {
+				bscListenerUrl = 'wss://bsc-testnet.publicnode.com';
+			} else {
+				bscListenerUrl = 'wss://bsc.drpc.org';
+			}
+			listenerProvider = new ethers.providers.WebSocketProvider(bscListenerUrl);
+			// Store URL for logging purposes
+			listenerProvider._providerUrl = bscListenerUrl;
+			break;
+		
+		default:
+			// For other networks, use the same provider as the main one
+			return getProvider(network);
+	}
+	
+	// Cache and return the listener provider
+	if (listenerProvider) {
+		providerCache[cacheKey] = listenerProvider;
+		return listenerProvider;
+	}
+	
+	throw Error(`failed to create listener provider for network ` + network);
+}
+
+exports.getListenerProvider = getListenerProvider;
+
 // Function to clear provider cache for a specific network (useful when network disconnects)
 function clearProviderCache(network) {
 	if (network) {
-		// Clear all cache entries for this network
+		// Clear all cache entries for this network (including listener)
 		Object.keys(providerCache).forEach(key => {
 			if (key.startsWith(network + '_')) {
 				console.log(`Clearing provider cache for ${key}`);

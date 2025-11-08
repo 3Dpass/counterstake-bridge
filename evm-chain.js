@@ -31,6 +31,7 @@ class EvmChain {
 	#factory_contract_addresses;
 	#assistant_factory_contract_addresses;
 	#provider;
+	#listenerProvider; // Separate provider for listening to network events
 	#wallet;
 	#contractsByAddress = {};
 	#bCatchingUp = true;
@@ -43,6 +44,11 @@ class EvmChain {
 
 	getProvider() {
 		return this.#provider;
+	}
+
+	getListenerProvider() {
+		// Return listener provider if available, otherwise use main provider
+		return this.#listenerProvider || this.#provider;
 	}
 
 	getWallet() {
@@ -1578,11 +1584,12 @@ class EvmChain {
 		await this.updateLastBlock(blockNumber);
 	}
 
-	constructor(network, factory_contract_addresses, assistant_factory_contract_addresses, provider){
+	constructor(network, factory_contract_addresses, assistant_factory_contract_addresses, provider, listenerProvider){
 		this.network = network;
 		this.#factory_contract_addresses = factory_contract_addresses;
 		this.#assistant_factory_contract_addresses = assistant_factory_contract_addresses;
 		this.#provider = provider;
+		this.#listenerProvider = listenerProvider; // Optional separate provider for listening
 		let wallet = ethers.Wallet.fromMnemonic(JSON.parse(fs.readFileSync(desktopApp.getAppDataDir() + '/keys.json')).mnemonic_phrase);
 		console.log(`====== my ${network} address: `, wallet.address);
 		this.#wallet = wallet.connect(provider);
@@ -1592,7 +1599,12 @@ class EvmChain {
 		// we might miss some events if the provider doesn't send them
 		const catchupInterval = setInterval(() => this.catchup(), 12 * 3600 * 1000);
 
-		if (provider._websocket && !process.env.devnet) {
+		// Use listener provider for listening if available, otherwise use main provider
+		const listeningProvider = this.getListenerProvider();
+		// Get provider URL for logging (stored when provider was created, or fallback to connection URL)
+		const providerUrl = listeningProvider._providerUrl || listeningProvider.connection?.url || listeningProvider._websocket?.url || 'unknown';
+
+		if (listeningProvider._websocket && !process.env.devnet) {
 			let closed = false;
 			let connectionStable = false;
 			let connectionStartTime = Date.now();
@@ -1607,7 +1619,7 @@ class EvmChain {
 				if (closeEventTimeout) clearTimeout(closeEventTimeout);
 				closed = true;
 				this.forget();
-				provider._websocket.removeAllListeners();
+				listeningProvider._websocket.removeAllListeners();
 				// Clear provider cache to allow reconnection with fresh provider
 				try {
 					const { clearProviderCache } = require('./evm/provider.js');
@@ -1620,7 +1632,7 @@ class EvmChain {
 			};
 			const closeSocket = () => {
 				try {
-					provider._websocket.close();
+					listeningProvider._websocket.close();
 				}
 				catch (e) {
 					console.log(`ws close ${this.network} failed`, e);
@@ -1628,7 +1640,7 @@ class EvmChain {
 			};
 			const pingSocket = () => {
 				try {
-					provider._websocket.ping();
+					listeningProvider._websocket.ping();
 				}
 				catch (e) {
 					console.log(`ping ${this.network} failed`, e);
@@ -1666,8 +1678,8 @@ class EvmChain {
 				}
 			}, 30000); // Start health checks after 30 seconds
 			
-			provider.on('block', (blockNumber) => {
-				console.log('new block', this.network, blockNumber);
+			listeningProvider.on('block', (blockNumber) => {
+				console.log('new block', this.network, blockNumber, `(${providerUrl})`);
 				if (!firstBlockReceived) {
 					firstBlockReceived = true;
 					console.log(`✅ ${this.network} received first block: ${blockNumber}`);
@@ -1689,7 +1701,7 @@ class EvmChain {
 				closeSocket();
 			}, 23 * 3600 * 1000);
 			
-			provider._websocket.on('pong', () => {
+			listeningProvider._websocket.on('pong', () => {
 				last_pong_ts = Date.now();
 				if (!firstPongReceived) {
 					firstPongReceived = true;
@@ -1702,8 +1714,8 @@ class EvmChain {
 					console.log(`✅ ${this.network} WebSocket connection marked as stable`);
 				}
 			});
-			provider._websocket.on('ping', () => console.log('ping', this.network));
-			provider._websocket.on('close', (code, reason) => {
+			listeningProvider._websocket.on('ping', () => console.log('ping', this.network));
+			listeningProvider._websocket.on('close', (code, reason) => {
 				console.log(`====== !!!!! websocket connection closed ${this.network}`, { code, reason: reason?.toString() });
 				if (closed)
 					return console.log('close event: ws already closed');
@@ -1726,7 +1738,7 @@ class EvmChain {
 					forgetAndEmitDisconnected();
 				}
 			});
-			provider._websocket.on('error', (error) => {
+			listeningProvider._websocket.on('error', (error) => {
 				console.log('====== !!!!! websocket error', this.network, error);
 				if (closed)
 					return console.log('error event: ws already closed');
@@ -1734,8 +1746,8 @@ class EvmChain {
 				closeSocket();
 				forgetAndEmitDisconnected();
 			});
-			provider._websocket.on('open', () => {
-				console.log(`✅ ${this.network} WebSocket opened successfully`);
+			listeningProvider._websocket.on('open', () => {
+				console.log(`✅ ${this.network} WebSocket opened successfully (${providerUrl})`);
 			});
 			console.log(`${this.network} constructor done`);
 		}

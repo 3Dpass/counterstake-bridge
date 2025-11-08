@@ -1,7 +1,7 @@
 "use strict";
 const conf = require('ocore/conf.js');
 const EvmChain = require('./evm-chain.js');
-const { getProvider } = require("./evm/provider.js");
+const { getProvider, getListenerProvider } = require("./evm/provider.js");
 const { getAddressBlocks } = require("./etherscan.js");
 
 const etherscan_base_url = process.env.testnet ? 'https://api-testnet.bscscan.com' : 'https://api.etherscan.io/v2';
@@ -15,13 +15,19 @@ class BSC extends EvmChain {
 			throw Error("BSC class already created, must be a singleton");
 		bCreated = true;
 		
-		const provider = getProvider('BSC');
-		super('BSC', conf.bsc_factory_contract_addresses, conf.bsc_assistant_factory_contract_addresses, provider);
+		const provider = getProvider('BSC'); // Infura for transactions and calls
+		const listenerProvider = getListenerProvider('BSC'); // BSC public RPC for listening
+		super('BSC', conf.bsc_factory_contract_addresses, conf.bsc_assistant_factory_contract_addresses, provider, listenerProvider);
 	}
 
 	forget() {
 		console.log(`removing ${this.getProvider().listenerCount()} listeners on ${this.network}`);
 		this.getProvider().removeAllListeners();
+		const listenerProvider = this.getListenerProvider();
+		if (listenerProvider && listenerProvider !== this.getProvider()) {
+			console.log(`removing ${listenerProvider.listenerCount()} listeners from listener provider on ${this.network}`);
+			listenerProvider.removeAllListeners();
+		}
 		bCreated = false;
 	}
 
