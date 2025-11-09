@@ -14,6 +14,7 @@
 
 const fetch = require('node-fetch');
 const { wait } = require('./utils.js');
+const { BrowserSession, getRandomDelay } = require('./browser-headers.js');
 
 /**
  * Parse Etherscan transactions page to extract block numbers and transaction hashes
@@ -29,8 +30,12 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
     retries = 3,
     includeTransactions = true, // New option to include transaction hashes
     includeEventLogs = false, // New option to fetch event logs for each transaction
-    maxPages = 10 // Maximum pages to fetch (0 = all pages, default: 10 to avoid excessive requests)
+    maxPages = 10, // Maximum pages to fetch (0 = all pages, default: 10 to avoid excessive requests)
+    session = null // Optional BrowserSession for maintaining consistency across requests
   } = options;
+  
+  // Create a session for this parsing run if not provided
+  const browserSession = session || new BrowserSession();
 
   const baseUrl = 'https://etherscan.io/';
   
@@ -47,7 +52,7 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       const targetUrl = `${baseUrl}txs?a=${bridgeAddress}&p=${page}`;
       console.log(`📄 Fetching page ${page}...`);
       
-      const result = await fetchEtherscanPage(targetUrl, { retries, delay, includeTransactions });
+      const result = await fetchEtherscanPage(targetUrl, { retries, delay, includeTransactions, session: browserSession });
       
       if (!result.success) {
         console.log(`⚠️  Failed to fetch page ${page}, stopping pagination`);
@@ -78,9 +83,10 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       
       page++;
       
-      // Add delay between pages to avoid rate limiting
+      // Add random delay between pages to avoid rate limiting and detection
       if (hasMorePages && (maxPages === 0 || page <= maxPages)) {
-        await wait(delay);
+        const pageDelay = getRandomDelay(delay, 30); // 30% jitter
+        await wait(pageDelay);
       }
     }
     
@@ -124,7 +130,7 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
         console.log(`  [${i + 1}/${sortedTransactions.length}] Fetching event logs for ${tx.txHash.substring(0, 16)}...`);
         
         try {
-          const eventLogs = await fetchTransactionEventLogs(tx.txHash, { retries, delay });
+          const eventLogs = await fetchTransactionEventLogs(tx.txHash, { retries, delay, session: browserSession });
           tx.eventLogs = eventLogs;
           fetchedCount++;
           
@@ -138,9 +144,10 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
           tx.eventLogs = [];
         }
         
-        // Add delay between transaction fetches to avoid rate limiting
+        // Add random delay between transaction fetches to avoid rate limiting and detection
         if (i < sortedTransactions.length - 1) {
-          await wait(delay);
+          const txDelay = getRandomDelay(delay, 30); // 30% jitter
+          await wait(txDelay);
         }
       }
       
@@ -178,29 +185,33 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
  * Fetch Etherscan page and extract block numbers and transaction hashes
  * @param {string} url - URL to fetch
  * @param {Object} options - Fetch options
+ * @param {BrowserSession} options.session - Browser session for maintaining consistency (optional)
  * @returns {Promise<Object>} Parsed page result with hasMorePages flag
  */
 async function fetchEtherscanPage(url, options = {}) {
-  const { retries = 3, delay = 1000, includeTransactions = true } = options;
+  const { retries = 3, delay = 1000, includeTransactions = true, session = null } = options;
+  
+  // Use provided session or create a new one for this request
+  const browserSession = session || new BrowserSession();
   
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`  🔄 Attempt ${attempt}/${retries} for ${url}`);
       
+      // Generate realistic headers with referrer chain
+      const headers = browserSession.getHeaders(url);
+      
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
+        headers: headers,
         timeout: 30000
       });
+      
+      // Update cookies from response if present
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (setCookieHeader) {
+        browserSession.updateCookies(setCookieHeader);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -230,18 +241,20 @@ async function fetchEtherscanPage(url, options = {}) {
         };
       }
       
-      // If no blocks found, wait and retry
+      // If no blocks found, wait and retry with jitter
       if (attempt < retries) {
-        console.log(`  ⏳ No blocks found, waiting ${delay}ms before retry...`);
-        await wait(delay);
+        const retryDelay = getRandomDelay(delay * (attempt + 1), 25); // Exponential backoff with jitter
+        console.log(`  ⏳ No blocks found, waiting ${retryDelay}ms before retry...`);
+        await wait(retryDelay);
       }
       
     } catch (error) {
       console.log(`  ❌ Attempt ${attempt} failed: ${error.message}`);
       
       if (attempt < retries) {
-        console.log(`  ⏳ Waiting ${delay}ms before retry...`);
-        await wait(delay);
+        const retryDelay = getRandomDelay(delay * (attempt + 1), 25); // Exponential backoff with jitter
+        console.log(`  ⏳ Waiting ${retryDelay}ms before retry...`);
+        await wait(retryDelay);
       } else {
         throw error;
       }
@@ -400,29 +413,35 @@ function extractTransactions(html) {
  * Fetch transaction detail page and extract event logs
  * @param {string} txHash - Transaction hash
  * @param {Object} options - Fetch options
+ * @param {BrowserSession} options.session - Browser session for maintaining consistency (optional)
  * @returns {Promise<Array>} Array of event log objects
  */
 async function fetchTransactionEventLogs(txHash, options = {}) {
-  const { retries = 3, delay = 1000 } = options;
+  const { retries = 3, delay = 1000, session = null } = options;
   const baseUrl = 'https://etherscan.io/';
   const txUrl = `${baseUrl}tx/${txHash}#eventlog`;
   
+  // Use provided session or create a new one for this request
+  const browserSession = session || new BrowserSession();
+  
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      // Generate realistic headers with referrer to transaction listing page
+      // Simulate coming from the main transactions page
+      const referrerUrl = `${baseUrl}txs`; // Simulate coming from transactions listing
+      const headers = browserSession.getHeaders(txUrl, { referrer: referrerUrl });
+      
       const response = await fetch(txUrl, {
         method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
+        headers: headers,
         timeout: 30000
       });
+      
+      // Update cookies from response if present
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (setCookieHeader) {
+        browserSession.updateCookies(setCookieHeader);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -437,8 +456,9 @@ async function fetchTransactionEventLogs(txHash, options = {}) {
       
     } catch (error) {
       if (attempt < retries) {
-        console.log(`    ⏳ Attempt ${attempt} failed, waiting ${delay}ms before retry...`);
-        await wait(delay);
+        const retryDelay = getRandomDelay(delay * (attempt + 1), 25); // Exponential backoff with jitter
+        console.log(`    ⏳ Attempt ${attempt} failed, waiting ${retryDelay}ms before retry...`);
+        await wait(retryDelay);
       } else {
         throw error;
       }

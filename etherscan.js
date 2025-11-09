@@ -117,7 +117,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 	
 	// If AlwaysUseBSCscanParser is enabled and this is BSC, skip API calls and use parser only
 	if (conf.AlwaysUseBSCscanParser && chainid === 56) {
-		console.log(`📡 AlwaysUseBSCscanParser enabled: using BSCScan HTML parser as only source for ${address}...`);
+		console.log(`📡 AlwaysUseBSCscanParser enabled: using BSCScan HTML parser as only source for address ${address}...`);
 		try {
 			// Create function to check if transaction already exists in database
 			const checkTransactionExists = async (txHash) => {
@@ -175,7 +175,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 					}
 				}
 				
-				console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${blocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''}`);
+				console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${blocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''} for address ${address}`);
 				return blocks;
 			} else {
 				throw new Error(`BSCScan parser failed: ${result.error || 'unknown error'}`);

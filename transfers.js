@@ -78,9 +78,10 @@ async function linkOrphanedClaimsToTransfer(transfer, transfer_id) {
 	
 	try {
 		// Find orphaned claims (transfer_id IS NULL) that match this transfer's txid
+		// Use case-insensitive comparison for addresses to handle legacy data stored with different case
 		const orphanedClaims = await db.query(
 			`SELECT * FROM claims 
-			WHERE bridge_id=? AND type=? AND txid=? AND txts=? AND sender_address=? AND dest_address=? 
+			WHERE bridge_id=? AND type=? AND txid=? AND txts=? AND LOWER(sender_address)=LOWER(?) AND LOWER(dest_address)=LOWER(?) 
 			AND transfer_id IS NULL`,
 			[bridge_id, type, txid, txts, sender_address, dest_address]
 		);
@@ -521,6 +522,23 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 	if (!conf.bWatchdog)
 		return console.log(`will skip claim ${claim_txid} as watchdog function is off`);
 
+	// Normalize EVM addresses to checksummed format for consistent matching
+	// This ensures addresses from events match addresses stored in the database
+	try {
+		if (sender_address && sender_address.startsWith('0x') && sender_address.length === 42) {
+			sender_address = utils.getAddress(sender_address);
+		}
+		if (dest_address && dest_address.startsWith('0x') && dest_address.length === 42) {
+			dest_address = utils.getAddress(dest_address);
+		}
+		if (claimant_address && claimant_address.startsWith('0x') && claimant_address.length === 42) {
+			claimant_address = utils.getAddress(claimant_address);
+		}
+	} catch (e) {
+		// If address normalization fails, continue with original addresses
+		// (might be non-EVM addresses like Obyte)
+	}
+
 	const network = type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
 	const unlock = await mutex.lock(network);
 	console.log(`handling claim ${claim_num} in tx ${claim_txid}`);
@@ -555,9 +573,20 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 	};
 
 	// sender_address and dest_address are case-sensitive! For Ethereum, use mixed case checksummed addresses only
+	// Use case-insensitive comparison for addresses to handle legacy data stored with different case
 	const findTransfers = async () => {
-		const transfers = await db.query("SELECT * FROM transfers WHERE bridge_id=? AND txid=? AND txts=? AND sender_address=? AND dest_address=? AND type=? AND is_confirmed=1", [bridge_id, txid, txts, sender_address, dest_address, type]);
+		const transfers = await db.query("SELECT * FROM transfers WHERE bridge_id=? AND txid=? AND txts=? AND LOWER(sender_address)=LOWER(?) AND LOWER(dest_address)=LOWER(?) AND type=? AND is_confirmed=1", [bridge_id, txid, txts, sender_address, dest_address, type]);
 		console.log(`transfer candidates for ${txid}`, transfers);
+		// Debug: Check if any transfer exists with this txid (regardless of other fields)
+		if (transfers.length === 0) {
+			const allTransfersWithTxid = await db.query("SELECT transfer_id, bridge_id, type, txts, sender_address, dest_address, is_confirmed FROM transfers WHERE txid=?", [txid]);
+			if (allTransfersWithTxid.length > 0) {
+				console.log(`⚠️  Found ${allTransfersWithTxid.length} transfer(s) with txid ${txid} but they don't match the claim criteria:`, allTransfersWithTxid);
+				console.log(`   Claim is looking for: bridge_id=${bridge_id}, type=${type}, txts=${txts}, sender_address=${sender_address}, dest_address=${dest_address}, is_confirmed=1`);
+			} else {
+				console.log(`⚠️  No transfer found in database with txid ${txid} - transfer may not have been detected yet`);
+			}
+		}
 		return transfers;
 	};
 	let transfers = [];
@@ -1845,6 +1874,16 @@ async function start() {
 		if (!discoverySuccess) {
 			console.log(`⚠️  3DPass bridge discovery will be retried when 3DPass reconnects`);
 		}
+	}
+
+	// Validate and fix decimals for all existing bridges
+	// This ensures stored decimals match actual token contract values
+	try {
+		console.log('\n🔍 Validating bridge decimals for all existing bridges...');
+		await setup3DPassBridges.validateAndFixBridgeDecimals(networkApi);
+	} catch (err) {
+		console.error('❌ Error validating bridge decimals:', err.message);
+		// Don't fail startup if validation fails, but log the error
 	}
 
 //	await populatePooledAssistantsTable();

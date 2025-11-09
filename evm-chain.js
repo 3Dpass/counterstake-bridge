@@ -301,6 +301,18 @@ class EvmChain {
 		return block.timestamp;
 	}
 
+	async getBlockTimestampByNumber(blockNumber, bRetrying) {
+		const block = await this.#provider.getBlock(blockNumber);
+		if (!block) {
+			if (bRetrying)
+				throw Error(`block ${blockNumber} in ${this.network} not found`);
+			console.log(`block ${blockNumber} in ${this.network} not found, will retry`);
+			await wait(15000);
+			return await this.getBlockTimestampByNumber(blockNumber, true);
+		}
+		return block.timestamp;
+	}
+
 	async getLastStableTimestamp() {
 		const currentBlockNumber = await this.getBlockNumber();
 		if (!currentBlockNumber)
@@ -660,6 +672,11 @@ class EvmChain {
 	startWatchingExportAA(export_aa) {
 		const contract = new ethers.Contract(export_aa, exportJson.abi, this.#wallet);
 		contract.on('NewExpatriation', this.onNewExpatriation.bind(this));
+		// Also listen for NewRepatriation on export contracts (for bidirectional bridges like 3DPass)
+		// The getType function returns 'repatriation' when address matches export_aa
+		if (contract.filters.NewRepatriation) {
+			contract.on('NewRepatriation', this.onNewRepatriation.bind(this));
+		}
 		this.addCounterstakeEventHandlers(contract);
 		this.#contractsByAddress[export_aa] = contract;
 	}
@@ -682,11 +699,17 @@ class EvmChain {
 		const unlock = await mutex.lock(this.network + 'Event');
 		console.log('NewExpatriation event', this.network, sender_address, amount.toString(), reward.toString(), foreign_address, data, event);
 		const txid = event.transactionHash;
-		const txts = await this.getBlockTimestamp(event.blockHash);
+		// If blockHash is null (from parser), use blockNumber to get timestamp
+		const txts = event.blockHash ? await this.getBlockTimestamp(event.blockHash) : await this.getBlockTimestampByNumber(event.blockNumber);
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const { bridge_id, export_aa } = bridge;
-		if (export_aa !== event.address)
+		// Use case-insensitive comparison since event.address is lowercase from parser
+		const eventAddressLower = (event.address || '').toLowerCase();
+		if (export_aa && export_aa.toLowerCase() !== eventAddressLower)
 			throw Error(`expatriation on non-export address? export_aa=${export_aa}, address=${event.address}`);
+		// Normalize addresses to checksummed format for consistent matching
+		sender_address = ethers.utils.getAddress(sender_address);
+		foreign_address = ethers.utils.getAddress(foreign_address);
 		const transfer = { bridge_id, type: 'expatriation', amount, reward, sender_address, dest_address: foreign_address, data, txid, txts };
 		console.log('transfer', transfer);
 		event.removed ? await transfers.removeTransfer(transfer) : await transfers.addTransfer(transfer, true);
@@ -698,11 +721,19 @@ class EvmChain {
 		const unlock = await mutex.lock(this.network + 'Event');
 		console.log('NewRepatriation event', this.network, sender_address, amount.toString(), reward.toString(), home_address, data, event);
 		const txid = event.transactionHash;
-		const txts = await this.getBlockTimestamp(event.blockHash);
+		// If blockHash is null (from parser), use blockNumber to get timestamp
+		const txts = event.blockHash ? await this.getBlockTimestamp(event.blockHash) : await this.getBlockTimestampByNumber(event.blockNumber);
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
-		const { bridge_id, import_aa } = bridge;
-		if (import_aa !== event.address)
-			throw Error(`repatriation on non-export address? import_aa=${import_aa}, address=${event.address}`);
+		const { bridge_id, import_aa, export_aa } = bridge;
+		// NewRepatriation can come from either import_aa or export_aa (for bidirectional bridges)
+		// The getType function determines the type based on which address matches
+		// Use case-insensitive comparison since event.address is lowercase from parser
+		const eventAddressLower = (event.address || '').toLowerCase();
+		if (import_aa && import_aa.toLowerCase() !== eventAddressLower && export_aa && export_aa.toLowerCase() !== eventAddressLower)
+			throw Error(`repatriation on unknown address? import_aa=${import_aa}, export_aa=${export_aa}, address=${event.address}`);
+		// Normalize addresses to checksummed format for consistent matching
+		sender_address = ethers.utils.getAddress(sender_address);
+		home_address = ethers.utils.getAddress(home_address);
 		const transfer = { bridge_id, type: 'repatriation', amount, reward, sender_address, dest_address: home_address, data, txid, txts };
 		event.removed ? await transfers.removeTransfer(transfer) : await transfers.addTransfer(transfer, true);
 		await this.updateLastBlock(event.blockNumber);
@@ -717,6 +748,10 @@ class EvmChain {
 			return unlock(`the claim event was removed, ignoring`);
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const type = getType(event.address, bridge);
+		// Normalize addresses to checksummed format for consistent matching
+		sender_address = ethers.utils.getAddress(sender_address);
+		recipient_address = ethers.utils.getAddress(recipient_address);
+		author_address = ethers.utils.getAddress(author_address);
 		const dest_address = recipient_address;
 		const claimant_address = author_address;
 		await transfers.handleNewClaim(bridge, type, claim_num, sender_address, dest_address, claimant_address, data, amount, reward, stake, txid, txts, event.transactionHash);
@@ -732,6 +767,8 @@ class EvmChain {
 			return unlock(`the challenge event was removed, ignoring`);
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const type = getType(event.address, bridge);
+		// Normalize address to checksummed format for consistent matching
+		author_address = ethers.utils.getAddress(author_address);
 		await transfers.handleChallenge(bridge, type, claim_num, author_address, outcome ? 'yes' : 'no', stake, event.transactionHash);
 		await this.updateLastBlock(event.blockNumber);
 		unlock();
@@ -1219,6 +1256,21 @@ class EvmChain {
 		let targetEventTopic = null;
 		if (filter && filter.topics && filter.topics[0]) {
 			targetEventTopic = filter.topics[0];
+			// Try to determine event name from contract interface for better logging
+			let eventName = 'unknown';
+			try {
+				// Try to find which event this filter is for by checking all events in the contract interface
+				const events = contract.interface.events;
+				for (const [name, event] of Object.entries(events)) {
+					const eventTopic = ethers.utils.id(event.format('full'));
+					if (eventTopic.toLowerCase() === targetEventTopic.toLowerCase()) {
+						eventName = name;
+						break;
+					}
+				}
+			} catch (e) {
+				// Ignore errors
+			}
 		}
 		
 		// Process each transaction's event logs
@@ -1238,8 +1290,12 @@ class EvmChain {
 				
 				// Check event topic if filter is provided
 				if (targetEventTopic && log.topics && log.topics.length > 0) {
-					// First topic is usually the event signature hash
-					const logTopic = log.topics[0]?.value;
+					// Topic 0 is the event signature hash - find it by index field, not array position
+					const topic0 = log.topics.find(t => t.index === 0);
+					if (!topic0) {
+						return false;
+					}
+					const logTopic = topic0.value;
 					if (logTopic && logTopic.toLowerCase() !== targetEventTopic.toLowerCase()) {
 						return false;
 					}
@@ -1247,6 +1303,7 @@ class EvmChain {
 				
 				return true;
 			});
+			
 			
 			// Convert parser event logs to ethers event format and process them
 			for (const log of matchingLogs) {
@@ -1262,7 +1319,7 @@ class EvmChain {
 					try {
 						eventFragment = contract.interface.getEvent(eventName);
 					} catch (e) {
-						console.log(`processPastEventsFromParserCache ${network}: event ${eventName} not found in contract interface, trying to decode from raw data...`);
+						// Event not found in contract interface, will try to decode from raw data
 					}
 					
 					// Build event args from log data in the correct order
@@ -1277,10 +1334,12 @@ class EvmChain {
 							let paramValue = null;
 							
 							if (input.indexed) {
-								// Indexed parameters are in topics (topics[0] is event signature, topics[1+] are indexed params)
+								// Indexed parameters are in topics (topic[0] is event signature, topic[1+] are indexed params)
 								const indexedIndex = eventFragment.inputs.filter(inp => inp.indexed).indexOf(input);
-								if (log.topics && log.topics.length > indexedIndex + 1) {
-									const topicValue = log.topics[indexedIndex + 1].value;
+								// Find topic by index field, not array position
+								const topic = log.topics.find(t => t.index === indexedIndex + 1);
+								if (topic) {
+									const topicValue = topic.value;
 									
 									// Decode topic value based on type
 									if (input.type === 'uint256' || input.type === 'uint128' || input.type === 'uint64' || input.type === 'uint32' || input.type === 'uint8') {
@@ -1329,7 +1388,8 @@ class EvmChain {
 						if (log.rawData && log.rawData !== '0x') {
 							try {
 								// Try to decode using contract interface
-								const topics = log.topics ? log.topics.map(t => t.value) : [];
+								// Sort topics by index to ensure correct order (topic 0, 1, 2, etc.)
+								const topics = log.topics ? log.topics.sort((a, b) => a.index - b.index).map(t => t.value) : [];
 								const decodedLog = contract.interface.parseLog({
 									topics: topics,
 									data: log.rawData
@@ -1356,6 +1416,8 @@ class EvmChain {
 					// Create a mock event object similar to ethers event
 					// Normalize address to lowercase for consistency (addresses are case-insensitive)
 					const eventAddress = (log.address || contractAddress).toLowerCase();
+					// Sort topics by index to ensure correct order (topic 0, 1, 2, etc.)
+					const sortedTopics = log.topics ? log.topics.sort((a, b) => a.index - b.index).map(t => t.value) : [];
 					const mockEvent = {
 						args: eventArgs,
 						event: eventName,
@@ -1364,7 +1426,7 @@ class EvmChain {
 						transactionHash: tx.txHash,
 						blockNumber: tx.blockNumber,
 						blockHash: null, // Not available from parser
-						topics: log.topics ? log.topics.map(t => t.value) : [],
+						topics: sortedTopics,
 						data: log.rawData || '0x',
 						removed: false
 					};
@@ -1507,11 +1569,56 @@ class EvmChain {
 			// Get all addresses that need checking, including factory contracts
 			const addressesToCheck = new Set();
 			
-			// Add bridge contracts
+			// Add bridge contracts from contractsByAddress
 			for (let address in this.#contractsByAddress) {
 				const contract = this.#contractsByAddress[address];
 				if (contract.filters.NewClaim) { // bridge contract
-					addressesToCheck.add(address);
+					// Normalize address to lowercase for consistency
+					addressesToCheck.add(address.toLowerCase());
+				}
+			}
+			
+			// Also query database for bridges where this network is the foreign network (import_aa)
+			// or home network (export_aa) to ensure we check all bridge addresses
+			// This handles cases where contracts weren't registered in contractsByAddress
+			const db = require('ocore/db.js');
+			const bridges = await db.query("SELECT * FROM bridges WHERE foreign_network=? OR home_network=?", [this.network, this.network]);
+			for (let bridge of bridges) {
+				// Add import_aa if this network is the foreign network
+				if (bridge.foreign_network === this.network && bridge.import_aa) {
+					const normalizedImportAA = bridge.import_aa.toLowerCase();
+					addressesToCheck.add(normalizedImportAA);
+					// Ensure contract instance exists for this address
+					if (!this.#contractsByAddress[normalizedImportAA]) {
+						try {
+							const contract = new ethers.Contract(normalizedImportAA, importJson.abi, this.#wallet);
+							contract.on('NewRepatriation', this.onNewRepatriation.bind(this));
+							this.addCounterstakeEventHandlers(contract);
+							this.#contractsByAddress[normalizedImportAA] = contract;
+						} catch (e) {
+							console.error(`${this.network} catchup: failed to create contract instance for import_aa ${normalizedImportAA}:`, e.message);
+						}
+					}
+				}
+				// Add export_aa if this network is the home network
+				if (bridge.home_network === this.network && bridge.export_aa) {
+					const normalizedExportAA = bridge.export_aa.toLowerCase();
+					addressesToCheck.add(normalizedExportAA);
+					// Ensure contract instance exists for this address
+					if (!this.#contractsByAddress[normalizedExportAA]) {
+						try {
+							const contract = new ethers.Contract(normalizedExportAA, exportJson.abi, this.#wallet);
+							contract.on('NewExpatriation', this.onNewExpatriation.bind(this));
+							// Also listen for NewRepatriation on export contracts (for bidirectional bridges like 3DPass)
+							if (contract.filters.NewRepatriation) {
+								contract.on('NewRepatriation', this.onNewRepatriation.bind(this));
+							}
+							this.addCounterstakeEventHandlers(contract);
+							this.#contractsByAddress[normalizedExportAA] = contract;
+						} catch (e) {
+							console.error(`${this.network} catchup: failed to create contract instance for export_aa ${normalizedExportAA}:`, e.message);
+						}
+					}
 				}
 			}
 			
@@ -1532,21 +1639,78 @@ class EvmChain {
 			
 			console.log(`${this.network} catchup: will check ${addressesToCheck.size} addresses (${Object.keys(this.#contractsByAddress).length} contracts + ${addressesToCheck.size - Object.keys(this.#contractsByAddress).length} factories)`);
 			
-			if (top_available_block > last_block) {
+			// Log all addresses being checked with bridge info
+			if (addressesToCheck.size > 0) {
+				console.log(`${this.network} catchup: addresses to check:`);
 				for (let address of addressesToCheck) {
 					try {
-						console.log(`${this.network} catchup: calling getAddressBlocks for ${address} from block ${last_block}`);
+						const bridge = await transfers.getBridgeByAddress(address, false);
+						if (bridge) {
+							console.log(`  - ${address} (bridge ${bridge.bridge_id}: ${bridge.home_network}↔${bridge.foreign_network})`);
+						} else {
+							console.log(`  - ${address} (factory or unknown)`);
+						}
+					} catch (e) {
+						console.log(`  - ${address} (factory or unknown)`);
+					}
+				}
+			}
+			
+			if (top_available_block > last_block) {
+				// Separate priority addresses from regular addresses
+				const priorityAddresses = new Set();
+				const regularAddresses = new Set();
+				
+				// Normalize priority addresses from config to lowercase for comparison
+				const topPriorityBridges = (conf.topPriorityBridges || []).map(addr => addr.toLowerCase());
+				
+				for (let address of addressesToCheck) {
+					const addressLower = address.toLowerCase();
+					if (topPriorityBridges.includes(addressLower)) {
+						priorityAddresses.add(address);
+					} else {
+						regularAddresses.add(address);
+					}
+				}
+				
+				// Helper function to query an address
+				const queryAddress = async (address) => {
+					try {
+						// Try to find which bridge this address belongs to
+						let bridgeInfo = '';
+						try {
+							const bridge = await transfers.getBridgeByAddress(address, false);
+							if (bridge) {
+								bridgeInfo = ` (bridge ${bridge.bridge_id}: ${bridge.home_network}↔${bridge.foreign_network})`;
+							}
+						} catch (e) {
+							// Ignore errors
+						}
+						
+						console.log(`${this.network} catchup: calling getAddressBlocks for address ${address}${bridgeInfo} from block ${last_block}`);
 						const blocks = await this.getAddressBlocks(address, last_block);
-						console.log(`${this.network} address ${address} blocks of missed txs since ${last_block}:`, blocks);
+						console.log(`${this.network} address ${address}${bridgeInfo} blocks of missed txs since ${last_block}:`, blocks);
 						
 						// Only process events if we have a contract instance for this address
-						const contract = this.#contractsByAddress[address];
+						// Normalize address lookup to handle case differences
+						// Address from addressesToCheck is already lowercase, but keys in contractsByAddress might be checksummed
+						const addressLower = address.toLowerCase();
+						let contract = this.#contractsByAddress[address] || this.#contractsByAddress[addressLower];
+						if (!contract) {
+							// Try to find contract with case-insensitive match
+							for (let key in this.#contractsByAddress) {
+								if (key.toLowerCase() === addressLower) {
+									contract = this.#contractsByAddress[key];
+									break;
+								}
+							}
+						}
 						if (contract && contract.filters.NewClaim) {
 							// It's a bridge contract, process events
 							for (let blockNumber of blocks) {
 								const count = await this.processPastEventsOnBridgeContract(contract, blockNumber, blockNumber);
 								if (!count)
-									console.log(`no CS events on contract ${address}@${this.network} in block ${blockNumber}`);
+									console.log(`no CS events on contract ${address}${bridgeInfo}@${this.network} in block ${blockNumber}`);
 							}
 						} else {
 							// Factory contract - events will be processed when factory monitoring completes
@@ -1556,6 +1720,22 @@ class EvmChain {
 						console.error(`⚠️  Failed to get address blocks for ${address} during catchup on ${this.network}:`, err.message);
 						console.error(`   Error stack:`, err.stack);
 						// Continue with other addresses
+					}
+				};
+				
+				// Query priority addresses first
+				if (priorityAddresses.size > 0) {
+					console.log(`${this.network} catchup: querying ${priorityAddresses.size} priority bridge address(es) first...`);
+					for (let address of priorityAddresses) {
+						await queryAddress(address);
+					}
+				}
+				
+				// Then query regular addresses
+				if (regularAddresses.size > 0) {
+					console.log(`${this.network} catchup: querying ${regularAddresses.size} regular address(es)...`);
+					for (let address of regularAddresses) {
+						await queryAddress(address);
 					}
 				}
 			} else {

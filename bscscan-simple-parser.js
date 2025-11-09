@@ -14,6 +14,7 @@
 
 const fetch = require('node-fetch');
 const { wait } = require('./utils.js');
+const { BrowserSession, getRandomDelay } = require('./browser-headers.js');
 
 /**
  * Parse BSCScan transactions page to extract block numbers and transaction hashes
@@ -29,12 +30,16 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
     retries = 3,
     includeTransactions = true, // New option to include transaction hashes
     includeEventLogs = false, // New option to fetch event logs for each transaction
-    maxPages = 10 // Maximum pages to fetch (0 = all pages, default: 10 to avoid excessive requests)
+    maxPages = 10, // Maximum pages to fetch (0 = all pages, default: 10 to avoid excessive requests)
+    session = null // Optional BrowserSession for maintaining consistency across requests
   } = options;
+  
+  // Create a session for this parsing run if not provided
+  const browserSession = session || new BrowserSession();
 
   const baseUrl = 'https://bscscan.com/';
   
-  console.log(`🔍 Parsing BSCScan for block numbers${includeTransactions ? ' and transactions' : ''}${includeEventLogs ? ' with event logs' : ''} (max ${maxPages === 0 ? 'all' : maxPages} pages)`);
+  console.log(`🔍 Parsing BSCScan for address ${bridgeAddress} - block numbers${includeTransactions ? ' and transactions' : ''}${includeEventLogs ? ' with event logs' : ''} (max ${maxPages === 0 ? 'all' : maxPages} pages)`);
   
   try {
     const allBlockNumbers = new Set();
@@ -47,7 +52,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
       const targetUrl = `${baseUrl}txs?a=${bridgeAddress}&p=${page}`;
       console.log(`📄 Fetching page ${page}...`);
       
-      const result = await fetchBSCScanPage(targetUrl, { retries, delay, includeTransactions });
+      const result = await fetchBSCScanPage(targetUrl, { retries, delay, includeTransactions, session: browserSession });
       
       if (!result.success) {
         console.log(`⚠️  Failed to fetch page ${page}, stopping pagination`);
@@ -58,6 +63,9 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
       result.blockNumbers.forEach(block => allBlockNumbers.add(block));
       
       // Add transactions (avoid duplicates)
+      // Note: BSCScan pages are already ordered by most recent first, so transactions
+      // are added in chronological order (newest first). They will be sorted again
+      // after all pages are fetched to ensure proper ordering.
       if (result.transactions) {
         result.transactions.forEach(tx => {
           if (!allTransactions.find(t => t.txHash === tx.txHash)) {
@@ -78,24 +86,31 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
       
       page++;
       
-      // Add delay between pages to avoid rate limiting
+      // Add random delay between pages to avoid rate limiting and detection
       if (hasMorePages && (maxPages === 0 || page <= maxPages)) {
-        await wait(delay);
+        const pageDelay = getRandomDelay(delay, 30); // 30% jitter
+        await wait(pageDelay);
       }
     }
     
     const uniqueBlocks = Array.from(allBlockNumbers).sort((a, b) => b - a);
+    // Sort transactions by block number (newest first) to prioritize recent transactions
+    // This ensures that when checking against database and parsing, most recent transactions are processed first
     const sortedTransactions = allTransactions.sort((a, b) => b.blockNumber - a.blockNumber);
     
     console.log(`✅ Successfully parsed BSCScan (${page - 1} page(s))`);
     console.log(`Found ${uniqueBlocks.length} unique block numbers`);
     if (includeTransactions) {
       console.log(`Found ${sortedTransactions.length} unique transaction hashes`);
+      if (sortedTransactions.length > 0) {
+        console.log(`  Most recent: Block ${sortedTransactions[0].blockNumber}, Oldest: Block ${sortedTransactions[sortedTransactions.length - 1].blockNumber}`);
+      }
     }
     
     // Fetch event logs for each transaction if requested
+    // Process transactions in order (newest first) to prioritize recent transactions
     if (includeEventLogs && sortedTransactions.length > 0) {
-      console.log(`\n📋 Fetching event logs for ${sortedTransactions.length} transactions...`);
+      console.log(`\n📋 Fetching event logs for ${sortedTransactions.length} transactions (processing newest first)...`);
       
       // Optional function to check if transaction already has events in database
       const checkTransactionExists = options.checkTransactionExists || null;
@@ -103,6 +118,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
       let skippedCount = 0;
       let fetchedCount = 0;
       
+      // Process transactions in order (newest first) - most recent transactions are checked and parsed first
       for (let i = 0; i < sortedTransactions.length; i++) {
         const tx = sortedTransactions[i];
         
@@ -124,7 +140,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
         console.log(`  [${i + 1}/${sortedTransactions.length}] Fetching event logs for ${tx.txHash.substring(0, 16)}...`);
         
         try {
-          const eventLogs = await fetchTransactionEventLogs(tx.txHash, { retries, delay });
+          const eventLogs = await fetchTransactionEventLogs(tx.txHash, { retries, delay, session: browserSession });
           tx.eventLogs = eventLogs;
           fetchedCount++;
           
@@ -138,9 +154,10 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
           tx.eventLogs = [];
         }
         
-        // Add delay between transaction fetches to avoid rate limiting
+        // Add random delay between transaction fetches to avoid rate limiting and detection
         if (i < sortedTransactions.length - 1) {
-          await wait(delay);
+          const txDelay = getRandomDelay(delay, 30); // 30% jitter
+          await wait(txDelay);
         }
       }
       
@@ -178,29 +195,33 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
  * Fetch BSCScan page and extract block numbers and transaction hashes
  * @param {string} url - URL to fetch
  * @param {Object} options - Fetch options
+ * @param {BrowserSession} options.session - Browser session for maintaining consistency (optional)
  * @returns {Promise<Object>} Parsed page result with hasMorePages flag
  */
 async function fetchBSCScanPage(url, options = {}) {
-  const { retries = 3, delay = 1000, includeTransactions = true } = options;
+  const { retries = 3, delay = 1000, includeTransactions = true, session = null } = options;
+  
+  // Use provided session or create a new one for this request
+  const browserSession = session || new BrowserSession();
   
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`  🔄 Attempt ${attempt}/${retries} for ${url}`);
       
+      // Generate realistic headers with referrer chain
+      const headers = browserSession.getHeaders(url);
+      
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
+        headers: headers,
         timeout: 30000
       });
+      
+      // Update cookies from response if present
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (setCookieHeader) {
+        browserSession.updateCookies(setCookieHeader);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -230,18 +251,20 @@ async function fetchBSCScanPage(url, options = {}) {
         };
       }
       
-      // If no blocks found, wait and retry
+      // If no blocks found, wait and retry with jitter
       if (attempt < retries) {
-        console.log(`  ⏳ No blocks found, waiting ${delay}ms before retry...`);
-        await wait(delay);
+        const retryDelay = getRandomDelay(delay * (attempt + 1), 25); // Exponential backoff with jitter
+        console.log(`  ⏳ No blocks found, waiting ${retryDelay}ms before retry...`);
+        await wait(retryDelay);
       }
       
     } catch (error) {
       console.log(`  ❌ Attempt ${attempt} failed: ${error.message}`);
       
       if (attempt < retries) {
-        console.log(`  ⏳ Waiting ${delay}ms before retry...`);
-        await wait(delay);
+        const retryDelay = getRandomDelay(delay * (attempt + 1), 25); // Exponential backoff with jitter
+        console.log(`  ⏳ Waiting ${retryDelay}ms before retry...`);
+        await wait(retryDelay);
       } else {
         throw error;
       }
@@ -400,29 +423,35 @@ function extractTransactions(html) {
  * Fetch transaction detail page and extract event logs
  * @param {string} txHash - Transaction hash
  * @param {Object} options - Fetch options
+ * @param {BrowserSession} options.session - Browser session for maintaining consistency (optional)
  * @returns {Promise<Array>} Array of event log objects
  */
 async function fetchTransactionEventLogs(txHash, options = {}) {
-  const { retries = 3, delay = 1000 } = options;
+  const { retries = 3, delay = 1000, session = null } = options;
   const baseUrl = 'https://bscscan.com/';
   const txUrl = `${baseUrl}tx/${txHash}#eventlog`;
   
+  // Use provided session or create a new one for this request
+  const browserSession = session || new BrowserSession();
+  
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      // Generate realistic headers with referrer to transaction listing page
+      // Simulate coming from the main transactions page
+      const referrerUrl = `${baseUrl}txs`; // Simulate coming from transactions listing
+      const headers = browserSession.getHeaders(txUrl, { referrer: referrerUrl });
+      
       const response = await fetch(txUrl, {
         method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
+        headers: headers,
         timeout: 30000
       });
+      
+      // Update cookies from response if present
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (setCookieHeader) {
+        browserSession.updateCookies(setCookieHeader);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -437,8 +466,9 @@ async function fetchTransactionEventLogs(txHash, options = {}) {
       
     } catch (error) {
       if (attempt < retries) {
-        console.log(`    ⏳ Attempt ${attempt} failed, waiting ${delay}ms before retry...`);
-        await wait(delay);
+        const retryDelay = getRandomDelay(delay * (attempt + 1), 25); // Exponential backoff with jitter
+        console.log(`    ⏳ Attempt ${attempt} failed, waiting ${retryDelay}ms before retry...`);
+        await wait(retryDelay);
       } else {
         throw error;
       }

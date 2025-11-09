@@ -524,6 +524,11 @@ async function setupCorrect3DPassBridges(networkApi) {
                     console.log(`  🔍 Error details:`, err);
                 }
                 
+                // Validate that foreign token decimals are available
+                if (bridgeDetails.foreignToken.decimals === null || bridgeDetails.foreignToken.decimals === undefined) {
+                    throw new Error(`Cannot update bridge ${bridgeToUpdate.bridge_id}: foreign token decimals not available for ${bridgeDetails.foreignAsset}. Please ensure the token contract is accessible and returns decimals.`);
+                }
+                
                 await db.query(`
                     UPDATE bridges SET 
                         import_aa = ?, 
@@ -547,7 +552,7 @@ async function setupCorrect3DPassBridges(networkApi) {
                     homeSymbol, // Correct external token symbol
                     '3DPass',
                     bridgeDetails.foreignAsset,
-                    bridgeDetails.foreignToken.decimals || 6,
+                    bridgeDetails.foreignToken.decimals,
                     bridgeDetails.foreignToken.symbol || 'Unknown',
                     bridgeDetails.stakeAsset,
                     bridgeToUpdate.bridge_id
@@ -569,6 +574,27 @@ async function setupCorrect3DPassBridges(networkApi) {
                 } catch (err) {
                     console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
                     console.log(`  🔍 Error details:`, err);
+                }
+                
+                // Fetch foreign token decimals from contract
+                let foreignTokenDecimals = null;
+                try {
+                    console.log(`  🔍 Fetching decimals for ${bridgeDetails.foreignAsset} on ${bridgeDetails.foreignNetwork}`);
+                    const externalProvider = getProviderSafe(bridgeDetails.foreignNetwork);
+                    const { ethers } = require("ethers");
+                    const erc20Abi = [
+                        { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "type": "function" }
+                    ];
+                    const foreignTokenContract = new ethers.Contract(bridgeDetails.foreignAsset, erc20Abi, externalProvider);
+                    foreignTokenDecimals = await foreignTokenContract.decimals();
+                    console.log(`  ✓ Fetched foreign token decimals: ${foreignTokenDecimals}`);
+                } catch (err) {
+                    console.log(`  ⚠️  Could not fetch foreign token decimals: ${err.message}`);
+                }
+                
+                // Validate that foreign token decimals are available
+                if (foreignTokenDecimals === null || foreignTokenDecimals === undefined) {
+                    throw new Error(`Cannot update bridge ${bridgeToUpdate.bridge_id}: foreign token decimals not available for ${bridgeDetails.foreignAsset}. Please ensure the token contract is accessible and returns decimals.`);
                 }
                 
                 await db.query(`
@@ -594,7 +620,7 @@ async function setupCorrect3DPassBridges(networkApi) {
                     bridgeDetails.homeToken.symbol || 'Unknown',
                     bridgeDetails.foreignNetwork,
                     bridgeDetails.foreignAsset,
-                    6, // Default decimals
+                    foreignTokenDecimals,
                     foreignSymbol, // Correct external token symbol
                     bridgeDetails.stakeAsset,
                     bridgeToUpdate.bridge_id
@@ -602,6 +628,21 @@ async function setupCorrect3DPassBridges(networkApi) {
             }
             
             console.log(`  ✅ Updated existing bridge ${bridgeToUpdate.bridge_id} with registry information`);
+            
+            // Register contracts for updated bridge
+            try {
+                if (bridgeToUpdate.import_aa && networkApi[bridgeToUpdate.foreign_network]) {
+                    console.log(`  📝 Registering import_aa ${bridgeToUpdate.import_aa} on ${bridgeToUpdate.foreign_network}`);
+                    networkApi[bridgeToUpdate.foreign_network].startWatchingImportAA(bridgeToUpdate.import_aa);
+                }
+                if (bridgeToUpdate.export_aa && networkApi[bridgeToUpdate.home_network]) {
+                    console.log(`  📝 Registering export_aa ${bridgeToUpdate.export_aa} on ${bridgeToUpdate.home_network}`);
+                    networkApi[bridgeToUpdate.home_network].startWatchingExportAA(bridgeToUpdate.export_aa);
+                }
+            } catch (err) {
+                console.log(`  ⚠️  Error registering contracts for updated bridge ${bridgeToUpdate.bridge_id}: ${err.message}`);
+            }
+            
             existingBridgesSkipped++;
             continue;
         }
@@ -631,6 +672,11 @@ async function setupCorrect3DPassBridges(networkApi) {
                 console.log(`  🔍 Error details:`, err);
             }
             
+            // Validate that foreign token decimals are available
+            if (bridgeDetails.foreignToken.decimals === null || bridgeDetails.foreignToken.decimals === undefined) {
+                throw new Error(`Cannot create bridge: foreign token decimals not available for ${bridgeDetails.foreignAsset}. Please ensure the token contract is accessible and returns decimals.`);
+            }
+            
     const insertResult = await db.query(`
         INSERT INTO bridges (
             home_network, home_asset, home_asset_decimals, home_symbol,
@@ -646,7 +692,7 @@ async function setupCorrect3DPassBridges(networkApi) {
         null, null, // Export AA will be created later
                 '3DPass', 
                 bridgeDetails.foreignAsset, 
-                bridgeDetails.foreignToken.decimals || 6, 
+                bridgeDetails.foreignToken.decimals, 
                 bridgeDetails.foreignToken.symbol || 'Unknown', // 3DPass precompile symbol
                 bridgeDetails.stakeAsset, 
                 bridge.address, 
@@ -676,6 +722,26 @@ async function setupCorrect3DPassBridges(networkApi) {
             }
             
             console.log(`  ✓ New Import bridge ${bridge.address} added with dynamic configuration`);
+            
+            // Register contracts for new Import bridge
+            // Import bridge: home_network is external (e.g., BSC), foreign_network is 3DPass
+            // import_aa is on 3DPass (foreign_network)
+            try {
+                if (bridge.address && networkApi['3DPass']) {
+                    console.log(`  📝 Registering import_aa ${bridge.address} on 3DPass`);
+                    networkApi['3DPass'].startWatchingImportAA(bridge.address);
+                }
+                // Also check if there's an export_aa on the home_network (external network)
+                // This would be set when the bridge is completed from the other side
+                const updatedBridge = await db.query(`SELECT * FROM bridges WHERE bridge_id = ?`, [newBridgeId]);
+                if (updatedBridge[0] && updatedBridge[0].export_aa && networkApi[bridgeDetails.homeNetwork]) {
+                    console.log(`  📝 Registering export_aa ${updatedBridge[0].export_aa} on ${bridgeDetails.homeNetwork}`);
+                    networkApi[bridgeDetails.homeNetwork].startWatchingExportAA(updatedBridge[0].export_aa);
+                }
+            } catch (err) {
+                console.log(`  ⚠️  Error registering contracts for new Import bridge: ${err.message}`);
+            }
+            
             newBridgesAdded++;
             
         } else if (bridge.type === 'Export') {
@@ -742,6 +808,26 @@ async function setupCorrect3DPassBridges(networkApi) {
             }
             
             console.log(`  ✓ New Export bridge ${bridge.address} added with dynamic configuration`);
+            
+            // Register contracts for new Export bridge
+            // Export bridge: home_network is 3DPass, foreign_network is external (e.g., BSC)
+            // export_aa is on 3DPass (home_network)
+            try {
+                if (bridge.address && networkApi['3DPass']) {
+                    console.log(`  📝 Registering export_aa ${bridge.address} on 3DPass`);
+                    networkApi['3DPass'].startWatchingExportAA(bridge.address);
+                }
+                // Also check if there's an import_aa on the foreign_network (external network)
+                // This would be set when the bridge is completed from the other side
+                const updatedBridge = await db.query(`SELECT * FROM bridges WHERE bridge_id = ?`, [newBridgeId]);
+                if (updatedBridge[0] && updatedBridge[0].import_aa && networkApi[bridgeDetails.foreignNetwork]) {
+                    console.log(`  📝 Registering import_aa ${updatedBridge[0].import_aa} on ${bridgeDetails.foreignNetwork}`);
+                    networkApi[bridgeDetails.foreignNetwork].startWatchingImportAA(updatedBridge[0].import_aa);
+                }
+            } catch (err) {
+                console.log(`  ⚠️  Error registering contracts for new Export bridge: ${err.message}`);
+            }
+            
             newBridgesAdded++;
         }
     }
@@ -789,14 +875,141 @@ async function setupCorrect3DPassBridges(networkApi) {
         console.log(`Bridge ${bridge.bridge_id}: ${bridge.home_network} ${bridge.home_symbol} -> ${bridge.foreign_network} ${bridge.foreign_symbol}`);
     }
     
+    // Final pass: Register all contracts for all 3DPass bridges to ensure nothing is missed
+    // This handles cases where bridges were updated or where both sides exist
+    console.log('\n📝 Final pass: Registering all contracts for 3DPass bridges...');
+    for (let bridge of dbBridges) {
+        try {
+            // Register import_aa on foreign_network if it exists
+            if (bridge.import_aa && networkApi[bridge.foreign_network]) {
+                console.log(`  📝 Registering import_aa ${bridge.import_aa} on ${bridge.foreign_network} for bridge ${bridge.bridge_id}`);
+                networkApi[bridge.foreign_network].startWatchingImportAA(bridge.import_aa);
+            }
+            // Register export_aa on home_network if it exists
+            if (bridge.export_aa && networkApi[bridge.home_network]) {
+                console.log(`  📝 Registering export_aa ${bridge.export_aa} on ${bridge.home_network} for bridge ${bridge.bridge_id}`);
+                networkApi[bridge.home_network].startWatchingExportAA(bridge.export_aa);
+            }
+        } catch (err) {
+            console.log(`  ⚠️  Error registering contracts for bridge ${bridge.bridge_id}: ${err.message}`);
+        }
+    }
+    
     console.log('\n✓ 3DPass bridges setup completed! The bot can now monitor the discovered bridges.');
+}
+
+/**
+ * Validate and fix decimals for all existing bridges in the database
+ * This ensures that stored decimals match the actual token contract values
+ */
+async function validateAndFixBridgeDecimals(networkApi) {
+    console.log('\n🔍 Validating and fixing bridge decimals...');
+    
+    await init();
+    
+    // Helper function to get provider, preferring networkApi if available
+    const getProviderSafe = (network) => {
+        if (networkApi && networkApi[network]) {
+            try {
+                const provider = networkApi[network].getProvider();
+                if (provider) {
+                    return provider;
+                }
+            } catch (e) {
+                // Fall back to getProvider
+            }
+        }
+        return getProvider(network);
+    };
+    
+    // Get all bridges from database
+    const allBridges = await db.query("SELECT * FROM bridges WHERE import_aa IS NOT NULL AND export_aa IS NOT NULL");
+    console.log(`Found ${allBridges.length} complete bridges to validate`);
+    
+    let fixedCount = 0;
+    let errorCount = 0;
+    
+    for (const bridge of allBridges) {
+        try {
+            const { bridge_id, home_network, home_asset, foreign_network, foreign_asset, 
+                    home_asset_decimals, foreign_asset_decimals } = bridge;
+            
+            let needsUpdate = false;
+            const updates = {};
+            
+            // Validate home asset decimals
+            if (home_asset && home_asset !== '0x0000000000000000000000000000000000000000' && networkApi[home_network]) {
+                try {
+                    const actualDecimals = await networkApi[home_network].getDecimals(home_asset);
+                    if (actualDecimals !== null && actualDecimals !== undefined) {
+                        if (home_asset_decimals !== actualDecimals) {
+                            console.log(`  ⚠️  Bridge ${bridge_id}: home_asset_decimals mismatch (DB: ${home_asset_decimals}, Contract: ${actualDecimals})`);
+                            updates.home_asset_decimals = actualDecimals;
+                            needsUpdate = true;
+                        }
+                    }
+                } catch (e) {
+                    console.log(`  ⚠️  Bridge ${bridge_id}: Could not fetch home asset decimals: ${e.message}`);
+                }
+            }
+            
+            // Validate foreign asset decimals
+            if (foreign_asset && foreign_asset !== '0x0000000000000000000000000000000000000000' && networkApi[foreign_network]) {
+                try {
+                    const actualDecimals = await networkApi[foreign_network].getDecimals(foreign_asset);
+                    if (actualDecimals !== null && actualDecimals !== undefined) {
+                        if (foreign_asset_decimals !== actualDecimals) {
+                            console.log(`  ⚠️  Bridge ${bridge_id}: foreign_asset_decimals mismatch (DB: ${foreign_asset_decimals}, Contract: ${actualDecimals})`);
+                            updates.foreign_asset_decimals = actualDecimals;
+                            needsUpdate = true;
+                        }
+                    }
+                } catch (e) {
+                    console.log(`  ⚠️  Bridge ${bridge_id}: Could not fetch foreign asset decimals: ${e.message}`);
+                }
+            }
+            
+            // Update database if needed
+            if (needsUpdate) {
+                const setClauses = [];
+                const values = [];
+                
+                if (updates.home_asset_decimals !== undefined) {
+                    setClauses.push('home_asset_decimals = ?');
+                    values.push(updates.home_asset_decimals);
+                }
+                
+                if (updates.foreign_asset_decimals !== undefined) {
+                    setClauses.push('foreign_asset_decimals = ?');
+                    values.push(updates.foreign_asset_decimals);
+                }
+                
+                values.push(bridge_id);
+                
+                await db.query(
+                    `UPDATE bridges SET ${setClauses.join(', ')} WHERE bridge_id = ?`,
+                    values
+                );
+                
+                console.log(`  ✅ Fixed bridge ${bridge_id} decimals`);
+                fixedCount++;
+            }
+        } catch (err) {
+            console.error(`  ❌ Error validating bridge ${bridge.bridge_id}: ${err.message}`);
+            errorCount++;
+        }
+    }
+    
+    console.log(`\n✓ Decimals validation completed: ${fixedCount} bridges fixed, ${errorCount} errors`);
+    return { fixedCount, errorCount };
 }
 
 // Export functions for use by other modules
 module.exports = {
 	discoverBridgesFromRegistry,
 	getBridgeDetails,
-	setupCorrect3DPassBridges
+	setupCorrect3DPassBridges,
+	validateAndFixBridgeDecimals
 };
 
 // Run the setup only if this script is executed directly
