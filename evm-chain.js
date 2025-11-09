@@ -670,7 +670,10 @@ class EvmChain {
 
 
 	startWatchingExportAA(export_aa) {
-		const contract = new ethers.Contract(export_aa, exportJson.abi, this.#wallet);
+		// Use listener provider for event listening to ensure events are caught from the listener provider
+		// Keep wallet-based contract for transactions (stored separately if needed)
+		const listenerProvider = this.getListenerProvider();
+		const contract = new ethers.Contract(export_aa, exportJson.abi, listenerProvider);
 		contract.on('NewExpatriation', this.onNewExpatriation.bind(this));
 		// Also listen for NewRepatriation on export contracts (for bidirectional bridges like 3DPass)
 		// The getType function returns 'repatriation' when address matches export_aa
@@ -682,7 +685,10 @@ class EvmChain {
 	}
 
 	startWatchingImportAA(import_aa) {
-		const contract = new ethers.Contract(import_aa, importJson.abi, this.#wallet);
+		// Use listener provider for event listening to ensure events are caught from the listener provider
+		// Keep wallet-based contract for transactions (stored separately if needed)
+		const listenerProvider = this.getListenerProvider();
+		const contract = new ethers.Contract(import_aa, importJson.abi, listenerProvider);
 		contract.on('NewRepatriation', this.onNewRepatriation.bind(this));
 		this.addCounterstakeEventHandlers(contract);
 		this.#contractsByAddress[import_aa] = contract;
@@ -944,7 +950,9 @@ class EvmChain {
 		for (let v in this.#factory_contract_addresses) {
 			const factory_contract_address = this.#factory_contract_addresses[v];
 			console.log(`🔧 Setting up factory ${factory_contract_address} (version ${v}) for ${this.network}...`);
-			const contract = new ethers.Contract(factory_contract_address, factoryJson.abi, this.#provider);
+			// Use listener provider for event listening to ensure events are caught from the listener provider
+			const listenerProvider = this.getListenerProvider();
+			const contract = new ethers.Contract(factory_contract_address, factoryJson.abi, listenerProvider);
 			contract.on('NewExport', onNewExport);
 			contract.on('NewImport', onNewImport);
 
@@ -1030,7 +1038,9 @@ class EvmChain {
 	// assistants
 
 	startWatchingExportAssistantAA(export_assistant_aa) {
-		const contract = new ethers.Contract(export_assistant_aa, exportAssistantJson.abi, this.#wallet);
+		// Use listener provider for event listening
+		const listenerProvider = this.getListenerProvider();
+		const contract = new ethers.Contract(export_assistant_aa, exportAssistantJson.abi, listenerProvider);
 		
 		// Add NewManager event listener
 		const onNewManager = async (previousManager, newManager, event) => {
@@ -1046,7 +1056,9 @@ class EvmChain {
 	}
 
 	startWatchingImportAssistantAA(import_assistant_aa) {
-		const contract = new ethers.Contract(import_assistant_aa, importAssistantJson.abi, this.#wallet);
+		// Use listener provider for event listening
+		const listenerProvider = this.getListenerProvider();
+		const contract = new ethers.Contract(import_assistant_aa, importAssistantJson.abi, listenerProvider);
 		
 		// Add NewManager event listener
 		const onNewManager = async (previousManager, newManager, event) => {
@@ -1108,7 +1120,9 @@ class EvmChain {
 		for (let v in this.#assistant_factory_contract_addresses) {
 			const assistant_factory_contract_address = this.#assistant_factory_contract_addresses[v];
 			console.log(`🔧 Setting up assistant factory ${assistant_factory_contract_address} (version ${v}) for ${this.network}...`);
-			const contract = new ethers.Contract(assistant_factory_contract_address, assistantFactoryJson.abi, this.#provider);
+			// Use listener provider for event listening to ensure events are caught from the listener provider
+			const listenerProvider = this.getListenerProvider();
+			const contract = new ethers.Contract(assistant_factory_contract_address, assistantFactoryJson.abi, listenerProvider);
 			contract.on('NewExportAssistant', onNewExportAssistant);
 			contract.on('NewImportAssistant', onNewImportAssistant);
 
@@ -1591,7 +1605,9 @@ class EvmChain {
 					// Ensure contract instance exists for this address
 					if (!this.#contractsByAddress[normalizedImportAA]) {
 						try {
-							const contract = new ethers.Contract(normalizedImportAA, importJson.abi, this.#wallet);
+							// Use listener provider for event listening
+							const listenerProvider = this.getListenerProvider();
+							const contract = new ethers.Contract(normalizedImportAA, importJson.abi, listenerProvider);
 							contract.on('NewRepatriation', this.onNewRepatriation.bind(this));
 							this.addCounterstakeEventHandlers(contract);
 							this.#contractsByAddress[normalizedImportAA] = contract;
@@ -1607,7 +1623,9 @@ class EvmChain {
 					// Ensure contract instance exists for this address
 					if (!this.#contractsByAddress[normalizedExportAA]) {
 						try {
-							const contract = new ethers.Contract(normalizedExportAA, exportJson.abi, this.#wallet);
+							// Use listener provider for event listening
+							const listenerProvider = this.getListenerProvider();
+							const contract = new ethers.Contract(normalizedExportAA, exportJson.abi, listenerProvider);
 							contract.on('NewExpatriation', this.onNewExpatriation.bind(this));
 							// Also listen for NewRepatriation on export contracts (for bidirectional bridges like 3DPass)
 							if (contract.filters.NewRepatriation) {
@@ -1782,7 +1800,15 @@ class EvmChain {
 		// Use listener provider for listening if available, otherwise use main provider
 		const listeningProvider = this.getListenerProvider();
 		// Get provider URL for logging (stored when provider was created, or fallback to connection URL)
-		const providerUrl = listeningProvider._providerUrl || listeningProvider.connection?.url || listeningProvider._websocket?.url || 'unknown';
+		// Mask API keys for security
+		let providerUrl = listeningProvider._providerUrl || listeningProvider.connection?.url || listeningProvider._websocket?.url || 'unknown';
+		// Additional masking in case URL wasn't masked when stored
+		if (providerUrl && providerUrl !== 'unknown') {
+			providerUrl = providerUrl.replace(/\/ws\/v3\/([a-f0-9]+)/gi, '/ws/v3/***');
+			providerUrl = providerUrl.replace(/\/v1\/([a-f0-9-]+)/gi, '/v1/***');
+			providerUrl = providerUrl.replace(/apikey\/([a-f0-9-]+)/gi, 'apikey/***');
+			providerUrl = providerUrl.replace(/api_key=([a-f0-9-]+)/gi, 'api_key=***');
+		}
 
 		if (listeningProvider._websocket && !process.env.devnet) {
 			let closed = false;

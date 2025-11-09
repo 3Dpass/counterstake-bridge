@@ -190,6 +190,9 @@ exports.catchup_retry_interval = 60; // Seconds between retries during catch-up
 // BSCScan parser configuration
 exports.AlwaysUseBSCscanParser = true; // When true, use BSCScan HTML parser as the only source for blocks and event logs (skips provider calls during the catch up)
 
+// BSC listener provider configuration
+// exports.bsc_listener_use_infura = false; // When true, use Infura for BSC listener provider instead of drpc.org (requires infura_project_id in conf.json)
+
 // Etherscan parser configuration
 exports.AlwaysUseEtherscanParser = false; // When true, use Etherscan HTML parser as the only source for blocks and event logs (skips provider calls during the catch up)
 

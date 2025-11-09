@@ -1167,7 +1167,8 @@ async function handleNewExportAA(export_aa, home_network, home_asset, home_asset
 	const foreign_symbol = networkApi[foreign_network] ? await networkApi[foreign_network].getSymbol(foreign_asset) : null;
 	
 	// look for an incomplete bridge with the matching import end
-	const [bridge] = await db.query(`SELECT * FROM bridges WHERE foreign_asset=?`, [foreign_asset]);
+	// Use case-insensitive comparison for foreign_asset (Ethereum addresses are case-insensitive but stored checksummed)
+	const [bridge] = await db.query(`SELECT * FROM bridges WHERE LOWER(foreign_asset)=LOWER(?)`, [foreign_asset]);
 	if (bridge) { // export end is already known
 		const { bridge_id, import_aa } = bridge;
 		if (bridge.export_aa) {
@@ -1196,6 +1197,16 @@ async function handleNewExportAA(export_aa, home_network, home_asset, home_asset
 	// Normalize export_aa to lowercase before inserting (addresses are case-insensitive)
 	const normalized_export_aa_for_insert = export_aa ? export_aa.toLowerCase() : export_aa;
 	params[0] = normalized_export_aa_for_insert; // Replace export_aa in params with normalized version
+	// Checksum foreign_asset if it's an EVM address (starts with 0x and is 42 chars)
+	let checksummed_foreign_asset = foreign_asset;
+	if (foreign_asset && foreign_asset.startsWith('0x') && foreign_asset.length === 42) {
+		try {
+			checksummed_foreign_asset = utils.getAddress(foreign_asset);
+		} catch (e) {
+			// If checksumming fails, use as-is
+		}
+	}
+	params[6] = checksummed_foreign_asset; // Replace foreign_asset in params with checksummed version (index 6)
 	await db.query(`INSERT INTO bridges (export_aa, home_network, home_asset, home_asset_decimals, home_symbol, foreign_network, foreign_asset, foreign_symbol, e_v, i_v, ea_v, ia_v) VALUES (${Array(params.length).fill('?').join(', ')})`, params);
 	unlock(`created a new half-bridge ${export_aa} ${home_symbol} ${home_network}->${foreign_network} with only export end`);
 	return true;
@@ -1219,7 +1230,8 @@ async function handleNewImportAA(import_aa, home_network, home_asset, foreign_ne
 	const foreign_symbol = await networkApi[foreign_network].getSymbol(foreign_asset);
 	
 	// look for an incomplete bridge with the matching export end
-	const [bridge] = await db.query(`SELECT * FROM bridges WHERE foreign_asset=?`, [foreign_asset]);
+	// Use case-insensitive comparison for foreign_asset (Ethereum addresses are case-insensitive but stored checksummed)
+	const [bridge] = await db.query(`SELECT * FROM bridges WHERE LOWER(foreign_asset)=LOWER(?)`, [foreign_asset]);
 	if (bridge) { // export end is already known
 		const { bridge_id, export_aa } = bridge;
 		if (bridge.import_aa)
@@ -1246,6 +1258,16 @@ async function handleNewImportAA(import_aa, home_network, home_asset, foreign_ne
 	// Normalize import_aa to lowercase before inserting (addresses are case-insensitive)
 	const normalized_import_aa_for_insert = import_aa ? import_aa.toLowerCase() : import_aa;
 	params[0] = normalized_import_aa_for_insert; // Replace import_aa in params with normalized version
+	// Checksum foreign_asset if it's an EVM address (starts with 0x and is 42 chars)
+	let checksummed_foreign_asset = foreign_asset;
+	if (foreign_asset && foreign_asset.startsWith('0x') && foreign_asset.length === 42) {
+		try {
+			checksummed_foreign_asset = utils.getAddress(foreign_asset);
+		} catch (e) {
+			// If checksumming fails, use as-is
+		}
+	}
+	params[5] = checksummed_foreign_asset; // Replace foreign_asset in params with checksummed version (index 5)
 	await db.query(`INSERT INTO bridges (import_aa, home_network, home_asset, home_symbol, foreign_network, foreign_asset, foreign_asset_decimals, foreign_symbol, stake_asset, e_v, i_v, ea_v, ia_v) VALUES (${Array(params.length).fill('?').join(', ')})`, params);
 	unlock(`created a new half-bridge ${import_aa} ${foreign_symbol} ${home_network}->${foreign_network} with only import end`);
 	return true;

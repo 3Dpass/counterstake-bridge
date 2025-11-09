@@ -5,6 +5,25 @@ const conf = require('../conf.js');
 // Cache providers to prevent multiple WebSocket connections to the same network
 const providerCache = {};
 
+/**
+ * Mask API keys in URLs for safe logging
+ * @param {string} url - URL that may contain API keys
+ * @returns {string} URL with API keys masked
+ */
+function maskApiKeyInUrl(url) {
+	if (!url || typeof url !== 'string') return url;
+	
+	// Mask Infura API keys (format: wss://bsc-mainnet.infura.io/ws/v3/API_KEY)
+	url = url.replace(/\/ws\/v3\/([a-f0-9]+)/gi, '/ws/v3/***');
+	
+	// Mask other common API key patterns
+	url = url.replace(/\/v1\/([a-f0-9-]+)/gi, '/v1/***');
+	url = url.replace(/apikey\/([a-f0-9-]+)/gi, 'apikey/***');
+	url = url.replace(/api_key=([a-f0-9-]+)/gi, 'api_key=***');
+	
+	return url;
+}
+
 function createProvider(url) {
 	return url.startsWith('wss://') ? new ethers.providers.WebSocketProvider(url) : new ethers.providers.JsonRpcProvider(url);
 }
@@ -129,16 +148,48 @@ function getListenerProvider(network) {
 	
 	switch (network) {
 		case 'BSC':
-			// Use BSC public RPC WebSocket for listening
+			// Default: Use drpc.org public RPC
+			// To use Infura instead, set bsc_listener_use_infura = true in conf.js or conf.json
 			let bscListenerUrl;
-			if (process.env.testnet) {
-				bscListenerUrl = 'wss://bsc-testnet.publicnode.com';
+			const useInfura = conf.bsc_listener_use_infura || true;
+			
+			if (useInfura) {
+				// Load Infura API key from conf.json (same as main provider)
+				let infuraApiKey = conf.infura_project_id || '';
+				if (!infuraApiKey) {
+					try {
+						const fs = require('fs');
+						const desktopApp = require('ocore/desktop_app.js');
+						const confJsonPath = desktopApp.getAppDataDir() + '/' + conf.CONF_FILENAME;
+						if (fs.existsSync(confJsonPath)) {
+							const externalConf = JSON.parse(fs.readFileSync(confJsonPath, 'utf8'));
+							infuraApiKey = externalConf.infura_project_id || '';
+						}
+					} catch (err) {
+						console.log('Could not load infura_project_id from conf.json:', err.message);
+					}
+				}
+				if (!infuraApiKey) {
+					console.log('⚠️  bsc_listener_use_infura is true but Infura API key not found, falling back to drpc.org');
+					bscListenerUrl = process.env.testnet 
+						? 'wss://bsc-testnet.publicnode.com'
+						: 'wss://bsc.drpc.org';
+				} else {
+					bscListenerUrl = process.env.testnet 
+						? `wss://bsc-testnet.infura.io/ws/v3/${infuraApiKey}` 
+						: `wss://bsc-mainnet.infura.io/ws/v3/${infuraApiKey}`;
+					console.log(`✅ Using Infura for BSC listener (bsc_listener_use_infura enabled)`);
+				}
 			} else {
-				bscListenerUrl = 'wss://bsc.drpc.org';
+				// Default: Use drpc.org public RPC
+				bscListenerUrl = process.env.testnet 
+					? 'wss://bsc-testnet.publicnode.com'
+					: 'wss://bsc.drpc.org';
 			}
+			
 			listenerProvider = new ethers.providers.WebSocketProvider(bscListenerUrl);
-			// Store URL for logging purposes
-			listenerProvider._providerUrl = bscListenerUrl;
+			// Store URL for logging purposes (masked to hide API keys)
+			listenerProvider._providerUrl = maskApiKeyInUrl(bscListenerUrl);
 			break;
 		
 		default:
