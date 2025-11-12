@@ -521,6 +521,12 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 
 	if (!conf.bWatchdog)
 		return console.log(`will skip claim ${claim_txid} as watchdog function is off`);
+	
+	// Skip not supported bridges
+	const notSupportedBridges = (conf.NotSupportedBridges || []).map(id => String(id));
+	if (notSupportedBridges.includes(String(bridge.bridge_id))) {
+		return console.log(`will skip claim ${claim_txid} for bridge ${bridge.bridge_id} - not supported (in NotSupportedBridges)`);
+	}
 
 	// Normalize EVM addresses to checksummed format for consistent matching
 	// This ensures addresses from events match addresses stored in the database
@@ -599,6 +605,158 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 	if (!transfers[0] && amountsValid && txidValid) {
 		console.log(`no transfer found matching claim ${claim_num} of txid ${txid} in claim tx ${claim_txid} bridge ${bridge_id}`);
 		
+		// Try to fetch the transaction from BSCScan parser if opposite network is BSC
+		// This is a fallback when the cache doesn't have the transaction
+		if (opposite_network === 'BSC' && txid && txid.startsWith('0x') && txid.length === 66) {
+			try {
+				console.log(`🔍 Attempting to fetch transaction ${txid} from BSCScan parser...`);
+				const { fetchTransactionEventLogs } = require('./bscscan-simple-parser.js');
+				const eventLogs = await fetchTransactionEventLogs(txid, { retries: 2, delay: 2000 });
+				
+				if (eventLogs && eventLogs.length > 0) {
+					console.log(`✅ Found ${eventLogs.length} event log(s) for transaction ${txid}`);
+					
+					// Process event logs to find NewExpatriation or NewRepatriation events
+					// We need to match the event to the bridge contract address
+					const bridgeContractAddress = type === 'expatriation' ? bridge.export_aa : bridge.import_aa;
+					const bridgeContractLower = bridgeContractAddress ? bridgeContractAddress.toLowerCase() : null;
+					
+					console.log(`🔍 Looking for NewExpatriation/NewRepatriation events in transaction ${txid}`);
+					console.log(`🔍 Event logs found: ${eventLogs.map(e => `${e.name || 'unknown'}@${e.address || 'unknown'}`).join(', ')}`);
+					console.log(`🔍 Expected bridge contract: ${bridgeContractAddress} (${bridgeContractLower})`);
+					
+					for (const eventLog of eventLogs) {
+						console.log(`🔍 Checking event: name=${eventLog.name}, address=${eventLog.address}`);
+						
+						// Process any NewExpatriation or NewRepatriation event from this transaction
+						// Since txid is unique, we know it belongs to this bridge
+						// The event.address from parser might be wrong (could be sender or token contract)
+						if (eventLog.name === 'NewExpatriation' || eventLog.name === 'NewRepatriation') {
+							console.log(`📋 Found ${eventLog.name} event in transaction ${txid} (event address: ${eventLog.address || 'unknown'})`);
+							console.log(`📋 Using bridge contract address from claim: ${bridgeContractAddress}`);
+							
+							// Try to process this event through the BSC network handler
+							// We'll need to get the block number and timestamp from the transaction
+							try {
+								const bscApi = networkApi['BSC'];
+								if (bscApi) {
+									// Get transaction details to extract block number
+									const tx = await bscApi.getProvider().getTransaction(txid);
+									if (tx && tx.blockNumber) {
+										const block = await bscApi.getProvider().getBlock(tx.blockNumber);
+										if (block) {
+											// Create a mock event object that can be processed
+											// Use the bridge contract address from the claim, not the event.address (which might be wrong)
+											const mockEvent = {
+												transactionHash: txid,
+												blockNumber: tx.blockNumber,
+												blockHash: block.hash,
+												address: bridgeContractAddress, // Use bridge contract from claim, not event.address
+												args: []
+											};
+											
+											// Extract event arguments from eventLog.data and topics
+											// Topics contain indexed parameters, data contains non-indexed parameters
+											// For NewExpatriation/NewRepatriation, sender_address is usually indexed (topic 1)
+											// amount, reward, foreign_address/home_address, data are in the data section
+											let senderAddr = '';
+											let amount = '0';
+											let reward = '0';
+											let destAddr = '';
+											let dataParam = '';
+											
+											// Extract sender_address from topics (usually topic 1, indexed parameter)
+											if (eventLog.topics && eventLog.topics.length > 1) {
+												const topic1 = eventLog.topics.find(t => t.index === 1);
+												if (topic1 && topic1.value) {
+													// Topic value is the address (padded to 32 bytes)
+													senderAddr = '0x' + topic1.value.slice(-40).toLowerCase();
+												}
+											}
+											
+											// Extract parameters from data section
+											// The parser extracts parameter names from the HTML
+											if (eventLog.data) {
+												// Try various possible field names
+												senderAddr = senderAddr || eventLog.data.sender_address || eventLog.data.sender || eventLog.data['sender_address'] || '';
+												amount = eventLog.data.amount || eventLog.data['amount'] || '0';
+												reward = eventLog.data.reward || eventLog.data['reward'] || '0';
+												
+												if (eventLog.name === 'NewExpatriation') {
+													destAddr = eventLog.data.foreign_address || eventLog.data.foreign || eventLog.data['foreign_address'] || eventLog.data.dest_address || '';
+												} else if (eventLog.name === 'NewRepatriation') {
+													destAddr = eventLog.data.home_address || eventLog.data.home || eventLog.data['home_address'] || eventLog.data.dest_address || '';
+												}
+												
+												dataParam = eventLog.data.data || eventLog.data['data'] || '';
+											}
+											
+											// If we still don't have sender_address, try to extract from topics decoded value
+											if (!senderAddr && eventLog.topics) {
+												const topic1 = eventLog.topics.find(t => t.index === 1);
+												if (topic1 && topic1.decoded) {
+													senderAddr = topic1.decoded;
+												}
+											}
+											
+											console.log(`📋 Extracted event parameters: sender=${senderAddr.substring(0, 10)}..., amount=${amount}, reward=${reward}, dest=${destAddr.substring(0, 10)}...`);
+											
+											// Validate we have the required parameters
+											if (!senderAddr || !amount || !destAddr) {
+												console.log(`⚠️  Missing required parameters for ${eventLog.name}, skipping`);
+												continue;
+											}
+											
+											// Process the event
+											if (eventLog.name === 'NewExpatriation') {
+												await bscApi.onNewExpatriation(senderAddr, amount, reward, destAddr, dataParam, mockEvent);
+											} else if (eventLog.name === 'NewRepatriation') {
+												await bscApi.onNewRepatriation(senderAddr, amount, reward, destAddr, dataParam, mockEvent);
+											}
+											
+											console.log(`✅ Processed ${eventLog.name} event from BSCScan parser, transfer should now be in database`);
+											
+											// Wait a bit for the transfer to be stored
+											await wait(1000);
+											
+											// Check if transfer was actually saved to database
+											const checkTransfer = await db.query("SELECT transfer_id, txid, type, is_confirmed FROM transfers WHERE txid=? AND bridge_id=?", [txid, bridge_id]);
+											if (checkTransfer.length > 0) {
+												console.log(`✅ Transfer was saved to database: transfer_id=${checkTransfer[0].transfer_id}, is_confirmed=${checkTransfer[0].is_confirmed}`);
+											} else {
+												console.log(`⚠️  Transfer was NOT saved to database after processing event!`);
+											}
+											
+											// Try to find the transfer again using the same query as findTransfers
+											transfers = await findTransfers();
+											if (transfers.length > 0) {
+												console.log(`✅ Successfully found transfer after fetching from BSCScan parser!`);
+												// Continue with normal processing below
+												break;
+											} else {
+												console.log(`⚠️  Transfer not found with findTransfers query even though it may be in database. Checking all transfers with this txid...`);
+												const allWithTxid = await db.query("SELECT transfer_id, bridge_id, type, txts, sender_address, dest_address, is_confirmed FROM transfers WHERE txid=?", [txid]);
+												if (allWithTxid.length > 0) {
+													console.log(`⚠️  Found ${allWithTxid.length} transfer(s) with txid ${txid} but they don't match the claim criteria:`, allWithTxid);
+													console.log(`   Claim is looking for: bridge_id=${bridge_id}, type=${type}, txts=${txts}, sender_address=${sender_address}, dest_address=${dest_address}, is_confirmed=1`);
+												}
+											}
+										}
+									}
+								}
+							} catch (processError) {
+								console.log(`⚠️  Error processing event from BSCScan parser: ${processError.message}`);
+							}
+						}
+					}
+				} else {
+					console.log(`ℹ️  No event logs found for transaction ${txid} on BSCScan`);
+				}
+			} catch (parserError) {
+				console.log(`⚠️  Failed to fetch transaction ${txid} from BSCScan parser: ${parserError.message}`);
+			}
+		}
+		
 		// Track retry count for this claim to prevent infinite loops during catch-up
 		const claimKey = `${bridge_id}-${type}-${claim_num}`;
 		const retryCount = claimRetryCounts[claimKey] || 0;
@@ -617,7 +775,15 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 		
 		// it might be not confirmed yet
 	//	const tx = await networkApi[opposite_network].getTransaction(txid);
-		const stable_ts = await networkApi[opposite_network].getLastStableTimestamp();
+		let stable_ts;
+		try {
+			stable_ts = await networkApi[opposite_network].getLastStableTimestamp();
+		} catch (e) {
+			console.log(`getLastStableTimestamp failed for ${opposite_network} during claim retry check:`, e.message);
+			// If we can't get stable timestamp, assume the transfer is old enough (use a very old timestamp)
+			// This allows the retry logic to continue even if the opposite network is having issues
+			stable_ts = 0;
+		}
 		const bTooYoung = txts >= stable_ts;
 		
 		// If we've exceeded max retries, give up and log the claim without transfer
@@ -1375,7 +1541,14 @@ async function populatePooledAssistantsTable() {
 	}
 
 	const bridges = await db.query("SELECT * FROM bridges");
-	for (let { bridge_id, export_aa, export_assistant_aa, import_aa, import_assistant_aa, home_network, foreign_network } of bridges) {
+	// Filter out not supported bridges
+	const notSupportedBridges = (conf.NotSupportedBridges || []).map(id => String(id));
+	const supportedBridges = bridges.filter(bridge => !notSupportedBridges.includes(String(bridge.bridge_id)));
+	if (notSupportedBridges.length > 0 && bridges.length !== supportedBridges.length) {
+		const skipped = bridges.length - supportedBridges.length;
+		console.log(`populatePooledAssistantsTable: skipping ${skipped} not supported bridge(s): ${bridges.filter(b => notSupportedBridges.includes(String(b.bridge_id))).map(b => b.bridge_id).join(', ')}`);
+	}
+	for (let { bridge_id, export_aa, export_assistant_aa, import_aa, import_assistant_aa, home_network, foreign_network } of supportedBridges) {
 		if (export_assistant_aa)
 			await addPooledAssistant(bridge_id, home_network, export_aa, 'export', export_assistant_aa);
 		if (import_assistant_aa)
@@ -1423,7 +1596,14 @@ async function updateMaxAmounts() {
 		CROSS JOIN bridges USING(bridge_id)
 		WHERE claimant_address IN(${claimants.map(db.escape).join(', ')})`);*/
 	const bridges = await db.query("SELECT * FROM bridges WHERE import_aa IS NOT NULL AND export_aa IS NOT NULL");
-	for (let { bridge_id, import_aa, stake_asset, home_asset, foreign_asset, home_asset_decimals, foreign_asset_decimals, home_network, foreign_network } of bridges) {
+	// Filter out not supported bridges
+	const notSupportedBridges = (conf.NotSupportedBridges || []).map(id => String(id));
+	const supportedBridges = bridges.filter(bridge => !notSupportedBridges.includes(String(bridge.bridge_id)));
+	if (notSupportedBridges.length > 0 && bridges.length !== supportedBridges.length) {
+		const skipped = bridges.length - supportedBridges.length;
+		console.log(`updateMaxAmounts: skipping ${skipped} not supported bridge(s): ${bridges.filter(b => notSupportedBridges.includes(String(b.bridge_id))).map(b => b.bridge_id).join(', ')}`);
+	}
+	for (let { bridge_id, import_aa, stake_asset, home_asset, foreign_asset, home_asset_decimals, foreign_asset_decimals, home_network, foreign_network } of supportedBridges) {
 		if (!networkApi[home_network] || !networkApi[foreign_network]) {
 			console.log(`updateMaxAmounts: skipping bridge ${bridge_id} ${home_network}->${foreign_network} as one of networks is not available`);
 			continue;
@@ -1433,6 +1613,12 @@ async function updateMaxAmounts() {
 				const type = 'repatriation';
 				const key = bridge_id + type;
 				try {
+					// Validate that home_asset is valid for home_network before querying balance
+					// This prevents errors when 3DPass precompile addresses are used on Ethereum, etc.
+					if (home_asset && !networkApi[home_network].isValidAsset(home_asset)) {
+						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} repatriation - home_asset ${home_asset} is not valid for home_network ${home_network}`);
+						continue;
+					}
 					let balance = await networkApi[home_network].getBalance(claimant_address, home_asset, true);
 					balance = balance.toString() / 10 ** home_asset_decimals * 0.98; // pool manager's fees are unavailable
 					const max_amount = balance / 2; // amount + stake
@@ -1448,10 +1634,35 @@ async function updateMaxAmounts() {
 				const type = 'expatriation';
 				const key = bridge_id + type;
 				try {
+					// Validate that foreign_asset is valid for foreign_network before querying balance
+					// Special check: 3DPass precompile addresses (P3D and ERC20 precompiles) should only be used on 3DPass network
+					const P3D_PRECOMPILE = '0x0000000000000000000000000000000000000802';
+					const is3DPassPrecompileAsset = foreign_asset === P3D_PRECOMPILE || 
+						(foreign_asset && foreign_asset.startsWith('0xfBFBfbFA') && foreign_asset.length === 42);
+					if (is3DPassPrecompileAsset && foreign_network !== '3DPass') {
+						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - foreign_asset ${foreign_asset} is a 3DPass precompile but foreign_network is ${foreign_network}`);
+						continue;
+					}
+					if (foreign_asset && !networkApi[foreign_network].isValidAsset(foreign_asset)) {
+						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - foreign_asset ${foreign_asset} is not valid for foreign_network ${foreign_network}`);
+						continue;
+					}
 					let balance = await networkApi[foreign_network].getBalance(claimant_address, foreign_asset, true);
 					balance = BigNumber.from(balance);
 					if (balance.isZero())
 						continue;
+					// Validate that stake_asset is valid for foreign_network before querying balance
+					// Special check: 3DPass precompile addresses (P3D and ERC20 precompiles) should only be used on 3DPass network
+					const is3DPassPrecompile = stake_asset === P3D_PRECOMPILE || 
+						(stake_asset && stake_asset.startsWith('0xfBFBfbFA') && stake_asset.length === 42);
+					if (is3DPassPrecompile && foreign_network !== '3DPass') {
+						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - stake_asset ${stake_asset} is a 3DPass precompile but foreign_network is ${foreign_network}`);
+						continue;
+					}
+					if (stake_asset && !networkApi[foreign_network].isValidAsset(stake_asset)) {
+						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - stake_asset ${stake_asset} is not valid for foreign_network ${foreign_network}`);
+						continue;
+					}
 					let stake_balance = await networkApi[foreign_network].getBalance(claimant_address, stake_asset, true);
 					stake_balance = BigNumber.from(stake_balance);
 					if (stake_balance.isZero())
@@ -1488,7 +1699,14 @@ function getMaxAmounts() {
 async function restartNetwork(network) {
 	console.log(`restarting ${network}`);
 	const bridges = await db.query("SELECT * FROM bridges WHERE home_network=? OR foreign_network=?", [network, network]);
-	for (let bridge of bridges) {
+	// Filter out not supported bridges
+	const notSupportedBridges = (conf.NotSupportedBridges || []).map(id => String(id));
+	const supportedBridges = bridges.filter(bridge => !notSupportedBridges.includes(String(bridge.bridge_id)));
+	if (notSupportedBridges.length > 0 && bridges.length !== supportedBridges.length) {
+		const skipped = bridges.length - supportedBridges.length;
+		console.log(`startWatchingBridges ${network}: skipping ${skipped} not supported bridge(s): ${bridges.filter(b => notSupportedBridges.includes(String(b.bridge_id))).map(b => b.bridge_id).join(', ')}`);
+	}
+	for (let bridge of supportedBridges) {
 		const { bridge_id, home_network, export_aa, export_assistant_aa, foreign_network, import_aa, import_assistant_aa } = bridge;
 		if (export_aa && home_network === network)
 			networkApi[home_network].startWatchingExportAA(export_aa);
@@ -1682,7 +1900,14 @@ async function start() {
 
 	// some bridges might be incomplete: only import or only export
 	const bridges = await db.query("SELECT * FROM bridges");
-	for (let bridge of bridges) {
+	// Filter out not supported bridges
+	const notSupportedBridges = (conf.NotSupportedBridges || []).map(id => String(id));
+	const supportedBridges = bridges.filter(bridge => !notSupportedBridges.includes(String(bridge.bridge_id)));
+	if (notSupportedBridges.length > 0 && bridges.length !== supportedBridges.length) {
+		const skipped = bridges.length - supportedBridges.length;
+		console.log(`restartNetwork: skipping ${skipped} not supported bridge(s): ${bridges.filter(b => notSupportedBridges.includes(String(b.bridge_id))).map(b => b.bridge_id).join(', ')}`);
+	}
+	for (let bridge of supportedBridges) {
 		const { bridge_id, home_network, export_aa, export_assistant_aa, foreign_network, import_aa, import_assistant_aa } = bridge;
 		if (!networkApi[home_network] || !networkApi[foreign_network]) {
 			console.log(`skipping bridge ${bridge_id} ${home_network}->${foreign_network} as one of networks is not available`);

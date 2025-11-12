@@ -313,15 +313,61 @@ class EvmChain {
 		return block.timestamp;
 	}
 
-	async getLastStableTimestamp() {
-		const currentBlockNumber = await this.getBlockNumber();
-		if (!currentBlockNumber)
-			throw Error(`no current block number in ${this.network}`);
-		const last_finalized_block_number = Math.max(currentBlockNumber - conf.evm_count_blocks_for_finality, 0);
-		const block = await this.#provider.getBlock(last_finalized_block_number);
-		if (!block)
-			throw Error(`failed to get block ${last_finalized_block_number}`);
-		return block.timestamp;
+	async getLastStableTimestamp(attempt = 0) {
+		try {
+			const currentBlockNumber = await this.getBlockNumber();
+			if (!currentBlockNumber)
+				throw Error(`no current block number in ${this.network}`);
+			const last_finalized_block_number = Math.max(currentBlockNumber - conf.evm_count_blocks_for_finality, 0);
+			
+			let block;
+			try {
+				block = await this.#provider.getBlock(last_finalized_block_number);
+			} catch (blockError) {
+				// getBlock can throw exceptions (e.g., rate limiting, connection issues)
+				// Retry with exponential backoff
+				if (attempt < 3) {
+					console.log(`getLastStableTimestamp ${this.network}: error fetching block ${last_finalized_block_number} (${blockError.message}), retrying (attempt ${attempt + 1}/3)...`);
+					await wait((attempt + 1) * 2000); // 2s, 4s, 6s
+					return this.getLastStableTimestamp(attempt + 1);
+				}
+				throw Error(`failed to get block ${last_finalized_block_number} after ${attempt + 1} attempts: ${blockError.message}`);
+			}
+			
+			if (!block) {
+				// Retry with exponential backoff if block is null
+				if (attempt < 3) {
+					console.log(`getLastStableTimestamp ${this.network}: block ${last_finalized_block_number} returned null, retrying (attempt ${attempt + 1}/3)...`);
+					await wait((attempt + 1) * 2000); // 2s, 4s, 6s
+					return this.getLastStableTimestamp(attempt + 1);
+				}
+				throw Error(`failed to get block ${last_finalized_block_number} after ${attempt + 1} attempts (returned null)`);
+			}
+			return block.timestamp;
+		} catch (e) {
+			// If retries exhausted or other error, try to get a more recent stable block
+			if (attempt < 3 && (e.message.includes('failed to get block') || e.message.includes('error fetching block'))) {
+				console.log(`getLastStableTimestamp ${this.network}: error getting block, retrying (attempt ${attempt + 1}/3)...`, e.message);
+				await wait((attempt + 1) * 2000);
+				return this.getLastStableTimestamp(attempt + 1);
+			}
+			// If still failing, try with a more conservative block number (further back)
+			if (attempt === 0) {
+				try {
+					const currentBlockNumber = await this.getBlockNumber();
+					if (currentBlockNumber) {
+						const more_conservative_block = Math.max(currentBlockNumber - conf.evm_count_blocks_for_finality * 2, 0);
+						console.log(`getLastStableTimestamp ${this.network}: trying more conservative block ${more_conservative_block}...`);
+						const block = await this.#provider.getBlock(more_conservative_block);
+						if (block)
+							return block.timestamp;
+					}
+				} catch (e2) {
+					console.log(`getLastStableTimestamp ${this.network}: conservative fallback also failed:`, e2.message);
+				}
+			}
+			throw e;
+		}
 	}
 
 	getMinTransferAge() {
@@ -706,7 +752,22 @@ class EvmChain {
 		console.log('NewExpatriation event', this.network, sender_address, amount.toString(), reward.toString(), foreign_address, data, event);
 		const txid = event.transactionHash;
 		// If blockHash is null (from parser), use blockNumber to get timestamp
-		const txts = event.blockHash ? await this.getBlockTimestamp(event.blockHash) : await this.getBlockTimestampByNumber(event.blockNumber);
+		// If blockHash exists but getBlockTimestamp fails, fall back to blockNumber
+		let txts;
+		if (event.blockHash) {
+			try {
+				txts = await this.getBlockTimestamp(event.blockHash);
+			} catch (blockHashError) {
+				console.log(`⚠️  Failed to get timestamp from blockHash ${event.blockHash}, falling back to blockNumber ${event.blockNumber}: ${blockHashError.message}`);
+				if (event.blockNumber) {
+					txts = await this.getBlockTimestampByNumber(event.blockNumber);
+				} else {
+					throw blockHashError;
+				}
+			}
+		} else {
+			txts = await this.getBlockTimestampByNumber(event.blockNumber);
+		}
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const { bridge_id, export_aa } = bridge;
 		// Use case-insensitive comparison since event.address is lowercase from parser
@@ -715,8 +776,24 @@ class EvmChain {
 			throw Error(`expatriation on non-export address? export_aa=${export_aa}, address=${event.address}`);
 		// Normalize addresses to checksummed format for consistent matching
 		sender_address = ethers.utils.getAddress(sender_address);
-		foreign_address = ethers.utils.getAddress(foreign_address);
+		// Only normalize foreign_address if it's a valid Ethereum address
+		// foreign_address can be from any foreign chain (Stellar, Obyte, etc.)
+		if (this.isValidAddress(foreign_address)) {
+			foreign_address = ethers.utils.getAddress(foreign_address);
+		}
 		const transfer = { bridge_id, type: 'expatriation', amount, reward, sender_address, dest_address: foreign_address, data, txid, txts };
+		
+		// Early duplicate check during catchup to avoid unnecessary work
+		if (this.#bCatchingUp && !event.removed) {
+			const db = require('ocore/db.js');
+			const [existing] = await db.query("SELECT transfer_id FROM transfers WHERE txid=? AND bridge_id=? AND amount=? AND reward=? AND sender_address=? AND dest_address=? AND data=? AND is_confirmed=1", [txid, bridge_id, amount.toString(), reward.toString(), sender_address, foreign_address, data]);
+			if (existing) {
+				console.log(`duplicate transfer during catchup, skipping: txid=${txid}, bridge_id=${bridge_id}`);
+				await this.updateLastBlock(event.blockNumber);
+				return unlock();
+			}
+		}
+		
 		console.log('transfer', transfer);
 		event.removed ? await transfers.removeTransfer(transfer) : await transfers.addTransfer(transfer, true);
 		await this.updateLastBlock(event.blockNumber);
@@ -726,24 +803,61 @@ class EvmChain {
 	async onNewRepatriation(sender_address, amount, reward, home_address, data, event) {
 		const unlock = await mutex.lock(this.network + 'Event');
 		console.log('NewRepatriation event', this.network, sender_address, amount.toString(), reward.toString(), home_address, data, event);
-		const txid = event.transactionHash;
-		// If blockHash is null (from parser), use blockNumber to get timestamp
-		const txts = event.blockHash ? await this.getBlockTimestamp(event.blockHash) : await this.getBlockTimestampByNumber(event.blockNumber);
-		const bridge = await transfers.getBridgeByAddress(event.address, true);
-		const { bridge_id, import_aa, export_aa } = bridge;
-		// NewRepatriation can come from either import_aa or export_aa (for bidirectional bridges)
-		// The getType function determines the type based on which address matches
-		// Use case-insensitive comparison since event.address is lowercase from parser
-		const eventAddressLower = (event.address || '').toLowerCase();
-		if (import_aa && import_aa.toLowerCase() !== eventAddressLower && export_aa && export_aa.toLowerCase() !== eventAddressLower)
-			throw Error(`repatriation on unknown address? import_aa=${import_aa}, export_aa=${export_aa}, address=${event.address}`);
-		// Normalize addresses to checksummed format for consistent matching
-		sender_address = ethers.utils.getAddress(sender_address);
-		home_address = ethers.utils.getAddress(home_address);
-		const transfer = { bridge_id, type: 'repatriation', amount, reward, sender_address, dest_address: home_address, data, txid, txts };
-		event.removed ? await transfers.removeTransfer(transfer) : await transfers.addTransfer(transfer, true);
-		await this.updateLastBlock(event.blockNumber);
-		unlock();
+		try {
+			const txid = event.transactionHash;
+			// If blockHash is null (from parser), use blockNumber to get timestamp
+			// If blockHash exists but getBlockTimestamp fails, fall back to blockNumber
+			let txts;
+			if (event.blockHash) {
+				try {
+					txts = await this.getBlockTimestamp(event.blockHash);
+				} catch (blockHashError) {
+					console.log(`⚠️  Failed to get timestamp from blockHash ${event.blockHash}, falling back to blockNumber ${event.blockNumber}: ${blockHashError.message}`);
+					if (event.blockNumber) {
+						txts = await this.getBlockTimestampByNumber(event.blockNumber);
+					} else {
+						throw blockHashError;
+					}
+				}
+			} else {
+				txts = await this.getBlockTimestampByNumber(event.blockNumber);
+			}
+			const bridge = await transfers.getBridgeByAddress(event.address, true);
+			const { bridge_id, import_aa, export_aa } = bridge;
+			// NewRepatriation can come from either import_aa or export_aa (for bidirectional bridges)
+			// The getType function determines the type based on which address matches
+			// Use case-insensitive comparison since event.address is lowercase from parser
+			const eventAddressLower = (event.address || '').toLowerCase();
+			if (import_aa && import_aa.toLowerCase() !== eventAddressLower && export_aa && export_aa.toLowerCase() !== eventAddressLower)
+				throw Error(`repatriation on unknown address? import_aa=${import_aa}, export_aa=${export_aa}, address=${event.address}`);
+			// Normalize addresses to checksummed format for consistent matching
+			sender_address = ethers.utils.getAddress(sender_address);
+			// Only normalize home_address if it's a valid Ethereum address
+			if (this.isValidAddress(home_address)) {
+				home_address = ethers.utils.getAddress(home_address);
+			}
+			const transfer = { bridge_id, type: 'repatriation', amount, reward, sender_address, dest_address: home_address, data, txid, txts };
+			
+			// Early duplicate check during catchup to avoid unnecessary work
+			if (this.#bCatchingUp && !event.removed) {
+				const db = require('ocore/db.js');
+				const [existing] = await db.query("SELECT transfer_id FROM transfers WHERE txid=? AND bridge_id=? AND amount=? AND reward=? AND sender_address=? AND dest_address=? AND data=? AND is_confirmed=1", [txid, bridge_id, amount.toString(), reward.toString(), sender_address, home_address, data]);
+				if (existing) {
+					console.log(`duplicate transfer during catchup, skipping: txid=${txid}, bridge_id=${bridge_id}`);
+					await this.updateLastBlock(event.blockNumber);
+					return unlock();
+				}
+			}
+			
+			event.removed ? await transfers.removeTransfer(transfer) : await transfers.addTransfer(transfer, true);
+			await this.updateLastBlock(event.blockNumber);
+		} catch (error) {
+			console.log(`❌ Error in onNewRepatriation: ${error.message}`);
+			console.log(`   Event details: sender=${sender_address}, amount=${amount}, reward=${reward}, home_address=${home_address}, event.address=${event.address}`);
+			console.log(`   Stack: ${error.stack}`);
+		} finally {
+			unlock();
+		}
 	}
 
 	async onNewClaim(claim_num, author_address, sender_address, recipient_address, txid, txts, amount, reward, stake, data, expiry_ts, event) {
@@ -754,10 +868,28 @@ class EvmChain {
 			return unlock(`the claim event was removed, ignoring`);
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const type = getType(event.address, bridge);
+		
+		// Early duplicate check during catchup to avoid unnecessary work
+		if (this.#bCatchingUp) {
+			const db = require('ocore/db.js');
+			const [existing] = await db.query("SELECT claim_num FROM claims WHERE claim_num=? AND bridge_id=? AND type=?", [claim_num, bridge.bridge_id, type]);
+			if (existing) {
+				console.log(`duplicate claim during catchup, skipping: claim_num=${claim_num}, bridge_id=${bridge.bridge_id}, type=${type}`);
+				await this.updateLastBlock(event.blockNumber);
+				return unlock();
+			}
+		}
+		
 		// Normalize addresses to checksummed format for consistent matching
-		sender_address = ethers.utils.getAddress(sender_address);
-		recipient_address = ethers.utils.getAddress(recipient_address);
-		author_address = ethers.utils.getAddress(author_address);
+		// Only normalize addresses that are valid Ethereum addresses
+		// sender_address is a string and can be from any chain, so don't normalize it
+		// recipient_address and author_address should be Ethereum addresses, but validate first
+		if (this.isValidAddress(recipient_address)) {
+			recipient_address = ethers.utils.getAddress(recipient_address);
+		}
+		if (this.isValidAddress(author_address)) {
+			author_address = ethers.utils.getAddress(author_address);
+		}
 		const dest_address = recipient_address;
 		const claimant_address = author_address;
 		await transfers.handleNewClaim(bridge, type, claim_num, sender_address, dest_address, claimant_address, data, amount, reward, stake, txid, txts, event.transactionHash);
@@ -773,8 +905,24 @@ class EvmChain {
 			return unlock(`the challenge event was removed, ignoring`);
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const type = getType(event.address, bridge);
+		
+		// Early duplicate check during catchup to avoid unnecessary work
+		if (this.#bCatchingUp) {
+			const db = require('ocore/db.js');
+			const challenge_txid = event.transactionHash;
+			const [existing] = await db.query("SELECT challenge_id FROM challenges WHERE challenge_txid=? AND bridge_id=?", [challenge_txid, bridge.bridge_id]);
+			if (existing) {
+				console.log(`duplicate challenge during catchup, skipping: challenge_txid=${challenge_txid}, bridge_id=${bridge.bridge_id}`);
+				await this.updateLastBlock(event.blockNumber);
+				return unlock();
+			}
+		}
+		
 		// Normalize address to checksummed format for consistent matching
-		author_address = ethers.utils.getAddress(author_address);
+		// Only normalize if it's a valid Ethereum address
+		if (this.isValidAddress(author_address)) {
+			author_address = ethers.utils.getAddress(author_address);
+		}
 		await transfers.handleChallenge(bridge, type, claim_num, author_address, outcome ? 'yes' : 'no', stake, event.transactionHash);
 		await this.updateLastBlock(event.blockNumber);
 		unlock();
@@ -1258,11 +1406,46 @@ class EvmChain {
 		}
 		
 		// Filter transactions by block range
-		const relevantTxs = transactions.filter(tx => 
+		let relevantTxs = transactions.filter(tx => 
 			tx.blockNumber >= since_block && tx.blockNumber <= actual_to_block
 		);
 		
-		console.log(`processPastEventsFromParserCache ${network}: found ${relevantTxs.length} transactions in range ${since_block}-${actual_to_block} (from ${transactions.length} total)`);
+		// If no transactions in the exact range but we have cached transactions, check if we should expand
+		// This can happen if the cache was populated for a different block range
+		if (relevantTxs.length === 0 && transactions.length > 0) {
+			const minBlock = Math.min(...transactions.map(tx => tx.blockNumber));
+			const maxBlock = Math.max(...transactions.map(tx => tx.blockNumber));
+			console.log(`processPastEventsFromParserCache ${network}: no transactions in range ${since_block}-${actual_to_block}, but cache has ${transactions.length} transactions in range ${minBlock}-${maxBlock}`);
+			
+			// If the requested range is a single block (common during catchup), process all cached transactions
+			// This is safe because the cache only contains transactions for this contract, and we need to process
+			// all of them to find transfers that might be claimed later
+			if (since_block === to_block && since_block > 0) {
+				console.log(`processPastEventsFromParserCache ${network}: single block query during catchup, processing all ${transactions.length} cached transactions to ensure transfers are detected`);
+				relevantTxs = transactions; // Process all cached transactions
+			} else if (since_block > 0 && to_block > 0) {
+				// For range queries during catchup, if the cache range doesn't overlap with requested range at all,
+				// it means the cache is stale. Process all cached transactions anyway to catch any missed transfers.
+				// This is especially important when the parser cache has old data but we're catching up to recent blocks.
+				if (maxBlock < since_block || minBlock > actual_to_block) {
+					console.log(`processPastEventsFromParserCache ${network}: cache range (${minBlock}-${maxBlock}) doesn't overlap with requested range (${since_block}-${actual_to_block}), processing all ${transactions.length} cached transactions to catch missed transfers`);
+					relevantTxs = transactions; // Process all cached transactions
+				} else {
+					// For range queries with partial overlap, expand slightly to catch nearby transactions (e.g., ±10 blocks)
+					// This handles minor block number mismatches
+					const blockWindow = 10;
+					const expandedTxs = transactions.filter(tx => 
+						tx.blockNumber >= (since_block - blockWindow) && tx.blockNumber <= (actual_to_block + blockWindow)
+					);
+					if (expandedTxs.length > 0) {
+						console.log(`processPastEventsFromParserCache ${network}: expanding search window to ±${blockWindow} blocks, found ${expandedTxs.length} transactions`);
+						relevantTxs = expandedTxs;
+					}
+				}
+			}
+		}
+		
+		console.log(`processPastEventsFromParserCache ${network}: processing ${relevantTxs.length} transactions in range ${since_block}-${actual_to_block} (from ${transactions.length} total cached)`);
 		
 		let eventCount = 0;
 		
@@ -1597,7 +1780,14 @@ class EvmChain {
 			// This handles cases where contracts weren't registered in contractsByAddress
 			const db = require('ocore/db.js');
 			const bridges = await db.query("SELECT * FROM bridges WHERE foreign_network=? OR home_network=?", [this.network, this.network]);
-			for (let bridge of bridges) {
+			// Filter out not supported bridges
+			const notSupportedBridges = (conf.NotSupportedBridges || []).map(id => String(id));
+			const supportedBridges = bridges.filter(bridge => !notSupportedBridges.includes(String(bridge.bridge_id)));
+			if (notSupportedBridges.length > 0 && bridges.length !== supportedBridges.length) {
+				const skipped = bridges.length - supportedBridges.length;
+				console.log(`${this.network} catchup: skipping ${skipped} not supported bridge(s): ${bridges.filter(b => notSupportedBridges.includes(String(b.bridge_id))).map(b => b.bridge_id).join(', ')}`);
+			}
+			for (let bridge of supportedBridges) {
 				// Add import_aa if this network is the foreign network
 				if (bridge.foreign_network === this.network && bridge.import_aa) {
 					const normalizedImportAA = bridge.import_aa.toLowerCase();
@@ -2249,3 +2439,4 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 }
 
 module.exports = EvmChain;
+

@@ -1,6 +1,7 @@
 "use strict";
 const { ethers } = require("ethers");
 const conf = require('../conf.js');
+const WebSocket = require('ws');
 
 // Cache providers to prevent multiple WebSocket connections to the same network
 const providerCache = {};
@@ -148,12 +149,52 @@ function getListenerProvider(network) {
 	
 	switch (network) {
 		case 'BSC':
-			// Default: Use drpc.org public RPC
-			// To use Infura instead, set bsc_listener_use_infura = true in conf.js or conf.json
+			// Options: exbitron, Infura, or drpc.org public RPC
+			// To use exbitron, set bsc_listener_use_exbitron = true in conf.js or conf.json
+			// To use Infura, set bsc_listener_use_infura = true in conf.js or conf.json
 			let bscListenerUrl;
-			const useInfura = conf.bsc_listener_use_infura || true;
+			const useExbitron = conf.bsc_listener_use_exbitron || true;
+			const useInfura = conf.bsc_listener_use_infura || (useExbitron ? false : true);
 			
-			if (useInfura) {
+			if (useExbitron) {
+				// Use exbitron endpoint with custom header
+				bscListenerUrl = 'wss://bsc-wss.exbitron.com';
+				
+				// Load Exbitron API key from conf.json
+				let exbitronApiKey = conf.exbitron_api_key || '';
+				if (!exbitronApiKey) {
+					try {
+						const fs = require('fs');
+						const desktopApp = require('ocore/desktop_app.js');
+						const confJsonPath = desktopApp.getAppDataDir() + '/' + conf.CONF_FILENAME;
+						if (fs.existsSync(confJsonPath)) {
+							const externalConf = JSON.parse(fs.readFileSync(confJsonPath, 'utf8'));
+							exbitronApiKey = externalConf.exbitron_api_key || '';
+						}
+					} catch (err) {
+						console.log('Could not load exbitron_api_key from conf.json:', err.message);
+					}
+				}
+				
+				if (!exbitronApiKey) {
+					throw Error('BSC Exbitron API key (exbitron_api_key) not found in conf.json');
+				}
+				
+				// Create custom WebSocket with header
+				// ethers.js WebSocketProvider doesn't directly support custom headers,
+				// so we create a custom WebSocket connection and pass it to WebSocketProvider
+				const customWebSocket = new WebSocket(bscListenerUrl, {
+					headers: {
+						'x-access-key': exbitronApiKey
+					}
+				});
+				
+				// Create WebSocketProvider with the custom WebSocket instance
+				// In ethers v5, WebSocketProvider can accept a WebSocket instance as first argument
+				// We pass the WebSocket instance directly to the constructor
+				listenerProvider = new ethers.providers.WebSocketProvider(customWebSocket);
+				console.log(`✅ Using Exbitron for BSC listener (bsc_listener_use_exbitron enabled)`);
+			} else if (useInfura) {
 				// Load Infura API key from conf.json (same as main provider)
 				let infuraApiKey = conf.infura_project_id || '';
 				if (!infuraApiKey) {
@@ -174,10 +215,12 @@ function getListenerProvider(network) {
 					bscListenerUrl = process.env.testnet 
 						? 'wss://bsc-testnet.publicnode.com'
 						: 'wss://bsc.drpc.org';
+					listenerProvider = new ethers.providers.WebSocketProvider(bscListenerUrl);
 				} else {
 					bscListenerUrl = process.env.testnet 
 						? `wss://bsc-testnet.infura.io/ws/v3/${infuraApiKey}` 
 						: `wss://bsc-mainnet.infura.io/ws/v3/${infuraApiKey}`;
+					listenerProvider = new ethers.providers.WebSocketProvider(bscListenerUrl);
 					console.log(`✅ Using Infura for BSC listener (bsc_listener_use_infura enabled)`);
 				}
 			} else {
@@ -185,11 +228,15 @@ function getListenerProvider(network) {
 				bscListenerUrl = process.env.testnet 
 					? 'wss://bsc-testnet.publicnode.com'
 					: 'wss://bsc.drpc.org';
+				listenerProvider = new ethers.providers.WebSocketProvider(bscListenerUrl);
 			}
 			
-			listenerProvider = new ethers.providers.WebSocketProvider(bscListenerUrl);
 			// Store URL for logging purposes (masked to hide API keys)
-			listenerProvider._providerUrl = maskApiKeyInUrl(bscListenerUrl);
+			if (bscListenerUrl) {
+				listenerProvider._providerUrl = maskApiKeyInUrl(bscListenerUrl);
+			} else {
+				listenerProvider._providerUrl = maskApiKeyInUrl('wss://bsc-wss.exbitron.com');
+			}
 			break;
 		
 		default:

@@ -98,11 +98,13 @@ class ThreeDPass extends EvmChain {
 		if (this.isP3D(asset)) {
 			// Use IP3D interface for P3D precompile
 			const p3d = new ethers.Contract(asset, ip3dJson.abi, this.getProvider());
-			return await p3d.balanceOf(this.getMyAddress());
+			// Use callStatic for view functions on precompiles to avoid revert exceptions
+			return await p3d.callStatic.balanceOf(this.getMyAddress());
 		} else if (this.is3DPassERC20Precompile(asset)) {
 			// Use IPrecompileERC20 interface for ERC20 precompiles
 			const token = new ethers.Contract(asset, iprecompileErc20Json.abi, this.getProvider());
-			return await token.balanceOf(this.getMyAddress());
+			// Use callStatic for view functions on precompiles to avoid revert exceptions
+			return await token.callStatic.balanceOf(this.getMyAddress());
 		}
 		// Fallback to standard ERC20
 		return await super.getMyBalance(asset);
@@ -119,7 +121,8 @@ class ThreeDPass extends EvmChain {
 			
 			if (this.isP3D(asset)) {
 				const p3d = new ethers.Contract(asset, ip3dJson.abi, this.getProvider());
-				const balance = await p3d.balanceOf(address);
+				// Use callStatic for view functions on precompiles to avoid revert exceptions
+				const balance = await p3d.callStatic.balanceOf(address);
 				// Handle null return values
 				if (balance === null || balance === undefined) {
 					console.log(`getBalance ${address} ${asset} returned null, treating as zero balance`);
@@ -128,7 +131,8 @@ class ThreeDPass extends EvmChain {
 				return balance;
 			} else if (this.is3DPassERC20Precompile(asset)) {
 				const token = new ethers.Contract(asset, iprecompileErc20Json.abi, this.getProvider());
-				const balance = await token.balanceOf(address);
+				// Use callStatic for view functions on precompiles to avoid revert exceptions
+				const balance = await token.callStatic.balanceOf(address);
 				// Handle null return values
 				if (balance === null || balance === undefined) {
 					console.log(`getBalance ${address} ${asset} returned null, treating as zero balance`);

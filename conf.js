@@ -204,6 +204,11 @@ exports.statsLogPeriod = 10 * 1000; // 10 seconds: how often to log sync stats d
 // Example: ['0x078e7a2037b63846836e9d721cf2dabc08b94281'] // Bridge #20 import_aa
 exports.topPriorityBridges = ['0x078e7a2037b63846836e9d721cf2dabc08b94281'];
 
+// Not supported bridges - these bridge IDs will be excluded from monitoring and catch-up
+// Format: array of bridge IDs (as strings or numbers)
+// Example: ['9'] // Bridge #9 will be skipped
+exports.NotSupportedBridges = ['9'];
+
 exports.bWatchdog = true;
 exports.bClaimForOthers = true;
 exports.bUseOwnFunds = true;

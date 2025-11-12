@@ -386,6 +386,13 @@ class Obyte {
 		const bridge = await transfers.getBridgeByAddress(aa_address);
 		if (!bridge)
 			return unlock(`response from AA ${aa_address} that doesn't belong to any bridge`);
+		
+		// Skip not supported bridges
+		const notSupportedBridges = (conf.NotSupportedBridges || []).map(id => String(id));
+		if (notSupportedBridges.includes(String(bridge.bridge_id))) {
+			return unlock(`skipping bridge ${bridge.bridge_id} - not supported (in NotSupportedBridges)`);
+		}
+		
 		const { bridge_id, export_aa, import_aa, home_asset, foreign_asset, stake_asset } = bridge;
 		
 		const message = responseVars && responseVars.message || '';
