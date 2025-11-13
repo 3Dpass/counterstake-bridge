@@ -1726,6 +1726,8 @@ async function restartNetwork(network) {
 
 // Import the 3DPass registry setup functionality
 const setup3DPassBridges = require('./setup_3dpass_bridges_from_registry.js');
+// Import the orphaned claims linking functionality
+const { linkOrphanedClaims } = require('./link_orphaned_claims.js');
 
 async function start() {
 	networkApi.Obyte = new Obyte();
@@ -2131,6 +2133,21 @@ async function start() {
 	} catch (err) {
 		console.error('❌ Error validating bridge decimals:', err.message);
 		// Don't fail startup if validation fails, but log the error
+	}
+
+	// Link orphaned claims before catch-up to ensure we have no orphans behind
+	// This should run before catch-up so that any new claims discovered during catch-up
+	// can be properly linked to existing transfers
+	try {
+		console.log('\n🔗 Linking orphaned claims before catch-up...');
+		const result = await linkOrphanedClaims();
+		if (result.total > 0) {
+			console.log(`✅ Orphaned claims linking completed: ${result.linked} linked, ${result.notFound} not found, ${result.errors} errors`);
+		}
+	} catch (err) {
+		console.error('❌ Error linking orphaned claims:', err.message);
+		// Don't fail startup if linking fails, but log the error
+		// The script can still be run manually if needed
 	}
 
 //	await populatePooledAssistantsTable();

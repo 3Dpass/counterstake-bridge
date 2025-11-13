@@ -10,12 +10,14 @@ const transfers = require('./transfers.js');
 const webserver = require('./webserver.js');
 const chat = require('./chat.js');
 const stats = require('./stats.js');
+const peer_seeding = require('./peer_seeding.js');
 const { isRateLimitError } = require('./utils.js');
 
 eventBus.on('headless_wallet_ready', async () => {
 	await db_import.initDB();
 	await operator.start();
 	chat.start();
+	peer_seeding.start();
 
 	if (!conf.export_factory_aas || !conf.import_factory_aas)
 		throw Error("Please specify export and import factory AAs in conf.json");

@@ -207,12 +207,25 @@ exports.topPriorityBridges = ['0x078e7a2037b63846836e9d721cf2dabc08b94281'];
 // Not supported bridges - these bridge IDs will be excluded from monitoring and catch-up
 // Format: array of bridge IDs (as strings or numbers)
 // Example: ['9'] // Bridge #9 will be skipped
-exports.NotSupportedBridges = ['9'];
+exports.NotSupportedBridges = [];
+
+// Peer seeding configuration for EVM chains
+// When enabled, nodes will share block numbers and events with peers during catch-up
+// instead of (or as a fallback to) querying block explorers/parsers
+exports.bEnablePeerSeeding = true; // Set to true to enable peer-to-peer block/event sharing
+exports.bServeAsSeeder = true; // Set to true to respond to peer requests for block numbers and events
+// If true, will ONLY use peer seeding and never fall back to explorers/parsers
+// If false, will try peers first, then fall back to explorers/parsers if peers don't respond
+exports.bPeerSeedingOnly = false; // Set to true to disable explorer/parser fallback
+// Known peer addresses to send seeding requests to (Obyte device addresses)
+// If empty, will only respond to incoming requests (won't actively request from peers)
+// Example: ['PEER1_ADDRESS', 'PEER2_ADDRESS']
+exports.peerSeedingAddresses = [];
 
 exports.bWatchdog = true;
-exports.bClaimForOthers = true;
+exports.bClaimForOthers = false;
 exports.bUseOwnFunds = true;
-exports.bAttack = true; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
+exports.bAttack = false; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
 
 // Disable networks
 exports.disablePolygon = true; // Disable Polygon monitoring

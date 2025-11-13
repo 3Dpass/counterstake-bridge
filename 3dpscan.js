@@ -15,7 +15,7 @@ let last_req_ts = 0;
  */
 async function getAddressBlocks({ address, startblock, endblock, count = 0 }) {
 	try {
-		let page = 1;
+		let page = 0;
 		const page_size = 100;
 		let all_blocks = [];
 		
@@ -39,7 +39,7 @@ async function getAddressBlocks({ address, startblock, endblock, count = 0 }) {
 			last_req_ts = Date.now();
 			
 			if (!resp.items) {
-				if (resp.total === 0 && resp.page === 1) { // no events for this address
+				if (resp.total === 0 && resp.page === 0) { // no events for this address
 					break;
 				}
 				throw Error(`no items from 3dpscan EVM events: ${JSON.stringify(resp)}`);
@@ -104,7 +104,7 @@ async function getAddressBlocks({ address, startblock, endblock, count = 0 }) {
  */
 async function getAddressTransactionBlocks({ address, startblock, endblock, count = 0 }) {
 	try {
-		let page = 1;
+		let page = 0;
 		const page_size = 100;
 		let all_blocks = [];
 		
@@ -128,7 +128,7 @@ async function getAddressTransactionBlocks({ address, startblock, endblock, coun
 			last_req_ts = Date.now();
 			
 			if (!resp.items) {
-				if (resp.total === 0 && resp.page === 1) { // no transactions for this address
+				if (resp.total === 0 && resp.page === 0) { // no transactions for this address
 					break;
 				}
 				throw Error(`no items from 3dpscan EVM transactions: ${JSON.stringify(resp)}`);

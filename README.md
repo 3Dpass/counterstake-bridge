@@ -67,6 +67,12 @@ node realtime_monitoring.js
 pkill -f "node run.js"
 ```
 
+## Start from bootstrap DB to bypass using explorers during the first catch-up
+Import the db bootstrap, then restart the app.  
+```bash
+node node import_db_for_seeding.js db_export_YYYY-MM-DD.json
+```
+
 ## Setup Keys
 Follow the [KEY_MANAGEMENT.md](/docs/KEY_MANAGEMENT.md) to setup the signer account. 
 

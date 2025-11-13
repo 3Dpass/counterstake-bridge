@@ -172,6 +172,114 @@ class EvmChain {
 		return last_block;
 	}
 
+	/**
+	 * Check if we have imported data for this network
+	 * @returns {Promise<boolean>} True if we have imported transfers/claims
+	 */
+	async hasImportedDataForNetwork() {
+		try {
+			const db = require('ocore/db.js');
+			const bridges = await db.query(`
+				SELECT bridge_id 
+				FROM bridges 
+				WHERE home_network = ? OR foreign_network = ?
+			`, [this.network, this.network]);
+			
+			if (bridges.length === 0) {
+				return false;
+			}
+			
+			const bridgeIds = bridges.map(b => b.bridge_id);
+			const placeholders = bridgeIds.map(() => '?').join(',');
+			
+			const [transferCount] = await db.query(`
+				SELECT COUNT(*) as count 
+				FROM transfers 
+				WHERE bridge_id IN (${placeholders})
+			`, bridgeIds);
+			
+			const [claimCount] = await db.query(`
+				SELECT COUNT(*) as count 
+				FROM claims 
+				WHERE bridge_id IN (${placeholders})
+			`, bridgeIds);
+			
+			return (transferCount.count > 0 || claimCount.count > 0);
+		} catch (e) {
+			return false;
+		}
+	}
+
+	/**
+	 * Check if we have imported data and should skip explorer/parser API calls
+	 * If we have transfers/claims in the database, we should use the last_blocks from JSON export
+	 * instead of querying explorers/parsers until we've processed all imported data
+	 * @returns {Promise<number|null>} Maximum block number from imported data, or null if no imported data
+	 */
+	async getMaxBlockFromImportedData() {
+		try {
+			const db = require('ocore/db.js');
+			
+			// Check if we have imported data by counting transfers/claims for this network
+			const bridges = await db.query(`
+				SELECT bridge_id 
+				FROM bridges 
+				WHERE home_network = ? OR foreign_network = ?
+			`, [this.network, this.network]);
+			
+			if (bridges.length === 0) {
+				return null;
+			}
+			
+			const bridgeIds = bridges.map(b => b.bridge_id);
+			const placeholders = bridgeIds.map(() => '?').join(',');
+			
+			// Count transfers and claims for these bridges
+			const [transferCount] = await db.query(`
+				SELECT COUNT(*) as count 
+				FROM transfers 
+				WHERE bridge_id IN (${placeholders})
+			`, bridgeIds);
+			
+			const [claimCount] = await db.query(`
+				SELECT COUNT(*) as count 
+				FROM claims 
+				WHERE bridge_id IN (${placeholders})
+			`, bridgeIds);
+			
+			// If we have imported data, check if last_blocks was imported from JSON
+			// The import script uses INSERT OR IGNORE, so if last_blocks exists, it might be old
+			// We'll use the current last_block value, but the catch-up logic will skip getAddressBlocks
+			// if we're still within the imported data range (determined by having data but low last_block)
+			const hasImportedData = (transferCount.count > 0 || claimCount.count > 0);
+			
+			if (hasImportedData) {
+				// If we have imported data, we should use the last_block from the database
+				// which should have been imported from JSON (if it was in the export)
+				// But since INSERT OR IGNORE might have skipped it, we'll check the current value
+				const currentLastBlock = await this.getLastBlock();
+				
+				// If last_block is very low (0 or default) but we have data, it means
+				// the import didn't update last_blocks. In this case, we should still
+				// trust the imported data and skip explorer calls until we catch up
+				// The actual max block will be determined by processing the imported data
+				if (currentLastBlock === 0 || currentLastBlock < 1000) {
+					// We have imported data but last_block wasn't updated
+					// Return a high number to skip explorer calls (they'll be skipped anyway
+					// because we'll process imported data first)
+					return null; // Return null to use normal logic, but we'll skip getAddressBlocks
+				}
+				
+				return currentLastBlock;
+			}
+			
+			return null;
+		} catch (e) {
+			console.error(`${this.network} catchup: error checking imported data:`, e.message);
+			return null;
+		}
+	}
+
 	async getBlockNumber() {
 		return await this.getBlockNumberWithRetry(0);
 	}
@@ -1759,7 +1867,16 @@ class EvmChain {
 
 		try {
 			// get events that are beyond the block range
-			const last_block = this.#last_caughtup_block || Math.max(await this.getLastBlock() - 100, 0);
+			let last_block = this.#last_caughtup_block || Math.max(await this.getLastBlock() - 100, 0);
+			
+			// Check if we have imported data and find the maximum block from it
+			// This allows us to skip explorer/parser API calls until we've processed all imported data
+			const maxBlockFromImportedData = await this.getMaxBlockFromImportedData();
+			if (maxBlockFromImportedData !== null && maxBlockFromImportedData > last_block) {
+				console.log(`${this.network} catchup: found imported data up to block ${maxBlockFromImportedData}, using it instead of last_block ${last_block}`);
+				last_block = maxBlockFromImportedData;
+			}
+			
 			const top_available_block = await this.getTopAvailableBlock();
 			console.log(`${this.network} catchup: last_block=${last_block}, top_available_block=${top_available_block}, contractsByAddress keys: ${Object.keys(this.#contractsByAddress).length}`);
 			
@@ -1895,9 +2012,45 @@ class EvmChain {
 							// Ignore errors
 						}
 						
-						console.log(`${this.network} catchup: calling getAddressBlocks for address ${address}${bridgeInfo} from block ${last_block}`);
-						const blocks = await this.getAddressBlocks(address, last_block);
-						console.log(`${this.network} address ${address}${bridgeInfo} blocks of missed txs since ${last_block}:`, blocks);
+						let blocks = [];
+						
+						// Try peer seeding first if enabled
+						if (conf.bEnablePeerSeeding) {
+							try {
+								const peer_seeding = require('./peer_seeding.js');
+								console.log(`${this.network} catchup: requesting block numbers from peers for address ${address}${bridgeInfo} from block ${last_block}`);
+								blocks = await peer_seeding.requestBlockNumbersFromPeers(this.network, address, last_block);
+								if (blocks && blocks.length > 0) {
+									console.log(`${this.network} address ${address}${bridgeInfo} received ${blocks.length} block numbers from peers since ${last_block}:`, blocks);
+								} else {
+									console.log(`${this.network} catchup: no block numbers from peers, falling back to explorer/parser`);
+								}
+							} catch (e) {
+								console.log(`${this.network} catchup: peer seeding failed: ${e.message}, falling back to explorer/parser`);
+							}
+						}
+						
+						// Fall back to explorer/parser if peer seeding didn't return results
+						// Skip fallback if bPeerSeedingOnly is enabled
+						// Also skip if we have imported data and are still within its range
+						// BUT: 3DPass always needs to call getAddressBlocks (3dpscan) to discover blocks,
+						// even if we have imported data, because 3DPass doesn't use standard explorer APIs
+						const hasImportedData = await this.hasImportedDataForNetwork();
+						const currentLastBlock = await this.getLastBlock();
+						const is3DPass = this.network === '3DPass';
+						// For 3DPass, always allow getAddressBlocks (it uses 3dpscan, not standard explorer)
+						// For other networks, skip if we have imported data and are within its range
+						const shouldSkipExplorer = !is3DPass && hasImportedData && last_block <= currentLastBlock;
+						
+						if ((!blocks || blocks.length === 0) && !conf.bPeerSeedingOnly && !shouldSkipExplorer) {
+							console.log(`${this.network} catchup: calling getAddressBlocks for address ${address}${bridgeInfo} from block ${last_block}`);
+							blocks = await this.getAddressBlocks(address, last_block);
+							console.log(`${this.network} address ${address}${bridgeInfo} blocks of missed txs since ${last_block}:`, blocks);
+						} else if ((!blocks || blocks.length === 0) && conf.bPeerSeedingOnly) {
+							console.log(`${this.network} catchup: peer seeding only mode - no block numbers from peers, skipping explorer/parser fallback`);
+						} else if (shouldSkipExplorer && (!blocks || blocks.length === 0)) {
+							console.log(`${this.network} catchup: skipping explorer/parser API calls - using imported data up to block ${currentLastBlock}`);
+						}
 						
 						// Only process events if we have a contract instance for this address
 						// Normalize address lookup to handle case differences
@@ -2196,6 +2349,21 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 		} else {
 			// Fallback: use a reasonable default if we can't get block number
 			actual_to_block = since_block + MAX_BLOCK_RANGE;
+		}
+	}
+	
+	// If we have imported data and are still within its range, skip provider queries
+	// Similar to parser cache - use imported data instead of querying provider
+	if (thisArg && network) {
+		const hasImportedData = await thisArg.hasImportedDataForNetwork();
+		if (hasImportedData) {
+			const currentLastBlock = await thisArg.getLastBlock();
+			// If we're querying blocks that are within the imported data range, skip provider query
+			// The events are already in the database from the import
+			if (since_block <= currentLastBlock && actual_to_block <= currentLastBlock) {
+				console.log(`processPastEvents ${network}: skipping provider query - using imported data (since_block=${since_block}, to_block=${actual_to_block}, imported_data_up_to=${currentLastBlock})`);
+				return 0; // Return 0 events since they're already in the database
+			}
 		}
 	}
 	
