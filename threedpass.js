@@ -858,4 +858,62 @@ class ThreeDPass extends EvmChain {
 	}
 }
 
-module.exports = ThreeDPass; 
+/**
+ * Static helper functions for 3DPass precompile detection
+ * These can be used without instantiating the ThreeDPass class
+ */
+
+/**
+ * Check if an address is a 3DPass ERC20 precompile (prefix 0xFBFBFBFA)
+ * This is a standalone function that doesn't require a ThreeDPass instance
+ * @param {string} tokenAddr - The address to check
+ * @returns {boolean} True if the address is a 3DPass ERC20 precompile
+ */
+function is3DPassERC20PrecompileStatic(tokenAddr) {
+	// Handle null/undefined tokenAddr
+	if (tokenAddr === null || tokenAddr === undefined) {
+		return false;
+	}
+	// 3DPass ERC20 precompiles have prefix 0xFBFBFBFA
+	// Check using BigNumber shift right by 128 bits
+	return BigNumber.from(tokenAddr).shr(128).eq(0xFBFBFBFA);
+}
+
+/**
+ * Check if an address is specifically the P3D precompile (native 3DPass token)
+ * This is a standalone function that doesn't require a ThreeDPass instance
+ * @param {string} address - The address to check
+ * @returns {boolean} True if the address is the P3D precompile
+ */
+function isP3DStatic(address) {
+	if (!address) {
+		return false;
+	}
+	// Check if it's P3D precompile
+	const P3D_PRECOMPILE = conf.p3d_precompile_address;
+	// Normalize addresses for comparison (handles checksummed addresses from DB)
+	return normalizeAddress(address, null) === normalizeAddress(P3D_PRECOMPILE, null);
+}
+
+/**
+ * Check if an address is a 3DPass precompile (either P3D or ERC20 precompile)
+ * This is a standalone function that doesn't require a ThreeDPass instance
+ * @param {string} address - The address to check
+ * @returns {boolean} True if the address is a 3DPass precompile
+ */
+function is3DPassPrecompileStatic(address) {
+	if (!address) {
+		return false;
+	}
+	// Check if it's P3D precompile
+	if (isP3DStatic(address)) {
+		return true;
+	}
+	// Check if it's a 3DPass ERC20 precompile
+	return is3DPassERC20PrecompileStatic(address);
+}
+
+module.exports = ThreeDPass;
+module.exports.is3DPassERC20PrecompileStatic = is3DPassERC20PrecompileStatic;
+module.exports.isP3DStatic = isP3DStatic;
+module.exports.is3DPassPrecompileStatic = is3DPassPrecompileStatic; 

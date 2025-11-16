@@ -15,6 +15,7 @@ const BSC = require('./bsc.js');
 const Polygon = require('./polygon.js');
 const Kava = require('./kava.js');
 const ThreeDPass = require('./threedpass.js');
+const { is3DPassERC20PrecompileStatic, isP3DStatic, is3DPassPrecompileStatic } = require('./threedpass.js');
 const { wait, asyncCallWithTimeout } = require('./utils.js');
 const { normalizeAddress } = require('./address_normalizer.js');
 
@@ -162,7 +163,18 @@ async function getBridgeByAddress(bridge_aa, bThrowIfNotFound) {
 
 
 async function addTransfer(transfer, bRewritable) {
-	const { bridge_id, type, amount, reward, sender_address, dest_address, data, txid, txts } = transfer;
+	let { bridge_id, type, amount, reward, sender_address, dest_address, data, txid, txts } = transfer;
+	
+	// Normalize addresses before storage to ensure consistent format
+	// Get the bridge to determine which networks are involved
+	const bridge = await getBridge(bridge_id);
+	const src_network = type === 'expatriation' ? bridge.home_network : bridge.foreign_network;
+	const dst_network = type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
+	
+	// Normalize sender_address (from source network) and dest_address (from destination network)
+	sender_address = normalizeAddress(sender_address, networkApi[src_network]);
+	dest_address = normalizeAddress(dest_address, networkApi[dst_network]);
+	
 	if (bRewritable) { // rewritable ledgers such as Ethereum
 		// check if the same tx was dropped as a result of a reorg and then added again with the same block timestamp (e.g. its chain won again)
 		const db_transfers = await db.query("SELECT * FROM transfers WHERE txid=? AND txts=? AND bridge_id=? AND amount=? AND reward=? AND sender_address=? AND dest_address=? AND data=?", [txid, txts, bridge_id, amount.toString(), reward.toString(), sender_address, dest_address, data]);
@@ -174,6 +186,10 @@ async function addTransfer(transfer, bRewritable) {
 			return console.log(`re-confirmed the existing transfer ${db_transfer.transfer_id}`);
 		}
 	}
+	// Update transfer object with normalized addresses for consistency
+	transfer.sender_address = sender_address;
+	transfer.dest_address = dest_address;
+	
 	console.log(`inserting transfer`, transfer);
 	const res = await db.query("INSERT " + db.getIgnore() + " INTO transfers (bridge_id, type, amount, reward, sender_address, dest_address, data, txid, txts) VALUES (?,?, ?,?, ?,?,?, ?,?)", [bridge_id, type, amount.toString(), reward.toString(), sender_address, dest_address, data, txid, txts]);
 	const bInserted = res.insertId && res.affectedRows;
@@ -943,7 +959,10 @@ async function handleChallenge(bridge, type, claim_num, address, stake_on, stake
 //	if (claim.type !== type)
 //		throw Error(`wrong type in claim ${claim_num}`);
 	
-	await db.query("INSERT INTO challenges (claim_num, bridge_id, type, address, stake_on, stake, challenge_txid) VALUES(?,?, ?,?, ?,?, ?)", [claim_num, bridge_id, type, address, stake_on, stake.toString(), challenge_txid]);
+	// Normalize address before storage to ensure consistent format
+	const normalized_address = normalizeAddress(address, api);
+	
+	await db.query("INSERT INTO challenges (claim_num, bridge_id, type, address, stake_on, stake, challenge_txid) VALUES(?,?, ?,?, ?,?, ?)", [claim_num, bridge_id, type, normalized_address, stake_on, stake.toString(), challenge_txid]);
 	
 	if (stake_on !== claim.current_outcome)
 		return unlock(`the challenge ${challenge_txid} with "${stake_on}" on claim ${claim_num} didn't override the current outcome "${claim.current_outcome}", no need to act`);
@@ -1636,33 +1655,36 @@ async function updateMaxAmounts() {
 				const key = bridge_id + type;
 				try {
 					// Validate that foreign_asset is valid for foreign_network before querying balance
-					// Special check: 3DPass precompile addresses (P3D and ERC20 precompiles) should only be used on 3DPass network
-					const P3D_PRECOMPILE = '0x0000000000000000000000000000000000000802';
-					const is3DPassPrecompileAsset = foreign_asset === P3D_PRECOMPILE || 
-						(foreign_asset && foreign_asset.startsWith('0xfBFBfbFA') && foreign_asset.length === 42);
-					if (is3DPassPrecompileAsset && foreign_network !== '3DPass') {
-						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - foreign_asset ${foreign_asset} is a 3DPass precompile but foreign_network is ${foreign_network}`);
-						continue;
+					// P3D precompile cannot be foreign_asset (it's native 3DPass token, can only be on 3DPass network)
+					// If detected, this indicates data corruption/mismatch in bridges table
+					if (isP3DStatic(foreign_asset)) {
+						throw Error(`Data mismatch in bridge ${bridge_id}: P3D precompile (${foreign_asset}) cannot be foreign_asset. P3D is the native 3DPass token and can only exist on 3DPass network.`);
+					}
+					// 3DPass ERC20 precompiles can be foreign_asset, but only on 3DPass network
+					// If detected on different network, this indicates data corruption/mismatch in bridges table
+					const is3DPassERC20PrecompileAsset = is3DPassERC20PrecompileStatic(foreign_asset);
+					if (is3DPassERC20PrecompileAsset && foreign_network !== '3DPass') {
+						throw Error(`Data mismatch in bridge ${bridge_id}: 3DPass ERC20 precompile (${foreign_asset}) cannot be foreign_asset on ${foreign_network} network. 3DPass ERC20 precompiles can only exist on 3DPass network.`);
 					}
 					if (foreign_asset && !networkApi[foreign_network].isValidAsset(foreign_asset)) {
-						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - foreign_asset ${foreign_asset} is not valid for foreign_network ${foreign_network}`);
-						continue;
+						throw Error(`Data mismatch in bridge ${bridge_id}: foreign_asset ${foreign_asset} is not valid for foreign_network ${foreign_network}`);
 					}
 					let balance = await networkApi[foreign_network].getBalance(claimant_address, foreign_asset, true);
 					balance = BigNumber.from(balance);
 					if (balance.isZero())
 						continue;
 					// Validate that stake_asset is valid for foreign_network before querying balance
-					// Special check: 3DPass precompile addresses (P3D and ERC20 precompiles) should only be used on 3DPass network
-					const is3DPassPrecompile = stake_asset === P3D_PRECOMPILE || 
-						(stake_asset && stake_asset.startsWith('0xfBFBfbFA') && stake_asset.length === 42);
-					if (is3DPassPrecompile && foreign_network !== '3DPass') {
-						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - stake_asset ${stake_asset} is a 3DPass precompile but foreign_network is ${foreign_network}`);
-						continue;
+					// 3DPass precompile addresses (P3D and ERC20 precompiles) should only be used on 3DPass network
+					// If detected on different network, this indicates data corruption/mismatch in bridges table
+					if (isP3DStatic(stake_asset) && foreign_network !== '3DPass') {
+						throw Error(`Data mismatch in bridge ${bridge_id}: P3D precompile (${stake_asset}) cannot be stake_asset on ${foreign_network} network. P3D is the native 3DPass token and can only exist on 3DPass network.`);
+					}
+					const is3DPassERC20PrecompileStake = is3DPassERC20PrecompileStatic(stake_asset);
+					if (is3DPassERC20PrecompileStake && foreign_network !== '3DPass') {
+						throw Error(`Data mismatch in bridge ${bridge_id}: 3DPass ERC20 precompile (${stake_asset}) cannot be stake_asset on ${foreign_network} network. 3DPass ERC20 precompiles can only exist on 3DPass network.`);
 					}
 					if (stake_asset && !networkApi[foreign_network].isValidAsset(stake_asset)) {
-						console.log(`updateMaxAmounts: skipping bridge ${bridge_id} expatriation - stake_asset ${stake_asset} is not valid for foreign_network ${foreign_network}`);
-						continue;
+						throw Error(`Data mismatch in bridge ${bridge_id}: stake_asset ${stake_asset} is not valid for foreign_network ${foreign_network}`);
 					}
 					let stake_balance = await networkApi[foreign_network].getBalance(claimant_address, stake_asset, true);
 					stake_balance = BigNumber.from(stake_balance);
