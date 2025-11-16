@@ -87,11 +87,14 @@ class EvmChain {
 	 */
 	storeCachedTransactions(address, transactions) {
 		if (transactions && transactions.length > 0) {
-			this.#cachedTransactions[address.toLowerCase()] = {
+			// Normalize address first to ensure consistent format, then use lowercase for cache key
+			const normalizedAddress = normalizeAddress(address, this);
+			const cacheKey = normalizedAddress.toLowerCase();
+			this.#cachedTransactions[cacheKey] = {
 				transactions: transactions,
 				timestamp: Date.now()
 			};
-			console.log(`📦 Cached ${transactions.length} transactions for ${address.substring(0, 10)}...`);
+			console.log(`📦 Cached ${transactions.length} transactions for ${normalizedAddress.substring(0, 10)}...`);
 		}
 	}
 
@@ -102,7 +105,9 @@ class EvmChain {
 	 * @returns {Array|null} Array of { txHash, blockNumber, eventLogs? } objects or null if not cached/expired
 	 */
 	getCachedTransactions(address, maxAge = 5 * 60 * 1000) {
-		const cacheKey = address.toLowerCase();
+		// Normalize address first to ensure consistent format, then use lowercase for cache key
+		const normalizedAddress = normalizeAddress(address, this);
+		const cacheKey = normalizedAddress.toLowerCase();
 		const cached = this.#cachedTransactions[cacheKey];
 		
 		if (!cached) {
@@ -1533,9 +1538,10 @@ class EvmChain {
 	 */
 	async processPastEventsFromParserCache(contract, filter, since_block, to_block, thisArg, handler) {
 		const network = thisArg ? thisArg.network : null;
-		const contractAddress = contract.address.toLowerCase();
+		// Normalize contract address for consistent comparison (addresses from contract are already checksummed, but normalize for consistency)
+		const contractAddress = normalizeAddress(contract.address, thisArg);
 		
-		// Get cached transactions for this contract
+		// Get cached transactions for this contract (address will be normalized inside getCachedTransactions)
 		const transactions = thisArg.getCachedTransactions(contractAddress);
 		
 		if (!transactions || transactions.length === 0) {
@@ -1624,9 +1630,12 @@ class EvmChain {
 			
 			// Filter event logs by contract address and event topic
 			const matchingLogs = eventLogs.filter(log => {
-				// Check contract address
-				if (log.address && log.address.toLowerCase() !== contractAddress) {
-					return false;
+				// Check contract address - normalize addresses from external sources (parsers) before comparison
+				if (log.address) {
+					const normalizedLogAddress = normalizeAddress(log.address, thisArg);
+					if (normalizedLogAddress !== contractAddress) {
+						return false;
+					}
 				}
 				
 				// Check event topic if filter is provided
@@ -1755,8 +1764,9 @@ class EvmChain {
 					}
 					
 					// Create a mock event object similar to ethers event
-					// Normalize address to lowercase for consistency (addresses are case-insensitive)
-					const eventAddress = (log.address || contractAddress).toLowerCase();
+					// Normalize address from external source (parser) before using (addresses should be checksummed)
+					const rawEventAddress = log.address || contractAddress;
+					const eventAddress = normalizeAddress(rawEventAddress, thisArg);
 					// Sort topics by index to ensure correct order (topic 0, 1, 2, etc.)
 					const sortedTopics = log.topics ? log.topics.sort((a, b) => a.index - b.index).map(t => t.value) : [];
 					const mockEvent = {
@@ -1793,7 +1803,8 @@ class EvmChain {
 
 	async processEventsFromTransactions(contract, transactionHashes, thisArg, handler, filter = null) {
 		const network = thisArg ? thisArg.network : null;
-		const contractAddress = contract.address.toLowerCase();
+		// Normalize contract address for consistent comparison (addresses from contract are already checksummed, but normalize for consistency)
+		const contractAddress = normalizeAddress(contract.address, thisArg);
 		let eventCount = 0;
 		
 		console.log(`processEventsFromTransactions ${network}: processing ${transactionHashes.length} transactions for contract ${contractAddress}${filter ? ' with filter' : ''}`);
@@ -1815,9 +1826,13 @@ class EvmChain {
 					continue;
 				}
 				
-				// Filter logs by contract address
+				// Filter logs by contract address - normalize addresses from external sources (transaction receipts) before comparison
 				const contractLogs = receipt.logs.filter(log => {
-					if (!log.address || log.address.toLowerCase() !== contractAddress) {
+					if (!log.address) {
+						return false;
+					}
+					const normalizedLogAddress = normalizeAddress(log.address, thisArg);
+					if (normalizedLogAddress !== contractAddress) {
 						return false;
 					}
 					// If we have a filter, also check if the log topic matches
@@ -1846,12 +1861,14 @@ class EvmChain {
 							}
 							
 							// Create an event-like object that matches the handler signature
+							// Normalize address from external source (transaction receipt) before using
+							const normalizedEventAddress = normalizeAddress(log.address, thisArg);
 							const event = {
 								...parsedLog,
 								transactionHash: txHash,
 								blockNumber: receipt.blockNumber,
 								blockHash: receipt.blockHash,
-								address: log.address,
+								address: normalizedEventAddress,
 								args: parsedLog.args,
 								event: parsedLog.name,
 								eventSignature: parsedLog.signature,
