@@ -1184,37 +1184,47 @@ class EvmChain {
 			console.log(`📋 ${this.network} factory addresses:`, Object.values(this.#factory_contract_addresses));
 		
 		const onNewExport = async (contractAddress, tokenAddress, foreign_network, foreign_asset, event) => {
-			const decimals = await this.getDecimals(tokenAddress);
+			// Normalize addresses before processing (handleNewExportAA will also normalize, but normalize here for consistency)
+			const normalizedContractAddress = normalizeAddress(contractAddress, this);
+			const normalizedTokenAddress = tokenAddress !== AddressZero ? normalizeAddress(tokenAddress, this) : tokenAddress;
+			const normalizedForeignAsset = normalizeAddress(foreign_asset, this);
+			
+			const decimals = await this.getDecimals(normalizedTokenAddress);
 			if (decimals === null)
-				return console.log(`not adding new export contract ${contractAddress} as its token ${tokenAddress} didn't return decimals`);
-			/*if (tokenAddress !== AddressZero && conf.bUseOwnFunds) {
-				console.log(`will approve the export contract to spend our ERC20 ${tokenAddress}`);
-				const approval_res = await this.approve(tokenAddress, contractAddress);
+				return console.log(`not adding new export contract ${normalizedContractAddress} as its token ${normalizedTokenAddress} didn't return decimals`);
+			/*if (normalizedTokenAddress !== AddressZero && conf.bUseOwnFunds) {
+				console.log(`will approve the export contract to spend our ERC20 ${normalizedTokenAddress}`);
+				const approval_res = await this.approve(normalizedTokenAddress, normalizedContractAddress);
 				if (!approval_res)
-					return console.log(`failed to approve new export contract ${contractAddress} to spend our token ${tokenAddress}, will not add`);
+					return console.log(`failed to approve new export contract ${normalizedContractAddress} to spend our token ${normalizedTokenAddress}, will not add`);
 			}*/
 			const version = getVersion(this.#factory_contract_addresses, event.address);
 			if (!version)
-				throw Error(`undefined version of new export ${contractAddress} ${JSON.stringify(event)}`);
+				throw Error(`undefined version of new export ${normalizedContractAddress} ${JSON.stringify(event)}`);
 			
 			// Normalize network names to ensure consistency
 			const normalizedForeignNetwork = foreign_network === '3dpass' ? '3DPass' : foreign_network;
 			
-			const bAdded = await transfers.handleNewExportAA(contractAddress, this.network, tokenAddress, decimals, normalizedForeignNetwork, foreign_asset, version);
+			const bAdded = await transfers.handleNewExportAA(normalizedContractAddress, this.network, normalizedTokenAddress, decimals, normalizedForeignNetwork, normalizedForeignAsset, version);
 			if (bAdded)
-				this.startWatchingExportAA(contractAddress);
+				this.startWatchingExportAA(normalizedContractAddress);
 		};
 		const onNewImport = async (contractAddress, home_network, home_asset, symbol, stakeTokenAddress, event) => {
+			// Normalize addresses before processing (handleNewImportAA will also normalize, but normalize here for consistency)
+			const normalizedContractAddress = normalizeAddress(contractAddress, this);
+			const normalizedHomeAsset = normalizeAddress(home_asset, this);
+			const normalizedStakeTokenAddress = stakeTokenAddress !== AddressZero ? normalizeAddress(stakeTokenAddress, this) : stakeTokenAddress;
+			
 			const version = getVersion(this.#factory_contract_addresses, event.address);
 			if (!version)
-				throw Error(`undefined version of new import ${contractAddress} ${JSON.stringify(event)}`);
+				throw Error(`undefined version of new import ${normalizedContractAddress} ${JSON.stringify(event)}`);
 			
 			// Normalize network names to ensure consistency
 			const normalizedHomeNetwork = home_network === '3dpass' ? '3DPass' : home_network;
 			
-			const bAdded = await transfers.handleNewImportAA(contractAddress, normalizedHomeNetwork, home_asset, this.network, contractAddress, 18, stakeTokenAddress, version);
+			const bAdded = await transfers.handleNewImportAA(normalizedContractAddress, normalizedHomeNetwork, normalizedHomeAsset, this.network, normalizedContractAddress, 18, normalizedStakeTokenAddress, version);
 			if (bAdded)
-				this.startWatchingImportAA(contractAddress);
+				this.startWatchingImportAA(normalizedContractAddress);
 		};
 		for (let v in this.#factory_contract_addresses) {
 			const factory_contract_address = this.#factory_contract_addresses[v];
@@ -1367,24 +1377,34 @@ class EvmChain {
 		const onNewExportAssistant = async (assistantAddress, bridgeAddress, manager, symbol, event) => {
 		//	if (manager !== this.#wallet.address)
 		//		return console.log(`new assistant ${assistantAddress} with another manager, will skip`);
-			console.log(`new export assistant ${assistantAddress}, shares ${symbol}`);
+			// Normalize addresses before processing (handleNewAssistantAA will also normalize, but normalize here for consistency)
+			const normalizedAssistantAddress = normalizeAddress(assistantAddress, this);
+			const normalizedBridgeAddress = normalizeAddress(bridgeAddress, this);
+			const normalizedManager = normalizeAddress(manager, this);
+			
+			console.log(`new export assistant ${normalizedAssistantAddress}, shares ${symbol}`);
 			const version = getVersion(this.#assistant_factory_contract_addresses, event.address);
 			if (!version)
-				throw Error(`undefined version of new export assistant ${assistantAddress} ${JSON.stringify(event)}`);
-			const bAdded = await transfers.handleNewAssistantAA('export', assistantAddress, bridgeAddress, this.network, manager, assistantAddress, symbol, version);
+				throw Error(`undefined version of new export assistant ${normalizedAssistantAddress} ${JSON.stringify(event)}`);
+			const bAdded = await transfers.handleNewAssistantAA('export', normalizedAssistantAddress, normalizedBridgeAddress, this.network, normalizedManager, normalizedAssistantAddress, symbol, version);
 			if (bAdded)
-				this.startWatchingExportAssistantAA(assistantAddress);
+				this.startWatchingExportAssistantAA(normalizedAssistantAddress);
 		};
 		const onNewImportAssistant = async (assistantAddress, bridgeAddress, manager, symbol, event) => {
 		//	if (manager !== this.#wallet.address)
 		//		return console.log(`new assistant ${assistantAddress} with another manager, will skip`);
-			console.log(`new import assistant ${assistantAddress}, shares ${symbol}`);
+			// Normalize addresses before processing (handleNewAssistantAA will also normalize, but normalize here for consistency)
+			const normalizedAssistantAddress = normalizeAddress(assistantAddress, this);
+			const normalizedBridgeAddress = normalizeAddress(bridgeAddress, this);
+			const normalizedManager = normalizeAddress(manager, this);
+			
+			console.log(`new import assistant ${normalizedAssistantAddress}, shares ${symbol}`);
 			const version = getVersion(this.#assistant_factory_contract_addresses, event.address);
 			if (!version)
-				throw Error(`undefined version of new import assistant ${assistantAddress} ${JSON.stringify(event)}`);
-			const bAdded = await transfers.handleNewAssistantAA('import', assistantAddress, bridgeAddress, this.network, manager, assistantAddress, symbol, version);
+				throw Error(`undefined version of new import assistant ${normalizedAssistantAddress} ${JSON.stringify(event)}`);
+			const bAdded = await transfers.handleNewAssistantAA('import', normalizedAssistantAddress, normalizedBridgeAddress, this.network, normalizedManager, normalizedAssistantAddress, symbol, version);
 			if (bAdded)
-				this.startWatchingImportAssistantAA(assistantAddress);
+				this.startWatchingImportAssistantAA(normalizedAssistantAddress);
 		};
 		for (let v in this.#assistant_factory_contract_addresses) {
 			const assistant_factory_contract_address = this.#assistant_factory_contract_addresses[v];
@@ -1900,8 +1920,9 @@ class EvmChain {
 			for (let address in this.#contractsByAddress) {
 				const contract = this.#contractsByAddress[address];
 				if (contract.filters.NewClaim) { // bridge contract
-					// Normalize address to lowercase for consistency
-					addressesToCheck.add(address.toLowerCase());
+					// Normalize address to checksummed format for consistency (addresses are stored checksummed in DB)
+					const normalizedAddress = normalizeAddress(address, this);
+					addressesToCheck.add(normalizedAddress);
 				}
 			}
 			
@@ -1920,11 +1941,9 @@ class EvmChain {
 			for (let bridge of supportedBridges) {
 				// Add import_aa if this network is the foreign network
 				if (bridge.foreign_network === this.network && bridge.import_aa) {
-					// Checksum address for consistent storage and lookup (addresses are stored checksummed in DB)
-					let checksummedImportAA = bridge.import_aa;
-					if (this.isValidAddress(bridge.import_aa)) {
-						checksummedImportAA = ethers.utils.getAddress(bridge.import_aa);
-					}
+					// Normalize address for consistent storage and lookup (addresses are stored checksummed in DB)
+					// Use centralized normalizeAddress function
+					const checksummedImportAA = normalizeAddress(bridge.import_aa, this);
 					addressesToCheck.add(checksummedImportAA);
 					// Ensure contract instance exists for this address
 					if (!this.#contractsByAddress[checksummedImportAA]) {
@@ -1942,11 +1961,9 @@ class EvmChain {
 				}
 				// Add export_aa if this network is the home network
 				if (bridge.home_network === this.network && bridge.export_aa) {
-					// Checksum address for consistent storage and lookup (addresses are stored checksummed in DB)
-					let checksummedExportAA = bridge.export_aa;
-					if (this.isValidAddress(bridge.export_aa)) {
-						checksummedExportAA = ethers.utils.getAddress(bridge.export_aa);
-					}
+					// Normalize address for consistent storage and lookup (addresses are stored checksummed in DB)
+					// Use centralized normalizeAddress function
+					const checksummedExportAA = normalizeAddress(bridge.export_aa, this);
 					addressesToCheck.add(checksummedExportAA);
 					// Ensure contract instance exists for this address
 					if (!this.#contractsByAddress[checksummedExportAA]) {
@@ -1973,13 +1990,17 @@ class EvmChain {
 			for (let v in this.#factory_contract_addresses) {
 				const factoryAddress = this.#factory_contract_addresses[v];
 				if (factoryAddress) {
-					addressesToCheck.add(factoryAddress);
+					// Normalize factory address for consistent lookup
+					const normalizedFactoryAddress = normalizeAddress(factoryAddress, this);
+					addressesToCheck.add(normalizedFactoryAddress);
 				}
 			}
 			for (let v in this.#assistant_factory_contract_addresses) {
 				const assistantFactoryAddress = this.#assistant_factory_contract_addresses[v];
 				if (assistantFactoryAddress) {
-					addressesToCheck.add(assistantFactoryAddress);
+					// Normalize assistant factory address for consistent lookup
+					const normalizedAssistantFactoryAddress = normalizeAddress(assistantFactoryAddress, this);
+					addressesToCheck.add(normalizedAssistantFactoryAddress);
 				}
 			}
 			
@@ -2007,12 +2028,13 @@ class EvmChain {
 				const priorityAddresses = new Set();
 				const regularAddresses = new Set();
 				
-				// Normalize priority addresses from config to lowercase for comparison
-				const topPriorityBridges = (conf.topPriorityBridges || []).map(addr => addr.toLowerCase());
+				// Normalize priority addresses from config for comparison
+				// Addresses in addressesToCheck are already normalized (checksummed), so normalize config addresses too
+				const topPriorityBridges = (conf.topPriorityBridges || []).map(addr => normalizeAddress(addr, this));
 				
 				for (let address of addressesToCheck) {
-					const addressLower = address.toLowerCase();
-					if (topPriorityBridges.includes(addressLower)) {
+					// Address is already normalized, compare directly
+					if (topPriorityBridges.includes(address)) {
 						priorityAddresses.add(address);
 					} else {
 						regularAddresses.add(address);
@@ -2064,9 +2086,11 @@ class EvmChain {
 						const shouldSkipExplorer = !is3DPass && hasImportedData && last_block <= currentLastBlock;
 						
 						if ((!blocks || blocks.length === 0) && !conf.bPeerSeedingOnly && !shouldSkipExplorer) {
-							console.log(`${this.network} catchup: calling getAddressBlocks for address ${address}${bridgeInfo} from block ${last_block}`);
-							blocks = await this.getAddressBlocks(address, last_block);
-							console.log(`${this.network} address ${address}${bridgeInfo} blocks of missed txs since ${last_block}:`, blocks);
+							// Normalize address before calling getAddressBlocks for consistent cache keys and lookups
+							const normalizedAddress = normalizeAddress(address, this);
+							console.log(`${this.network} catchup: calling getAddressBlocks for address ${normalizedAddress}${bridgeInfo} from block ${last_block}`);
+							blocks = await this.getAddressBlocks(normalizedAddress, last_block);
+							console.log(`${this.network} address ${normalizedAddress}${bridgeInfo} blocks of missed txs since ${last_block}:`, blocks);
 						} else if ((!blocks || blocks.length === 0) && conf.bPeerSeedingOnly) {
 							console.log(`${this.network} catchup: peer seeding only mode - no block numbers from peers, skipping explorer/parser fallback`);
 						} else if (shouldSkipExplorer && (!blocks || blocks.length === 0)) {
@@ -2074,12 +2098,12 @@ class EvmChain {
 						}
 						
 						// Only process events if we have a contract instance for this address
-						// Normalize address lookup to handle case differences
-						// Address from addressesToCheck is already lowercase, but keys in contractsByAddress might be checksummed
-						const addressLower = address.toLowerCase();
-						let contract = this.#contractsByAddress[address] || this.#contractsByAddress[addressLower];
+						// Address from addressesToCheck is already normalized (checksummed), so lookup directly
+						// Keys in contractsByAddress should also be checksummed, but handle case-insensitive match as fallback
+						let contract = this.#contractsByAddress[address];
 						if (!contract) {
-							// Try to find contract with case-insensitive match
+							// Try to find contract with case-insensitive match (fallback for edge cases)
+							const addressLower = address.toLowerCase();
 							for (let key in this.#contractsByAddress) {
 								if (key.toLowerCase() === addressLower) {
 									contract = this.#contractsByAddress[key];
