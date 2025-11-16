@@ -1,5 +1,6 @@
 const { request } = require('./request.js');
 const { wait } = require('./utils.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 const threedpass_base_url = process.env.testnet ? 'https://api-testnet.3dpscan.xyz' : 'https://api.3dpscan.xyz';
 let last_req_ts = 0;
@@ -46,13 +47,16 @@ async function getAddressBlocks({ address, startblock, endblock, count = 0 }) {
 			}
 			
 			// Filter events for the specific contract address
+			// Normalize both addresses for consistent comparison (handles checksummed addresses from DB)
+			const normalizedAddress = normalizeAddress(address, null); // No networkApi needed for basic EVM address normalization
 			const relevantEvents = resp.items.filter(item => {
 				if (item.section !== 'evm' || item.method !== 'Log') {
 					return false;
 				}
 				
 				const log = item.args[0].value;
-				return log.address.toLowerCase() === address.toLowerCase();
+				const normalizedLogAddress = normalizeAddress(log.address, null);
+				return normalizedLogAddress === normalizedAddress;
 			});
 			
 			// Extract block heights from relevant events
@@ -135,6 +139,8 @@ async function getAddressTransactionBlocks({ address, startblock, endblock, coun
 			}
 			
 			// Filter transactions for the specific contract address
+			// Normalize addresses for consistent comparison (handles checksummed addresses from DB)
+			const normalizedAddress = normalizeAddress(address, null); // No networkApi needed for basic EVM address normalization
 			const relevantTransactions = resp.items.filter(item => {
 				if (item.section !== 'ethereum' || item.method !== 'Executed') {
 					return false;
@@ -144,8 +150,11 @@ async function getAddressTransactionBlocks({ address, startblock, endblock, coun
 				const toAddress = args.find(arg => arg.name === 'to')?.value;
 				const fromAddress = args.find(arg => arg.name === 'from')?.value;
 				
-				return toAddress?.toLowerCase() === address.toLowerCase() || 
-					   fromAddress?.toLowerCase() === address.toLowerCase();
+				const normalizedToAddress = toAddress ? normalizeAddress(toAddress, null) : null;
+				const normalizedFromAddress = fromAddress ? normalizeAddress(fromAddress, null) : null;
+				
+				return normalizedToAddress === normalizedAddress || 
+					   normalizedFromAddress === normalizedAddress;
 			});
 			
 			// Extract block heights from relevant transactions

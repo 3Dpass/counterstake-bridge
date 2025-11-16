@@ -6,6 +6,7 @@ const eventBus = require('ocore/event_bus.js');
 const device = require('ocore/device.js');
 const db = require('ocore/db.js');
 const { networkApi } = require('./transfers.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 /**
  * Peer seeding module for EVM chains
@@ -15,6 +16,10 @@ const { networkApi } = require('./transfers.js');
 
 // Cache for peer requests to avoid duplicate requests
 const pendingPeerRequests = new Map(); // requestId => { resolve, reject, timeout }
+
+// Discovered peers cache (automatically discovered via Obyte network)
+const discoveredPeers = new Set(); // Set of Obyte device addresses
+const MAX_DISCOVERED_PEERS = 50; // Maximum number of discovered peers to keep
 
 /**
  * Get block numbers from database for a given address and network
@@ -26,7 +31,9 @@ const pendingPeerRequests = new Map(); // requestId => { resolve, reject, timeou
  */
 async function getBlockNumbersFromDB(network, address, startblock = 0) {
 	try {
-		const addressLower = address.toLowerCase();
+		// Normalize the address to match what's stored in the database (checksummed for EVM addresses)
+		const networkApiInstance = networkApi[network];
+		const normalizedAddress = normalizeAddress(address, networkApiInstance);
 		
 		// Get bridges where this address is either export_aa or import_aa
 		const bridges = await db.query(`
@@ -34,7 +41,7 @@ async function getBlockNumbersFromDB(network, address, startblock = 0) {
 			FROM bridges 
 			WHERE (export_aa = ? OR import_aa = ?) 
 			AND (home_network = ? OR foreign_network = ?)
-		`, [addressLower, addressLower, network, network]);
+		`, [normalizedAddress, normalizedAddress, network, network]);
 		
 		if (bridges.length === 0) {
 			// Not a bridge address, might be a factory - we can't get block numbers from DB for factories
@@ -52,8 +59,9 @@ async function getBlockNumbersFromDB(network, address, startblock = 0) {
 		// For each bridge, get transfers and claims
 		for (const bridge of bridges) {
 			// Determine which side of the bridge this address is on
-			const isExport = bridge.export_aa && bridge.export_aa.toLowerCase() === addressLower;
-			const isImport = bridge.import_aa && bridge.import_aa.toLowerCase() === addressLower;
+			// Compare normalized addresses (database stores checksummed addresses)
+			const isExport = bridge.export_aa && normalizeAddress(bridge.export_aa, networkApiInstance) === normalizedAddress;
+			const isImport = bridge.import_aa && normalizeAddress(bridge.import_aa, networkApiInstance) === normalizedAddress;
 			
 			// Get transfers where this network is involved
 			let transfers = [];
@@ -157,31 +165,77 @@ async function requestBlockNumbersFromPeers(network, address, startblock) {
 			// Send request to known peer addresses
 			console.log(`Requesting block numbers from peers for ${network}/${address} from block ${startblock} (requestId: ${requestId})`);
 			
-			// Send to known peer addresses from config
-			const peerAddresses = conf.peerSeedingAddresses || [];
+			// Send to all available peers (configured + discovered)
+			const peerAddresses = getAllPeerAddresses();
 			if (peerAddresses.length > 0) {
+				const configuredPeers = new Set((conf.peerSeedingAddresses || []).map(addr => addr.toLowerCase()));
 				let sentCount = 0;
+				let configuredSent = 0;
+				let discoveredSent = 0;
+				
 				for (const peerAddress of peerAddresses) {
 					try {
 						device.sendMessageToDevice(peerAddress, 'json', JSON.stringify(message));
 						sentCount++;
+						if (configuredPeers.has(peerAddress.toLowerCase())) {
+							configuredSent++;
+						} else {
+							discoveredSent++;
+						}
 					} catch (e) {
 						console.log(`Could not send peer request to ${peerAddress}: ${e.message}`);
 					}
 				}
 				if (sentCount > 0) {
-					console.log(`Sent seed request to ${sentCount} peer(s)`);
+					console.log(`Sent seed request to ${sentCount} peer(s) (${configuredSent} configured, ${discoveredSent} discovered)`);
 				} else {
 					console.log(`No peers available to send request to`);
 				}
 			} else {
-				console.log(`No peer addresses configured (peerSeedingAddresses is empty) - will only respond to incoming requests`);
+				console.log(`No peer addresses available (configured or discovered) - will only respond to incoming requests`);
 			}
 		});
 	} catch (e) {
 		console.error(`Error requesting block numbers from peers:`, e);
 		return [];
 	}
+}
+
+/**
+ * Add a peer to the discovered peers list
+ * @param {string} peerAddress - Obyte device address
+ */
+function addDiscoveredPeer(peerAddress) {
+	if (!peerAddress) return;
+	
+	const addressLower = peerAddress.toLowerCase();
+	
+	// Add to discovered peers
+	if (!discoveredPeers.has(addressLower)) {
+		discoveredPeers.add(addressLower);
+		console.log(`🔍 Discovered new peer: ${addressLower} (total discovered: ${discoveredPeers.size})`);
+		
+		// Limit the size of discovered peers set
+		if (discoveredPeers.size > MAX_DISCOVERED_PEERS) {
+			// Remove oldest entries (simple FIFO - convert to array and remove first)
+			const peersArray = Array.from(discoveredPeers);
+			const toRemove = peersArray.slice(0, peersArray.length - MAX_DISCOVERED_PEERS);
+			toRemove.forEach(addr => discoveredPeers.delete(addr));
+		}
+	}
+}
+
+/**
+ * Get all available peer addresses (configured + discovered)
+ * @returns {string[]} Array of peer addresses
+ */
+function getAllPeerAddresses() {
+	const configuredPeers = conf.peerSeedingAddresses || [];
+	const allPeers = new Set([
+		...configuredPeers.map(addr => addr.toLowerCase()),
+		...Array.from(discoveredPeers)
+	]);
+	return Array.from(allPeers);
 }
 
 /**
@@ -196,6 +250,9 @@ async function handleSeedRequest(from_address, message) {
 	
 	try {
 		const { requestId, network, address, startblock } = message;
+		
+		// Automatically discover this peer
+		addDiscoveredPeer(from_address);
 		
 		console.log(`Received seed request from ${from_address}: ${network}/${address} from block ${startblock}`);
 		
@@ -228,6 +285,9 @@ function handleSeedResponse(from_address, message) {
 	try {
 		const { requestId, blockNumbers } = message;
 		
+		// Automatically discover this peer
+		addDiscoveredPeer(from_address);
+		
 		// Find the pending request
 		const request = pendingPeerRequests.get(requestId);
 		if (!request) {
@@ -240,7 +300,7 @@ function handleSeedResponse(from_address, message) {
 		pendingPeerRequests.delete(requestId);
 		
 		// Resolve the promise
-		console.log(`Received seed response: ${blockNumbers.length} block numbers`);
+		console.log(`Received seed response from ${from_address}: ${blockNumbers.length} block numbers`);
 		request.resolve(blockNumbers);
 	} catch (e) {
 		console.error(`Error handling seed response:`, e);
@@ -295,13 +355,22 @@ function start() {
 	
 	if (conf.bEnablePeerSeeding) {
 		console.log('Peer seeding enabled - will request block numbers from peers during catch-up');
+		console.log(`  Automatic peer discovery enabled - peers will be discovered via Obyte network`);
 	}
 	if (conf.bServeAsSeeder) {
 		console.log('Peer seeding server enabled - will respond to peer requests for block numbers');
+	}
+	
+	// Load configured peers into discovered set (so they're always available)
+	if (conf.peerSeedingAddresses && conf.peerSeedingAddresses.length > 0) {
+		conf.peerSeedingAddresses.forEach(addr => addDiscoveredPeer(addr));
+		console.log(`  Loaded ${conf.peerSeedingAddresses.length} configured peer(s) into discovery cache`);
 	}
 }
 
 exports.start = start;
 exports.requestBlockNumbersFromPeers = requestBlockNumbersFromPeers;
 exports.getBlockNumbersFromDB = getBlockNumbersFromDB;
+exports.getDiscoveredPeers = () => Array.from(discoveredPeers);
+exports.getAllPeerAddresses = getAllPeerAddresses;
 

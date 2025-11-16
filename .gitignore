@@ -68,3 +68,6 @@ errlog
 
 # BSCScan parser cache
 .bscscan-cache
+
+# Etherscan parser cache
+.etherscan-cache

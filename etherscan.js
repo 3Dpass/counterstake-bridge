@@ -5,6 +5,7 @@ const { wait } = require('./utils.js');
 const { parseBSCScanBlockNumbers } = require('./bscscan-simple-parser.js');
 const { parseEtherscanBlockNumbers } = require('./etherscan-simple-parser.js');
 const db = require('ocore/db.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 let last_req_ts = {};
 
@@ -21,6 +22,10 @@ async function waitBetweenRequests(base_url, chainid, bWithApiKey) {
 }
 
 async function getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal = false, getUrl, getOptions, retry_count = 0 }) {
+	// Normalize address for consistent API calls and caching (handles checksummed addresses from DB)
+	// Most APIs accept both formats, but normalizing ensures consistency
+	const normalizedAddress = normalizeAddress(address, null);
+	
 	// Use chainid-specific mutex key to allow concurrent requests for different chains
 	// This prevents Ethereum (chainid=1) and BSC (chainid=56) from blocking each other
 	const mutexKey = chainid ? `${base_url}_chainid_${chainid}` : base_url;
@@ -28,7 +33,7 @@ async function getAddressHistory({ base_url, chainid, address, startblock, start
 	const retry = async (msg) => {
 		unlock(msg);
 		retry_count++;
-		return await getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal, getUrl, getOptions, retry_count });
+		return await getAddressHistory({ base_url, chainid, address: normalizedAddress, startblock, startts, api_key, bInternal, getUrl, getOptions, retry_count });
 	};
 	const requestWithUnlock = async (url) => {
 		try {
@@ -62,14 +67,15 @@ async function getAddressHistory({ base_url, chainid, address, startblock, start
 	}
 	const defaultGetUrl = () => {
 		const action = bInternal ? 'txlistinternal' : 'txlist';
-		let url = `${base_url}/api?chainid=${chainid}&module=account&action=${action}&address=${address}`;
+		// Use normalized address in API URL for consistency
+		let url = `${base_url}/api?chainid=${chainid}&module=account&action=${action}&address=${normalizedAddress}`;
 		if (startblock)
 			url += `&startblock=${startblock}`;
 		if (api_key)
 			url += `&apikey=${api_key}`;
 		return url;
 	};
-	const resp = await requestWithUnlock(getUrl ? getUrl('account-history', { address, bInternal, startblock }) : defaultGetUrl());
+	const resp = await requestWithUnlock(getUrl ? getUrl('account-history', { address: normalizedAddress, bInternal, startblock }) : defaultGetUrl());
 	last_req_ts[rateLimitKey] = Date.now();
 	if (!getUrl && resp.message === 'NOTOK' && retry_count < 10) {
 		// Check if this is a rate limit error
@@ -115,9 +121,12 @@ async function getAddressHistory({ base_url, chainid, address, startblock, start
 async function getAddressBlocks({ base_url, chainid, address, startblock, startts, api_key, getUrl, getOptions, count = 0, networkApi = null }) {
 	const conf = require('./conf.js');
 	
+	// Normalize address for consistent API calls, parser calls, and caching (handles checksummed addresses from DB)
+	const normalizedAddress = normalizeAddress(address, null);
+	
 	// If AlwaysUseBSCscanParser is enabled and this is BSC, skip API calls and use parser only
 	if (conf.AlwaysUseBSCscanParser && chainid === 56) {
-		console.log(`📡 AlwaysUseBSCscanParser enabled: using BSCScan HTML parser as only source for address ${address}...`);
+		console.log(`📡 AlwaysUseBSCscanParser enabled: using BSCScan HTML parser as only source for address ${normalizedAddress}...`);
 		try {
 			// Create function to check if transaction already exists in database
 			const checkTransactionExists = async (txHash) => {
@@ -139,7 +148,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				}
 			};
 			
-			const result = await parseBSCScanBlockNumbers(address, { 
+			const result = await parseBSCScanBlockNumbers(normalizedAddress, { 
 				delay: 2000, 
 				retries: 2, 
 				includeTransactions: true, 
@@ -148,7 +157,13 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				checkTransactionExists: checkTransactionExists
 			});
 			
-			if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
+			if (result.success) {
+				// Handle case where parser succeeded but found no blocks (address has no transactions)
+				if (!result.blockNumbers || result.blockNumbers.length === 0) {
+					console.log(`ℹ️  BSCScan parser: address ${normalizedAddress} has no transactions (no blocks found)`);
+					return [];
+				}
+				
 				let blocks = result.blockNumbers;
 				
 				// Filter by startblock if provided
@@ -164,7 +179,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				if (result.transactions && result.transactions.length > 0 && networkApi) {
 					const network = 'BSC';
 					if (networkApi[network]) {
-						networkApi[network].storeCachedTransactions(address, result.transactions);
+						networkApi[network].storeCachedTransactions(normalizedAddress, result.transactions);
 						
 						// Cache event logs for each transaction
 						result.transactions.forEach(tx => {
@@ -175,7 +190,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 					}
 				}
 				
-				console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${blocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''} for address ${address}`);
+				console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${blocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''} for address ${normalizedAddress}`);
 				return blocks;
 			} else {
 				throw new Error(`BSCScan parser failed: ${result.error || 'unknown error'}`);
@@ -188,7 +203,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 	
 	// If AlwaysUseEtherscanParser is enabled and this is Ethereum, skip API calls and use parser only
 	if (conf.AlwaysUseEtherscanParser && chainid === 1) {
-		console.log(`📡 AlwaysUseEtherscanParser enabled: using Etherscan HTML parser as only source for ${address}...`);
+		console.log(`📡 AlwaysUseEtherscanParser enabled: using Etherscan HTML parser as only source for ${normalizedAddress}...`);
 		try {
 			// Create function to check if transaction already exists in database
 			const checkTransactionExists = async (txHash) => {
@@ -210,7 +225,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				}
 			};
 			
-			const result = await parseEtherscanBlockNumbers(address, { 
+			const result = await parseEtherscanBlockNumbers(normalizedAddress, { 
 				delay: 2000, 
 				retries: 2, 
 				includeTransactions: true, 
@@ -219,7 +234,13 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				checkTransactionExists: checkTransactionExists
 			});
 			
-			if (result.success && result.blockNumbers && result.blockNumbers.length > 0) {
+			if (result.success) {
+				// Handle case where parser succeeded but found no blocks (address has no transactions)
+				if (!result.blockNumbers || result.blockNumbers.length === 0) {
+					console.log(`ℹ️  Etherscan parser: address ${normalizedAddress} has no transactions (no blocks found)`);
+					return [];
+				}
+				
 				let blocks = result.blockNumbers;
 				
 				// Filter by startblock if provided
@@ -235,7 +256,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				if (result.transactions && result.transactions.length > 0 && networkApi) {
 					const network = 'Ethereum';
 					if (networkApi[network]) {
-						networkApi[network].storeCachedTransactions(address, result.transactions);
+						networkApi[network].storeCachedTransactions(normalizedAddress, result.transactions);
 						
 						// Cache event logs for each transaction
 						result.transactions.forEach(tx => {
@@ -259,14 +280,14 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 	
 	// Normal API-based flow
 	try {
-		const ext_history = await getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal: false, getUrl, getOptions });
-		const int_history = await getAddressHistory({ base_url, chainid, address, startblock, startts, api_key, bInternal: true, getUrl, getOptions });
+		const ext_history = await getAddressHistory({ base_url, chainid, address: normalizedAddress, startblock, startts, api_key, bInternal: false, getUrl, getOptions });
+		const int_history = await getAddressHistory({ base_url, chainid, address: normalizedAddress, startblock, startts, api_key, bInternal: true, getUrl, getOptions });
 		const history = ext_history.concat(int_history);
 		let blocks = _.uniq(history.map(tx => parseInt(tx.blockNumber)));
 		if (startblock) {
 			const initLen = blocks.length;
 			blocks = blocks.filter(b => b >= startblock); // kava explorer seems to ignore startblock and return the entire history
-			console.log(`${address} txs since ${startblock}: ${initLen} before filtering, ${blocks.length} after filtering`);
+			console.log(`${normalizedAddress} txs since ${startblock}: ${initLen} before filtering, ${blocks.length} after filtering`);
 		}
 		blocks.sort();
 		return blocks;
@@ -274,7 +295,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 	catch (e) {
 		console.log(`getAddressBlocks ${base_url} failed`, e);
 		console.log(`   Error message: ${e.message}`);
-		console.log(`   Chain ID: ${chainid}, Address: ${address}, Count: ${count}`);
+		console.log(`   Chain ID: ${chainid}, Address: ${normalizedAddress}, Count: ${count}`);
 		
 		// Check if this is a rate limit error
 		const isRateLimitError = e.message && (
@@ -292,7 +313,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				let fallbackBlocks = [];
 				if (chainid === 56) {
 					// BSC fallback
-					console.log(`📡 Calling BSCScan HTML parser for ${address}...`);
+					console.log(`📡 Calling BSCScan HTML parser for ${normalizedAddress}...`);
 					// Create function to check if transaction already exists in database
 					const checkTransactionExists = async (txHash) => {
 						try {
@@ -308,7 +329,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 						}
 					};
 					
-					const result = await parseBSCScanBlockNumbers(address, { 
+					const result = await parseBSCScanBlockNumbers(normalizedAddress, { 
 						delay: 2000, 
 						retries: 2, 
 						includeTransactions: true, 
@@ -324,7 +345,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 					if (result.transactions && result.transactions.length > 0 && networkApi) {
 						const network = chainid === 56 ? 'BSC' : chainid === 1 ? 'Ethereum' : null;
 						if (network && networkApi[network]) {
-							networkApi[network].storeCachedTransactions(address, result.transactions);
+							networkApi[network].storeCachedTransactions(normalizedAddress, result.transactions);
 							
 							// Also cache event logs for each transaction if they exist
 							result.transactions.forEach(tx => {
@@ -339,7 +360,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 					}
 				} else if (chainid === 1) {
 					// Ethereum fallback
-					console.log(`📡 Calling Etherscan HTML parser for ${address}...`);
+					console.log(`📡 Calling Etherscan HTML parser for ${normalizedAddress}...`);
 					// Create function to check if transaction already exists in database
 					const checkTransactionExists = async (txHash) => {
 						try {
@@ -355,7 +376,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 						}
 					};
 					
-					const result = await parseEtherscanBlockNumbers(address, { 
+					const result = await parseEtherscanBlockNumbers(normalizedAddress, { 
 						delay: 2000, 
 						retries: 2, 
 						includeTransactions: true, 
@@ -371,7 +392,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 						if (result.transactions && result.transactions.length > 0 && networkApi) {
 							const network = chainid === 56 ? 'BSC' : chainid === 1 ? 'Ethereum' : null;
 							if (network && networkApi[network]) {
-								networkApi[network].storeCachedTransactions(address, result.transactions);
+								networkApi[network].storeCachedTransactions(normalizedAddress, result.transactions);
 								
 								// Also cache event logs for each transaction if they exist
 								result.transactions.forEach(tx => {
@@ -405,7 +426,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 		}
 		
 		if (count > 5) {
-			console.error(`❌ getAddressBlocks ${base_url} failed after ${count} retries for address ${address}`);
+			console.error(`❌ getAddressBlocks ${base_url} failed after ${count} retries for address ${normalizedAddress}`);
 			throw e;
 		}
 		
@@ -414,7 +435,7 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 		console.log(`will retry getAddressBlocks ${base_url} in ${retryDelay / 1000} sec${isRateLimitError ? ' (rate limit error)' : ''}`);
 		await wait(retryDelay);
 		count++;
-		return await getAddressBlocks({ base_url, chainid, address, startblock, startts, api_key, getUrl, getOptions, count, networkApi });
+		return await getAddressBlocks({ base_url, chainid, address: normalizedAddress, startblock, startts, api_key, getUrl, getOptions, count, networkApi });
 	}
 }
 

@@ -153,7 +153,7 @@ function getListenerProvider(network) {
 			// To use exbitron, set bsc_listener_use_exbitron = true in conf.js or conf.json
 			// To use Infura, set bsc_listener_use_infura = true in conf.js or conf.json
 			let bscListenerUrl;
-			const useExbitron = conf.bsc_listener_use_exbitron || true;
+			const useExbitron = conf.bsc_listener_use_exbitron || false;
 			const useInfura = conf.bsc_listener_use_infura || (useExbitron ? false : true);
 			
 			if (useExbitron) {

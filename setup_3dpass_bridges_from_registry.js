@@ -22,6 +22,7 @@ const desktopApp = require("ocore/desktop_app.js");
 const db = require('ocore/db.js');
 const db_import = require('./db_import.js');
 const { getProvider } = require('./evm/provider.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 // This will be populated dynamically from bridge contracts
 let BRIDGE_INFO = {};
@@ -252,14 +253,37 @@ async function getBridgeDetails(bridgeAddress, bridgeType) {
                 console.log(`  ⚠️  Could not retrieve stake token info: ${err.message}`);
             }
             
+            // Get token information for the foreign asset (external network, e.g., Ethereum)
+            let foreignTokenInfo = {};
+            try {
+                console.log(`  🔍 Fetching foreign token info for ${foreignAsset} on ${foreignNetwork}`);
+                const foreignProvider = getProvider(foreignNetwork);
+                const erc20Abi = [
+                    { "constant": true, "inputs": [], "name": "name", "outputs": [{ "name": "", "type": "string" }], "type": "function" },
+                    { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" },
+                    { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "type": "function" }
+                ];
+                
+                const foreignTokenContract = new ethers.Contract(foreignAsset, erc20Abi, foreignProvider);
+                foreignTokenInfo = {
+                    name: await foreignTokenContract.name(),
+                    symbol: await foreignTokenContract.symbol(),
+                    decimals: await foreignTokenContract.decimals()
+                };
+                console.log(`  ✓ Fetched foreign token info: ${foreignTokenInfo.symbol || 'Unknown'}`);
+            } catch (err) {
+                console.log(`  ⚠️  Could not retrieve foreign token info: ${err.message}`);
+            }
+            
             bridgeDetails.homeToken = homeTokenInfo;
             bridgeDetails.stakeToken = stakeTokenInfo;
+            bridgeDetails.foreignToken = foreignTokenInfo;
             
             console.log(`  ✓ Export bridge details retrieved:`);
             console.log(`    Home Network: 3DPass`);
             console.log(`    Home Asset: ${homeToken} (${homeTokenInfo.symbol || 'Unknown'})`);
             console.log(`    Foreign Network: ${foreignNetwork}`);
-            console.log(`    Foreign Asset: ${foreignAsset}`);
+            console.log(`    Foreign Asset: ${foreignAsset} (${foreignTokenInfo.symbol || 'Unknown'})`);
             console.log(`    Stake Asset: ${settings.tokenAddress} (${stakeTokenInfo.symbol || 'Unknown'})`);
         }
         
@@ -300,10 +324,17 @@ async function setupCorrect3DPassBridges(networkApi) {
     console.log(`Found ${existingBridges.length} existing 3DPass bridges in database`);
     
     // Create a map of existing bridge addresses for quick lookup
+    // Normalize all addresses to checksummed format for consistent comparison
+    // Use centralized normalizeAddress function
     const existingBridgeAddresses = new Set();
+    const threeDPassApi = networkApi && networkApi['3DPass'];
     for (const bridge of existingBridges) {
-        if (bridge.import_aa) existingBridgeAddresses.add(bridge.import_aa);
-        if (bridge.export_aa) existingBridgeAddresses.add(bridge.export_aa);
+        if (bridge.import_aa) {
+            existingBridgeAddresses.add(normalizeAddress(bridge.import_aa, threeDPassApi));
+        }
+        if (bridge.export_aa) {
+            existingBridgeAddresses.add(normalizeAddress(bridge.export_aa, threeDPassApi));
+        }
     }
     
     console.log('Existing bridge addresses:', Array.from(existingBridgeAddresses));
@@ -326,11 +357,16 @@ async function setupCorrect3DPassBridges(networkApi) {
         const bridgeDetails = await getBridgeDetails(bridge.address, bridge.type);
         
         // Check if this bridge already exists in the database by address
+        // Normalize bridge address to checksummed format for comparison
+        // Use centralized normalizeAddress function
+        const checksummedBridgeAddress = normalizeAddress(bridge.address, threeDPassApi);
         let existingBridgeByAddress = null;
-        if (existingBridgeAddresses.has(bridge.address)) {
-            existingBridgeByAddress = existingBridges.find(existing => 
-                existing.import_aa === bridge.address || existing.export_aa === bridge.address
-            );
+        if (existingBridgeAddresses.has(checksummedBridgeAddress) || existingBridgeAddresses.has(bridge.address)) {
+            existingBridgeByAddress = existingBridges.find(existing => {
+                const existingImport = normalizeAddress(existing.import_aa, threeDPassApi);
+                const existingExport = normalizeAddress(existing.export_aa, threeDPassApi);
+                return existingImport === checksummedBridgeAddress || existingExport === checksummedBridgeAddress;
+            });
         }
         
         // Check if a bridge with the same foreign_asset already exists (for both Import and Export)
@@ -383,7 +419,11 @@ async function setupCorrect3DPassBridges(networkApi) {
                     console.log(`    Symbol: ${assistantSymbol}`);
                     
                     // Only attach this assistant if it belongs to the current bridge
-                    if (assistantBridgeAddress.toLowerCase() !== bridge.address.toLowerCase()) {
+                    // Normalize both addresses to checksummed format for comparison
+                    // Use centralized normalizeAddress function
+                    const normalizedAssistantBridge = normalizeAddress(assistantBridgeAddress, threeDPassApi);
+                    const normalizedBridgeAddress = normalizeAddress(bridge.address, threeDPassApi);
+                    if (normalizedAssistantBridge !== normalizedBridgeAddress) {
                         console.log(`    ⏭️  Skipping assistant ${assistant.address} - belongs to bridge ${assistantBridgeAddress}, not ${bridge.address}`);
                         continue;
                     }
@@ -395,13 +435,17 @@ async function setupCorrect3DPassBridges(networkApi) {
                         // For Export assistants: find bridge where export_aa matches
                         // For Import assistants: find bridge where import_aa matches
                         if (bridge.type === 'Export') {
-                            bridgeToUpdate = existingBridges.find(existing => 
-                                existing.export_aa && existing.export_aa.toLowerCase() === bridge.address.toLowerCase()
-                            );
+                            bridgeToUpdate = existingBridges.find(existing => {
+                                const existingExport = normalizeAddress(existing.export_aa, threeDPassApi);
+                                const bridgeAddr = normalizeAddress(bridge.address, threeDPassApi);
+                                return existingExport === bridgeAddr;
+                            });
                         } else {
-                            bridgeToUpdate = existingBridges.find(existing => 
-                                existing.import_aa && existing.import_aa.toLowerCase() === bridge.address.toLowerCase()
-                            );
+                            bridgeToUpdate = existingBridges.find(existing => {
+                                const existingImport = normalizeAddress(existing.import_aa, threeDPassApi);
+                                const bridgeAddr = normalizeAddress(bridge.address, threeDPassApi);
+                                return existingImport === bridgeAddr;
+                            });
                         }
                     }
                     
@@ -431,8 +475,13 @@ async function setupCorrect3DPassBridges(networkApi) {
                             const version = conf.version;
                             
                             console.log(`    📝 Adding/updating assistant in pooled_assistants table: ${assistant.address}`);
+                            // Checksum all EVM addresses before storage using centralized normalizeAddress function
+                            const checksummedAssistantAddress = normalizeAddress(assistant.address, threeDPassApi);
+                            const checksummedBridgeAa = normalizeAddress(bridgeAa, threeDPassApi);
+                            // Manager address could be from any network, normalize it
+                            const checksummedManagerAddress = normalizeAddress(managerAddress, threeDPassApi);
                             await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                                [assistant.address, bridgeId, bridgeAa, network, side, managerAddress, sharesAsset, sharesSymbol, version]);
+                                [checksummedAssistantAddress, bridgeId, checksummedBridgeAa, network, side, checksummedManagerAddress, sharesAsset, sharesSymbol, version]);
                             console.log(`    ✅ Assistant added/updated in pooled_assistants table`);
                         
                         // Separately: Update bridges table ONLY if bot is the manager (sets primary assistant)
@@ -444,20 +493,22 @@ async function setupCorrect3DPassBridges(networkApi) {
                             const desktopApp = require("ocore/desktop_app.js");
                             const { ethers } = require("ethers");
                             const botWallet = ethers.Wallet.fromMnemonic(JSON.parse(fs.readFileSync(desktopApp.getAppDataDir() + '/keys.json')).mnemonic_phrase);
-                            const botAddress = botWallet.address;
+                            // Use centralized normalizeAddress function
+                            const botAddress = normalizeAddress(botWallet.address, threeDPassApi);
+                            const normalizedManagerAddress = normalizeAddress(managerAddress, threeDPassApi);
                             
-                            if (botAddress && managerAddress.toLowerCase() === botAddress.toLowerCase()) {
+                            if (botAddress && normalizedManagerAddress === botAddress) {
                                 console.log(`    🤖 Bot is the manager of assistant ${assistant.address}, updating bridges table`);
                                 
-                                // Set the assistantAddress for the bridge update later
-                                assistantAddress = assistant.address;
+                                // Set the assistantAddress for the bridge update later (checksummed)
+                                assistantAddress = normalizeAddress(assistant.address, threeDPassApi);
                                 selectedAssistant = assistant;
                                 
                                 // Update the bridges table with the assistant address
                                 if (side === 'import') {
                                     const updateResult = await db.query(`UPDATE bridges SET import_assistant_aa = ?, ia_v = ? WHERE bridge_id = ?`, 
-                                        [assistant.address, version, bridgeId]);
-                                    console.log(`    ✅ Updated bridges table: import_assistant_aa = ${assistant.address}`);
+                                        [assistantAddress, version, bridgeId]);
+                                    console.log(`    ✅ Updated bridges table: import_assistant_aa = ${assistantAddress}`);
                                     console.log(`    📊 Update result:`, updateResult);
                                     
                                     // Verify the update worked
@@ -465,8 +516,8 @@ async function setupCorrect3DPassBridges(networkApi) {
                                     console.log(`    🔍 Verification: import_assistant_aa = ${verifyResult[0].import_assistant_aa}`);
                                 } else if (side === 'export') {
                                     const updateResult = await db.query(`UPDATE bridges SET export_assistant_aa = ?, ea_v = ? WHERE bridge_id = ?`, 
-                                        [assistant.address, version, bridgeId]);
-                                    console.log(`    ✅ Updated bridges table: export_assistant_aa = ${assistant.address}`);
+                                        [assistantAddress, version, bridgeId]);
+                                    console.log(`    ✅ Updated bridges table: export_assistant_aa = ${assistantAddress}`);
                                     console.log(`    📊 Update result:`, updateResult);
                                     
                                     // Verify the update worked
@@ -506,27 +557,50 @@ async function setupCorrect3DPassBridges(networkApi) {
             
             // Update the existing bridge with the registry information
             if (bridge.type === 'Import') {
-                // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
+                // Fetch the actual symbol and decimals for the external asset (e.g., USDT on Ethereum)
                 let homeSymbol = 'Unknown';
+                let homeAssetDecimals = null;
                 try {
-                    console.log(`  🔍 Fetching symbol for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
+                    console.log(`  🔍 Fetching symbol and decimals for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
                     const externalProvider = getProviderSafe(bridgeDetails.homeNetwork);
                     console.log(`  🔍 Provider obtained for ${bridgeDetails.homeNetwork}`);
                     const { ethers } = require("ethers");
                     const erc20Abi = [
-                        { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
+                        { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" },
+                        { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "type": "function" }
                     ];
                     const externalTokenContract = new ethers.Contract(bridgeDetails.homeAsset, erc20Abi, externalProvider);
                     homeSymbol = await externalTokenContract.symbol();
-                    console.log(`  ✓ Fetched external token symbol: ${homeSymbol}`);
+                    homeAssetDecimals = await externalTokenContract.decimals();
+                    console.log(`  ✓ Fetched external token symbol: ${homeSymbol}, decimals: ${homeAssetDecimals}`);
                 } catch (err) {
-                    console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
+                    console.log(`  ⚠️  Could not fetch external token info: ${err.message}`);
                     console.log(`  🔍 Error details:`, err);
+                }
+                
+                // Validate that home token decimals are available
+                if (homeAssetDecimals === null || homeAssetDecimals === undefined) {
+                    throw new Error(`Cannot update bridge ${bridgeToUpdate.bridge_id}: home token decimals not available for ${bridgeDetails.homeAsset}. Please ensure the token contract is accessible and returns decimals.`);
                 }
                 
                 // Validate that foreign token decimals are available
                 if (bridgeDetails.foreignToken.decimals === null || bridgeDetails.foreignToken.decimals === undefined) {
                     throw new Error(`Cannot update bridge ${bridgeToUpdate.bridge_id}: foreign token decimals not available for ${bridgeDetails.foreignAsset}. Please ensure the token contract is accessible and returns decimals.`);
+                }
+                
+                // Checksum EVM addresses before storage using centralized normalizeAddress function
+                // homeAsset for Import bridges is from external network, use that network's API if available
+                const homeNetworkApi = networkApi && networkApi[bridgeDetails.homeNetwork];
+                // Use centralized normalizeAddress function
+                const checksummed_home_asset = normalizeAddress(bridgeDetails.homeAsset, homeNetworkApi);
+                // foreignAsset for Import bridges is on 3DPass (precompile address)
+                const checksummed_foreign_asset = normalizeAddress(bridgeDetails.foreignAsset, threeDPassApi);
+                // stakeAsset is typically P3D (3DPass), but could be from external network
+                // Check with 3DPass API first (most common case), then try home network
+                let checksummed_stake_asset = normalizeAddress(bridgeDetails.stakeAsset, threeDPassApi);
+                // If not valid for 3DPass, try home network
+                if (checksummed_stake_asset === bridgeDetails.stakeAsset && homeNetworkApi) {
+                    checksummed_stake_asset = normalizeAddress(bridgeDetails.stakeAsset, homeNetworkApi);
                 }
                 
                 await db.query(`
@@ -544,17 +618,17 @@ async function setupCorrect3DPassBridges(networkApi) {
                         stake_asset = ?
                     WHERE bridge_id = ?
                 `, [
-                    bridge.address,
-                    assistantAddress,
+                    normalizeAddress(bridge.address, threeDPassApi),
+                    assistantAddress ? normalizeAddress(assistantAddress, threeDPassApi) : null,
                     bridgeDetails.homeNetwork,
-                    bridgeDetails.homeAsset,
-                    6, // Default decimals for external assets
+                    checksummed_home_asset,
+                    homeAssetDecimals,
                     homeSymbol, // Correct external token symbol
                     '3DPass',
-                    bridgeDetails.foreignAsset,
+                    checksummed_foreign_asset,
                     bridgeDetails.foreignToken.decimals,
                     bridgeDetails.foreignToken.symbol || 'Unknown',
-                    bridgeDetails.stakeAsset,
+                    checksummed_stake_asset,
                     bridgeToUpdate.bridge_id
                 ]);
             } else if (bridge.type === 'Export') {
@@ -597,6 +671,23 @@ async function setupCorrect3DPassBridges(networkApi) {
                     throw new Error(`Cannot update bridge ${bridgeToUpdate.bridge_id}: foreign token decimals not available for ${bridgeDetails.foreignAsset}. Please ensure the token contract is accessible and returns decimals.`);
                 }
                 
+                // Validate that home token decimals are available
+                if (bridgeDetails.homeToken.decimals === null || bridgeDetails.homeToken.decimals === undefined) {
+                    throw new Error(`Cannot update bridge ${bridgeToUpdate.bridge_id}: home token decimals not available for ${bridgeDetails.homeAsset}. Please ensure the token contract is accessible and returns decimals.`);
+                }
+                
+                // Checksum EVM addresses before storage (use isValidAddress pattern to match original implementation)
+                // homeAsset for Export bridges is from 3DPass
+                // Use centralized normalizeAddress function
+                const checksummed_home_asset_export = normalizeAddress(bridgeDetails.homeAsset, threeDPassApi);
+                // foreignAsset for Export bridges is on external network (e.g., BSC, Ethereum)
+                const foreignNetworkApiForExport = networkApi && networkApi[bridgeDetails.foreignNetwork];
+                const checksummed_foreign_asset_export = normalizeAddress(bridgeDetails.foreignAsset, foreignNetworkApiForExport);
+                // For Export bridges: do NOT update stake_asset here
+                // The stake_asset should be preserved if it already exists (set by Import bridge discovery)
+                // or will be set when the Import bridge on the foreign network is discovered
+                // via handleNewImportAA() in transfers.js
+                
                 await db.query(`
                     UPDATE bridges SET 
                         export_aa = ?, 
@@ -608,21 +699,19 @@ async function setupCorrect3DPassBridges(networkApi) {
                         foreign_network = ?,
                         foreign_asset = ?,
                         foreign_asset_decimals = ?,
-                        foreign_symbol = ?,
-                        stake_asset = ?
+                        foreign_symbol = ?
                     WHERE bridge_id = ?
                 `, [
-                    bridge.address,
-                    assistantAddress,
+                    normalizeAddress(bridge.address, threeDPassApi),
+                    assistantAddress ? normalizeAddress(assistantAddress, threeDPassApi) : null,
                     '3DPass',
-                    bridgeDetails.homeAsset,
-                    bridgeDetails.homeToken.decimals || 18,
+                    checksummed_home_asset_export,
+                    bridgeDetails.homeToken.decimals,
                     bridgeDetails.homeToken.symbol || 'Unknown',
                     bridgeDetails.foreignNetwork,
-                    bridgeDetails.foreignAsset,
+                    checksummed_foreign_asset_export,
                     foreignTokenDecimals,
                     foreignSymbol, // Correct external token symbol
-                    bridgeDetails.stakeAsset,
                     bridgeToUpdate.bridge_id
                 ]);
             }
@@ -653,28 +742,51 @@ async function setupCorrect3DPassBridges(networkApi) {
         if (bridge.type === 'Import') {
             // Import bridge: External -> 3DPass
             // For Import bridges: home_network is external (Ethereum), foreign_network is 3DPass
-            // We need to fetch the actual symbol for the external asset (home_asset)
+            // We need to fetch the actual symbol and decimals for the external asset (home_asset)
             let homeSymbol = 'Unknown';
+            let homeAssetDecimals = null;
             try {
-                // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
-                console.log(`  🔍 Fetching symbol for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
+                // Fetch the actual symbol and decimals for the external asset (e.g., USDT on Ethereum)
+                console.log(`  🔍 Fetching symbol and decimals for ${bridgeDetails.homeAsset} on ${bridgeDetails.homeNetwork}`);
                 const externalProvider = getProviderSafe(bridgeDetails.homeNetwork);
                 console.log(`  🔍 Provider obtained for ${bridgeDetails.homeNetwork}`);
                 const { ethers } = require("ethers");
                 const erc20Abi = [
-                    { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
+                    { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" },
+                    { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "type": "function" }
                 ];
                 const externalTokenContract = new ethers.Contract(bridgeDetails.homeAsset, erc20Abi, externalProvider);
                 homeSymbol = await externalTokenContract.symbol();
-                console.log(`  ✓ Fetched external token symbol: ${homeSymbol}`);
+                homeAssetDecimals = await externalTokenContract.decimals();
+                console.log(`  ✓ Fetched external token symbol: ${homeSymbol}, decimals: ${homeAssetDecimals}`);
             } catch (err) {
-                console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
+                console.log(`  ⚠️  Could not fetch external token info: ${err.message}`);
                 console.log(`  🔍 Error details:`, err);
+            }
+            
+            // Validate that home token decimals are available
+            if (homeAssetDecimals === null || homeAssetDecimals === undefined) {
+                throw new Error(`Cannot create bridge: home token decimals not available for ${bridgeDetails.homeAsset}. Please ensure the token contract is accessible and returns decimals.`);
             }
             
             // Validate that foreign token decimals are available
             if (bridgeDetails.foreignToken.decimals === null || bridgeDetails.foreignToken.decimals === undefined) {
                 throw new Error(`Cannot create bridge: foreign token decimals not available for ${bridgeDetails.foreignAsset}. Please ensure the token contract is accessible and returns decimals.`);
+            }
+            
+            // Checksum EVM addresses before storage using centralized normalizeAddress function
+            // homeAsset for Import bridges is from external network, use that network's API if available
+            const homeNetworkApiForImport = networkApi && networkApi[bridgeDetails.homeNetwork];
+            // Use centralized normalizeAddress function
+            const checksummed_home_asset_import = normalizeAddress(bridgeDetails.homeAsset, homeNetworkApiForImport);
+            // foreignAsset for Import bridges is on 3DPass (precompile address)
+            const checksummed_foreign_asset_import = normalizeAddress(bridgeDetails.foreignAsset, threeDPassApi);
+            // stakeAsset is typically P3D (3DPass), but could be from external network
+            // Check with 3DPass API first (most common case), then try home network
+            let checksummed_stake_asset_import = normalizeAddress(bridgeDetails.stakeAsset, threeDPassApi);
+            // If not valid for 3DPass, try home network
+            if (checksummed_stake_asset_import === bridgeDetails.stakeAsset && homeNetworkApiForImport) {
+                checksummed_stake_asset_import = normalizeAddress(bridgeDetails.stakeAsset, homeNetworkApiForImport);
             }
             
     const insertResult = await db.query(`
@@ -686,21 +798,22 @@ async function setupCorrect3DPassBridges(networkApi) {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
                 bridgeDetails.homeNetwork, 
-                bridgeDetails.homeAsset, 
-                6, // Default decimals for external assets
+                checksummed_home_asset_import, 
+                homeAssetDecimals,
                 homeSymbol, // Correct external token symbol
         null, null, // Export AA will be created later
                 '3DPass', 
-                bridgeDetails.foreignAsset, 
+                checksummed_foreign_asset_import, 
                 bridgeDetails.foreignToken.decimals, 
                 bridgeDetails.foreignToken.symbol || 'Unknown', // 3DPass precompile symbol
-                bridgeDetails.stakeAsset, 
-                bridge.address, 
-                assistantAddress
+                checksummed_stake_asset_import, 
+                normalizeAddress(bridge.address, threeDPassApi), 
+                assistantAddress ? normalizeAddress(assistantAddress, threeDPassApi) : null
             ]);
             
             // Get the bridge_id of the newly created bridge
-            const newBridgeRecord = await db.query(`SELECT bridge_id FROM bridges WHERE import_aa = ?`, [bridge.address]);
+            const checksummedBridgeAddress = normalizeAddress(bridge.address, threeDPassApi);
+            const newBridgeRecord = await db.query(`SELECT bridge_id FROM bridges WHERE import_aa = ?`, [checksummedBridgeAddress]);
             const newBridgeId = newBridgeRecord[0].bridge_id;
             
             // Add all assistants that belong to this bridge to pooled_assistants
@@ -713,8 +826,14 @@ async function setupCorrect3DPassBridges(networkApi) {
                     const version = conf.version;
                     
                     console.log(`    📝 Adding assistant ${assistantInfo.address} to pooled_assistants for new bridge ${newBridgeId}`);
+                    // Checksum all EVM addresses before storage (use isValidAddress pattern to match original implementation)
+                    // Use centralized normalizeAddress function
+                    const checksummedAssistantInfoAddress = normalizeAddress(assistantInfo.address, threeDPassApi);
+                    const checksummedBridgeAddressForAssistant = normalizeAddress(bridge.address, threeDPassApi);
+                    // Manager address could be from any network, normalize it
+                    const checksummedAssistantManagerAddress = normalizeAddress(assistantInfo.managerAddress, threeDPassApi);
                     await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                        [assistantInfo.address, newBridgeId, bridge.address, network, side, assistantInfo.managerAddress, sharesAsset, sharesSymbol, version]);
+                        [checksummedAssistantInfoAddress, newBridgeId, checksummedBridgeAddressForAssistant, network, side, checksummedAssistantManagerAddress, sharesAsset, sharesSymbol, version]);
                     console.log(`    ✅ Assistant added to pooled_assistants table`);
                 } catch (err) {
                     console.log(`    ⚠️  Could not add assistant ${assistantInfo.address} to pooled_assistants: ${err.message}`);
@@ -747,21 +866,46 @@ async function setupCorrect3DPassBridges(networkApi) {
         } else if (bridge.type === 'Export') {
             // Export bridge: 3DPass -> External
             // For Export bridges: home_network is 3DPass, foreign_network is external (Ethereum)
-            // We need to fetch the actual symbol for the external asset (foreign_asset)
+            // We need to fetch the actual symbol and decimals for the external asset (foreign_asset)
             let foreignSymbol = 'Unknown';
+            let foreignTokenDecimals = null;
             try {
-                // Fetch the actual symbol for the external asset (e.g., USDT on Ethereum)
+                // Fetch the actual symbol and decimals for the external asset (e.g., USDT on Ethereum)
+                console.log(`  🔍 Fetching symbol and decimals for ${bridgeDetails.foreignAsset} on ${bridgeDetails.foreignNetwork}`);
                 const externalProvider = getProviderSafe(bridgeDetails.foreignNetwork);
                 const { ethers } = require("ethers");
                 const erc20Abi = [
-                    { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" }
+                    { "constant": true, "inputs": [], "name": "symbol", "outputs": [{ "name": "", "type": "string" }], "type": "function" },
+                    { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "type": "function" }
                 ];
                 const externalTokenContract = new ethers.Contract(bridgeDetails.foreignAsset, erc20Abi, externalProvider);
                 foreignSymbol = await externalTokenContract.symbol();
-                console.log(`  ✓ Fetched external token symbol: ${foreignSymbol}`);
+                foreignTokenDecimals = await externalTokenContract.decimals();
+                console.log(`  ✓ Fetched external token symbol: ${foreignSymbol}, decimals: ${foreignTokenDecimals}`);
             } catch (err) {
-                console.log(`  ⚠️  Could not fetch external token symbol: ${err.message}`);
+                console.log(`  ⚠️  Could not fetch external token info: ${err.message}`);
             }
+            
+            // Validate that foreign token decimals are available
+            if (foreignTokenDecimals === null || foreignTokenDecimals === undefined) {
+                throw new Error(`Cannot create bridge: foreign token decimals not available for ${bridgeDetails.foreignAsset}. Please ensure the token contract is accessible and returns decimals.`);
+            }
+            
+            // Validate that home token decimals are available
+            if (bridgeDetails.homeToken.decimals === null || bridgeDetails.homeToken.decimals === undefined) {
+                throw new Error(`Cannot create bridge: home token decimals not available for ${bridgeDetails.homeAsset}. Please ensure the token contract is accessible and returns decimals.`);
+            }
+            
+            // Checksum EVM addresses before storage (use isValidAddress pattern to match original implementation)
+            // homeAsset for Export bridges is from 3DPass
+            // Use centralized normalizeAddress function
+            const checksummed_home_asset_export_new = normalizeAddress(bridgeDetails.homeAsset, threeDPassApi);
+            // foreignAsset for Export bridges is on external network (e.g., BSC, Ethereum)
+            const foreignNetworkApiForExportNew = networkApi && networkApi[bridgeDetails.foreignNetwork];
+            const checksummed_foreign_asset_export_new = normalizeAddress(bridgeDetails.foreignAsset, foreignNetworkApiForExportNew);
+            // For Export bridges: do NOT set stake_asset here
+            // The stake_asset will be set when the Import bridge on the foreign network is discovered
+            // via handleNewImportAA() in transfers.js, which gets the stake_asset from the Import contract
             
     const insertResult = await db.query(`
         INSERT INTO bridges (
@@ -772,21 +916,22 @@ async function setupCorrect3DPassBridges(networkApi) {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
                 '3DPass', 
-                bridgeDetails.homeAsset, 
-                bridgeDetails.homeToken.decimals || 18, 
+                checksummed_home_asset_export_new, 
+                bridgeDetails.homeToken.decimals, 
                 bridgeDetails.homeToken.symbol || 'Unknown', // 3DPass token symbol
-                bridge.address, 
-                assistantAddress,
+                normalizeAddress(bridge.address, threeDPassApi), 
+                assistantAddress ? normalizeAddress(assistantAddress, threeDPassApi) : null,
                 bridgeDetails.foreignNetwork, 
-                bridgeDetails.foreignAsset, 
-                6, // USDT decimals
+                checksummed_foreign_asset_export_new, 
+                foreignTokenDecimals,
                 foreignSymbol, // Correct external token symbol
-                bridgeDetails.stakeAsset, 
+                null, // stake_asset will be set when Import bridge is discovered
                 null, null // Import AA will be created later
             ]);
             
             // Get the bridge_id of the newly created bridge
-            const newBridgeRecord = await db.query(`SELECT bridge_id FROM bridges WHERE export_aa = ?`, [bridge.address]);
+            const checksummedExportBridgeAddress = normalizeAddress(bridge.address, threeDPassApi);
+            const newBridgeRecord = await db.query(`SELECT bridge_id FROM bridges WHERE export_aa = ?`, [checksummedExportBridgeAddress]);
             const newBridgeId = newBridgeRecord[0].bridge_id;
             
             // Add all assistants that belong to this bridge to pooled_assistants
@@ -799,8 +944,13 @@ async function setupCorrect3DPassBridges(networkApi) {
                     const version = conf.version;
                     
                     console.log(`    📝 Adding assistant ${assistantInfo.address} to pooled_assistants for new bridge ${newBridgeId}`);
+                    // Checksum all EVM addresses before storage using centralized normalizeAddress function
+                    const checksummedAssistantInfoAddress2 = normalizeAddress(assistantInfo.address, threeDPassApi);
+                    const checksummedBridgeAddressForAssistant2 = normalizeAddress(bridge.address, threeDPassApi);
+                    // Manager address could be from any network, normalize it
+                    const checksummedAssistantManagerAddress2 = normalizeAddress(assistantInfo.managerAddress, threeDPassApi);
                     await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                        [assistantInfo.address, newBridgeId, bridge.address, network, side, assistantInfo.managerAddress, sharesAsset, sharesSymbol, version]);
+                        [checksummedAssistantInfoAddress2, newBridgeId, checksummedBridgeAddressForAssistant2, network, side, checksummedAssistantManagerAddress2, sharesAsset, sharesSymbol, version]);
                     console.log(`    ✅ Assistant added to pooled_assistants table`);
                 } catch (err) {
                     console.log(`    ⚠️  Could not add assistant ${assistantInfo.address} to pooled_assistants: ${err.message}`);
@@ -861,8 +1011,8 @@ async function setupCorrect3DPassBridges(networkApi) {
         console.log(`\nBridge: ${bridgeAddress}`);
         console.log(`  Home Network: ${bridgeInfo.homeNetwork}`);
         console.log(`  Home Asset: ${bridgeInfo.homeAsset}`);
-        console.log(`  Foreign Asset: ${bridgeInfo.foreignAsset} (${bridgeInfo.foreignToken.symbol})`);
-        console.log(`  Stake Asset: ${bridgeInfo.stakeAsset} (${bridgeInfo.stakeToken.symbol})`);
+        console.log(`  Foreign Asset: ${bridgeInfo.foreignAsset} (${bridgeInfo.foreignToken?.symbol || 'Unknown'})`);
+        console.log(`  Stake Asset: ${bridgeInfo.stakeAsset} (${bridgeInfo.stakeToken?.symbol || 'Unknown'})`);
         console.log(`  Oracle: ${bridgeInfo.oracle}`);
         console.log(`  Governance: ${bridgeInfo.governance}`);
         console.log(`  Ratio: ${bridgeInfo.ratio}/100`);

@@ -1,6 +1,7 @@
 "use strict";
 const mutex = require('ocore/mutex.js');
 const db = require('ocore/db.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 let watchedKeys = {};
 
@@ -27,10 +28,11 @@ function watchForDeadlock(key) {
 }
 
 function getVersion(versions, aa) {
-	// Normalize addresses to lowercase for comparison (addresses are case-insensitive)
-	const normalizedAa = aa ? aa.toLowerCase() : aa;
+	// Normalize addresses for comparison (handles checksummed addresses from DB)
+	// Use normalizeAddress to ensure EVM addresses are checksummed, Obyte addresses remain as-is
+	const normalizedAa = aa ? normalizeAddress(aa, null) : aa;
 	for (let v in versions) {
-		const normalizedVersion = versions[v] ? versions[v].toLowerCase() : versions[v];
+		const normalizedVersion = versions[v] ? normalizeAddress(versions[v], null) : versions[v];
 		if (normalizedVersion === normalizedAa)
 			return v;
 	}
@@ -72,7 +74,9 @@ function isRateLimitError(errMsg) {
 }
 
 async function getObyteAssistantsForEthAddress(ethAddress) {
-	const rows = await db.query("SELECT DISTINCT aa FROM eth_addresses WHERE eth_address=?", [ethAddress]);
+	// Normalize EVM address before querying database (handles checksummed addresses from DB)
+	const normalizedEthAddress = normalizeAddress(ethAddress, null);
+	const rows = await db.query("SELECT DISTINCT aa FROM eth_addresses WHERE eth_address=?", [normalizedEthAddress]);
 	return rows.map(r => r.aa);
 }
 
@@ -80,7 +84,9 @@ async function getEthAddressForObyteAssistant(aa) {
 	const rows = await db.query("SELECT eth_address FROM eth_addresses WHERE aa=?", [aa]);
 	if (rows.length === 0)
 		return null;
-	return rows[0].eth_address;
+	// Normalize EVM address before returning (ensures checksummed format)
+	const ethAddress = rows[0].eth_address;
+	return normalizeAddress(ethAddress, null);
 }
 
 function h160ToH256(h160Address) {

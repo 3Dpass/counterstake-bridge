@@ -10,6 +10,7 @@ const notifications = require('./notifications.js');
 const transfers = require('./transfers.js');
 const { fetchExchangeRateInNativeAsset } = require('./prices.js');
 const { wait, watchForDeadlock, getVersion, asyncCallWithTimeout, isRateLimitError } = require('./utils.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 const exportJson = require('./evm/build/contracts/Export.json');
 const importJson = require('./evm/build/contracts/Import.json');
@@ -878,17 +879,23 @@ class EvmChain {
 		}
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const { bridge_id, export_aa } = bridge;
-		// Use case-insensitive comparison since event.address is lowercase from parser
-		const eventAddressLower = (event.address || '').toLowerCase();
-		if (export_aa && export_aa.toLowerCase() !== eventAddressLower)
+		// Checksum addresses for comparison (addresses are stored checksummed in DB)
+		let checksummedEventAddress = event.address;
+		let checksummedExportAa = export_aa;
+		if (this.isValidAddress(event.address)) {
+			checksummedEventAddress = ethers.utils.getAddress(event.address);
+		}
+		if (this.isValidAddress(export_aa)) {
+			checksummedExportAa = ethers.utils.getAddress(export_aa);
+		}
+		if (checksummedExportAa && checksummedEventAddress !== checksummedExportAa)
 			throw Error(`expatriation on non-export address? export_aa=${export_aa}, address=${event.address}`);
 		// Normalize addresses to checksummed format for consistent matching
-		sender_address = ethers.utils.getAddress(sender_address);
-		// Only normalize foreign_address if it's a valid Ethereum address
+		// Use centralized normalizeAddress function
+		sender_address = normalizeAddress(sender_address, this);
+		// Only normalize foreign_address if it's a valid EVM address
 		// foreign_address can be from any foreign chain (Stellar, Obyte, etc.)
-		if (this.isValidAddress(foreign_address)) {
-			foreign_address = ethers.utils.getAddress(foreign_address);
-		}
+		foreign_address = normalizeAddress(foreign_address, this);
 		const transfer = { bridge_id, type: 'expatriation', amount, reward, sender_address, dest_address: foreign_address, data, txid, txts };
 		
 		// Early duplicate check during catchup to avoid unnecessary work
@@ -934,16 +941,27 @@ class EvmChain {
 			const { bridge_id, import_aa, export_aa } = bridge;
 			// NewRepatriation can come from either import_aa or export_aa (for bidirectional bridges)
 			// The getType function determines the type based on which address matches
-			// Use case-insensitive comparison since event.address is lowercase from parser
-			const eventAddressLower = (event.address || '').toLowerCase();
-			if (import_aa && import_aa.toLowerCase() !== eventAddressLower && export_aa && export_aa.toLowerCase() !== eventAddressLower)
+			// Checksum addresses for comparison (addresses are stored checksummed in DB)
+			let checksummedEventAddress = event.address;
+			let checksummedImportAa = import_aa;
+			let checksummedExportAa = export_aa;
+			if (this.isValidAddress(event.address)) {
+				checksummedEventAddress = ethers.utils.getAddress(event.address);
+			}
+			if (this.isValidAddress(import_aa)) {
+				checksummedImportAa = ethers.utils.getAddress(import_aa);
+			}
+			if (this.isValidAddress(export_aa)) {
+				checksummedExportAa = ethers.utils.getAddress(export_aa);
+			}
+			if (checksummedImportAa && checksummedEventAddress !== checksummedImportAa && checksummedExportAa && checksummedEventAddress !== checksummedExportAa)
 				throw Error(`repatriation on unknown address? import_aa=${import_aa}, export_aa=${export_aa}, address=${event.address}`);
 			// Normalize addresses to checksummed format for consistent matching
-			sender_address = ethers.utils.getAddress(sender_address);
-			// Only normalize home_address if it's a valid Ethereum address
-			if (this.isValidAddress(home_address)) {
-				home_address = ethers.utils.getAddress(home_address);
-			}
+			// Use centralized normalizeAddress function
+			sender_address = normalizeAddress(sender_address, this);
+			// Only normalize home_address if it's a valid EVM address
+			// home_address can be from any foreign chain (Obyte, etc.)
+			home_address = normalizeAddress(home_address, this);
 			const transfer = { bridge_id, type: 'repatriation', amount, reward, sender_address, dest_address: home_address, data, txid, txts };
 			
 			// Early duplicate check during catchup to avoid unnecessary work
@@ -989,15 +1007,12 @@ class EvmChain {
 		}
 		
 		// Normalize addresses to checksummed format for consistent matching
-		// Only normalize addresses that are valid Ethereum addresses
-		// sender_address is a string and can be from any chain, so don't normalize it
-		// recipient_address and author_address should be Ethereum addresses, but validate first
-		if (this.isValidAddress(recipient_address)) {
-			recipient_address = ethers.utils.getAddress(recipient_address);
-		}
-		if (this.isValidAddress(author_address)) {
-			author_address = ethers.utils.getAddress(author_address);
-		}
+		// Use centralized normalizeAddress function
+		// sender_address can be from any chain, so normalize it (will only checksum if EVM)
+		// recipient_address and author_address should be EVM addresses, but normalize handles both
+		sender_address = normalizeAddress(sender_address, this);
+		recipient_address = normalizeAddress(recipient_address, this);
+		author_address = normalizeAddress(author_address, this);
 		const dest_address = recipient_address;
 		const claimant_address = author_address;
 		await transfers.handleNewClaim(bridge, type, claim_num, sender_address, dest_address, claimant_address, data, amount, reward, stake, txid, txts, event.transactionHash);
@@ -1027,10 +1042,8 @@ class EvmChain {
 		}
 		
 		// Normalize address to checksummed format for consistent matching
-		// Only normalize if it's a valid Ethereum address
-		if (this.isValidAddress(author_address)) {
-			author_address = ethers.utils.getAddress(author_address);
-		}
+		// Use centralized normalizeAddress function
+		author_address = normalizeAddress(author_address, this);
 		await transfers.handleChallenge(bridge, type, claim_num, author_address, outcome ? 'yes' : 'no', stake, event.transactionHash);
 		await this.updateLastBlock(event.blockNumber);
 		unlock();
@@ -1907,41 +1920,49 @@ class EvmChain {
 			for (let bridge of supportedBridges) {
 				// Add import_aa if this network is the foreign network
 				if (bridge.foreign_network === this.network && bridge.import_aa) {
-					const normalizedImportAA = bridge.import_aa.toLowerCase();
-					addressesToCheck.add(normalizedImportAA);
+					// Checksum address for consistent storage and lookup (addresses are stored checksummed in DB)
+					let checksummedImportAA = bridge.import_aa;
+					if (this.isValidAddress(bridge.import_aa)) {
+						checksummedImportAA = ethers.utils.getAddress(bridge.import_aa);
+					}
+					addressesToCheck.add(checksummedImportAA);
 					// Ensure contract instance exists for this address
-					if (!this.#contractsByAddress[normalizedImportAA]) {
+					if (!this.#contractsByAddress[checksummedImportAA]) {
 						try {
 							// Use listener provider for event listening
 							const listenerProvider = this.getListenerProvider();
-							const contract = new ethers.Contract(normalizedImportAA, importJson.abi, listenerProvider);
+							const contract = new ethers.Contract(checksummedImportAA, importJson.abi, listenerProvider);
 							contract.on('NewRepatriation', this.onNewRepatriation.bind(this));
 							this.addCounterstakeEventHandlers(contract);
-							this.#contractsByAddress[normalizedImportAA] = contract;
+							this.#contractsByAddress[checksummedImportAA] = contract;
 						} catch (e) {
-							console.error(`${this.network} catchup: failed to create contract instance for import_aa ${normalizedImportAA}:`, e.message);
+							console.error(`${this.network} catchup: failed to create contract instance for import_aa ${checksummedImportAA}:`, e.message);
 						}
 					}
 				}
 				// Add export_aa if this network is the home network
 				if (bridge.home_network === this.network && bridge.export_aa) {
-					const normalizedExportAA = bridge.export_aa.toLowerCase();
-					addressesToCheck.add(normalizedExportAA);
+					// Checksum address for consistent storage and lookup (addresses are stored checksummed in DB)
+					let checksummedExportAA = bridge.export_aa;
+					if (this.isValidAddress(bridge.export_aa)) {
+						checksummedExportAA = ethers.utils.getAddress(bridge.export_aa);
+					}
+					addressesToCheck.add(checksummedExportAA);
 					// Ensure contract instance exists for this address
-					if (!this.#contractsByAddress[normalizedExportAA]) {
+					if (!this.#contractsByAddress[checksummedExportAA]) {
 						try {
 							// Use listener provider for event listening
 							const listenerProvider = this.getListenerProvider();
-							const contract = new ethers.Contract(normalizedExportAA, exportJson.abi, listenerProvider);
+							const contract = new ethers.Contract(checksummedExportAA, exportJson.abi, listenerProvider);
 							contract.on('NewExpatriation', this.onNewExpatriation.bind(this));
 							// Also listen for NewRepatriation on export contracts (for bidirectional bridges like 3DPass)
 							if (contract.filters.NewRepatriation) {
 								contract.on('NewRepatriation', this.onNewRepatriation.bind(this));
 							}
 							this.addCounterstakeEventHandlers(contract);
-							this.#contractsByAddress[normalizedExportAA] = contract;
+							this.#contractsByAddress[checksummedExportAA] = contract;
 						} catch (e) {
-							console.error(`${this.network} catchup: failed to create contract instance for export_aa ${normalizedExportAA}:`, e.message);
+							console.error(`${this.network} catchup: failed to create contract instance for export_aa ${checksummedExportAA}:`, e.message);
 						}
 					}
 				}
@@ -2311,10 +2332,10 @@ class EvmChain {
 
 function getType(address, bridge) {
 	const { bridge_id, export_aa, import_aa } = bridge;
-	// Normalize addresses to lowercase for case-insensitive comparison (addresses are case-insensitive)
-	const normalizedAddress = address ? address.toLowerCase() : address;
-	const normalizedExportAa = export_aa ? export_aa.toLowerCase() : export_aa;
-	const normalizedImportAa = import_aa ? import_aa.toLowerCase() : import_aa;
+	// Normalize addresses to checksummed format for consistent comparison (EVM addresses are stored checksummed)
+	const normalizedAddress = normalizeAddress(address);
+	const normalizedExportAa = normalizeAddress(export_aa);
+	const normalizedImportAa = normalizeAddress(import_aa);
 	
 	if (normalizedExportAa && normalizedAddress === normalizedExportAa)
 		return 'repatriation';

@@ -13,8 +13,104 @@
  */
 
 const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 const { wait } = require('./utils.js');
 const { BrowserSession, getRandomDelay } = require('./browser-headers.js');
+const { normalizeAddress } = require('./address_normalizer.js');
+
+// Cache directory for storing parser state
+const CACHE_DIR = path.join(__dirname, '.etherscan-cache');
+
+/**
+ * Get cache file path for an address
+ * @param {string} address - Contract address
+ * @returns {string} Cache file path
+ */
+function getCacheFilePath(address) {
+  // Ensure cache directory exists
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+  
+  // Normalize address first, then use lowercase for filename (consistent cache key)
+  // This ensures checksummed addresses from etherscan.js are handled correctly
+  const normalizedAddress = normalizeAddress(address, null);
+  const filename = `${normalizedAddress.toLowerCase()}.json`;
+  return path.join(CACHE_DIR, filename);
+}
+
+/**
+ * Load parser state from cache file
+ * @param {string} address - Contract address
+ * @returns {Object|null} Cached state or null if not found/invalid
+ */
+function loadParserState(address) {
+  try {
+    // Normalize address for consistent cache file path lookup
+    const normalizedAddress = normalizeAddress(address, null);
+    const cacheFile = getCacheFilePath(normalizedAddress);
+    
+    if (!fs.existsSync(cacheFile)) {
+      return null;
+    }
+    
+    const cacheData = fs.readFileSync(cacheFile, 'utf8');
+    const state = JSON.parse(cacheData);
+    
+    // Validate state structure
+    if (!state.address || !state.timestamp) {
+      console.log(`⚠️  Invalid cache file format for ${normalizedAddress}, ignoring`);
+      return null;
+    }
+    
+    console.log(`📂 Loaded cache state for ${normalizedAddress}: ${state.pagesFetched || 0} pages, ${state.transactions?.length || 0} transactions`);
+    return state;
+  } catch (error) {
+    console.log(`⚠️  Error loading cache for ${address}: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Save parser state to cache file
+ * @param {string} address - Contract address
+ * @param {Object} state - State to save
+ */
+function saveParserState(address, state) {
+  try {
+    // Normalize address for consistent cache file path
+    const normalizedAddress = normalizeAddress(address, null);
+    const cacheFile = getCacheFilePath(normalizedAddress);
+    const stateToSave = {
+      address: normalizedAddress.toLowerCase(), // Store lowercase for consistency
+      timestamp: Date.now(),
+      ...state
+    };
+    
+    fs.writeFileSync(cacheFile, JSON.stringify(stateToSave, null, 2), 'utf8');
+  } catch (error) {
+    console.log(`⚠️  Error saving cache for ${address}: ${error.message}`);
+  }
+}
+
+/**
+ * Clear cache for an address (optional cleanup)
+ * @param {string} address - Contract address
+ */
+function clearParserCache(address) {
+  try {
+    // Normalize address for consistent cache file path lookup
+    const normalizedAddress = normalizeAddress(address, null);
+    const cacheFile = getCacheFilePath(normalizedAddress);
+    if (fs.existsSync(cacheFile)) {
+      fs.unlinkSync(cacheFile);
+      console.log(`🗑️  Cleared cache for ${normalizedAddress}`);
+    }
+  } catch (error) {
+    console.log(`⚠️  Error clearing cache for ${address}: ${error.message}`);
+  }
+}
 
 /**
  * Parse Etherscan transactions page to extract block numbers and transaction hashes
@@ -31,47 +127,92 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
     includeTransactions = true, // New option to include transaction hashes
     includeEventLogs = false, // New option to fetch event logs for each transaction
     maxPages = 10, // Maximum pages to fetch (0 = all pages, default: 10 to avoid excessive requests)
-    session = null // Optional BrowserSession for maintaining consistency across requests
+    session = null, // Optional BrowserSession for maintaining consistency across requests
+    clearCache = false // Option to clear existing cache and start fresh
   } = options;
+  
+  // Normalize address for consistent cache handling and URL usage (handles checksummed addresses from etherscan.js)
+  const normalizedAddress = normalizeAddress(bridgeAddress, null);
+  
+  // Clear cache if requested
+  if (clearCache) {
+    clearParserCache(normalizedAddress);
+  }
+  
+  // Load existing cache state (uses normalized address internally)
+  const cachedState = loadParserState(normalizedAddress);
+  const cachedTransactions = cachedState?.transactions || [];
+  const cachedTxHashes = new Set(cachedTransactions.map(tx => tx.txHash.toLowerCase()));
+  const lastProcessedTxIndex = cachedState?.lastProcessedTxIndex !== undefined ? cachedState.lastProcessedTxIndex : -1;
+  const lastProcessedPage = cachedState?.lastProcessedPage || 0;
   
   // Create a session for this parsing run if not provided
   const browserSession = session || new BrowserSession();
 
   const baseUrl = 'https://etherscan.io/';
   
-  console.log(`🔍 Parsing Etherscan for block numbers${includeTransactions ? ' and transactions' : ''}${includeEventLogs ? ' with event logs' : ''} (max ${maxPages === 0 ? 'all' : maxPages} pages)`);
+  const resumeMsg = cachedState ? ` (resuming from page ${lastProcessedPage + 1}, ${cachedTransactions.length} cached transactions)` : '';
+  console.log(`🔍 Parsing Etherscan for address ${normalizedAddress} - block numbers${includeTransactions ? ' and transactions' : ''}${includeEventLogs ? ' with event logs' : ''} (max ${maxPages === 0 ? 'all' : maxPages} pages)${resumeMsg}`);
   
   try {
     const allBlockNumbers = new Set();
-    const allTransactions = [];
-    let page = 1;
+    // Start with cached transactions
+    const allTransactions = [...cachedTransactions];
+    let page = lastProcessedPage + 1; // Resume from next page after last processed
     let hasMorePages = true;
+    let pagesFetched = 0;
+    
+    // If we have cached transactions, add their block numbers
+    cachedTransactions.forEach(tx => {
+      allBlockNumbers.add(tx.blockNumber);
+    });
     
     while (hasMorePages && (maxPages === 0 || page <= maxPages)) {
       // Etherscan pagination: p parameter (1-indexed)
-      const targetUrl = `${baseUrl}txs?a=${bridgeAddress}&p=${page}`;
+      // Use normalized address in URL (Etherscan accepts both formats, but normalizing ensures consistency)
+      const targetUrl = `${baseUrl}txs?a=${normalizedAddress}&p=${page}`;
       console.log(`📄 Fetching page ${page}...`);
       
       const result = await fetchEtherscanPage(targetUrl, { retries, delay, includeTransactions, session: browserSession });
       
       if (!result.success) {
         console.log(`⚠️  Failed to fetch page ${page}, stopping pagination`);
+        // Save state before stopping
+        saveParserState(normalizedAddress, {
+          pagesFetched: lastProcessedPage + pagesFetched,
+          lastProcessedPage: page - 1,
+          lastProcessedTxIndex: lastProcessedTxIndex,
+          blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
+          transactions: allTransactions
+        });
         break;
       }
       
       // Add block numbers
       result.blockNumbers.forEach(block => allBlockNumbers.add(block));
       
-      // Add transactions (avoid duplicates)
+      // Add transactions (avoid duplicates with cached ones)
       if (result.transactions) {
         result.transactions.forEach(tx => {
-          if (!allTransactions.find(t => t.txHash === tx.txHash)) {
+          const txHashLower = tx.txHash.toLowerCase();
+          if (!cachedTxHashes.has(txHashLower) && !allTransactions.find(t => t.txHash.toLowerCase() === txHashLower)) {
             allTransactions.push(tx);
+            cachedTxHashes.add(txHashLower);
           }
         });
       }
       
+      pagesFetched++;
       console.log(`  ✅ Page ${page}: Found ${result.blockNumbers.length} blocks, ${result.transactions?.length || 0} transactions`);
+      
+      // Save state after each page
+      saveParserState(normalizedAddress, {
+        pagesFetched: lastProcessedPage + pagesFetched,
+        lastProcessedPage: page,
+        lastProcessedTxIndex: lastProcessedTxIndex,
+        blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
+        transactions: allTransactions
+      });
       
       // Check if there are more pages using the detection from fetchEtherscanPage
       hasMorePages = result.hasMorePages;
@@ -91,26 +232,44 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
     }
     
     const uniqueBlocks = Array.from(allBlockNumbers).sort((a, b) => b - a);
+    // Sort transactions by block number (newest first) to prioritize recent transactions
+    // This ensures that when checking against database and parsing, most recent transactions are processed first
     const sortedTransactions = allTransactions.sort((a, b) => b.blockNumber - a.blockNumber);
     
-    console.log(`✅ Successfully parsed Etherscan (${page - 1} page(s))`);
+    const totalPagesFetched = lastProcessedPage + pagesFetched;
+    console.log(`✅ Successfully parsed Etherscan (${totalPagesFetched} total page(s), ${pagesFetched} new)`);
     console.log(`Found ${uniqueBlocks.length} unique block numbers`);
     if (includeTransactions) {
-      console.log(`Found ${sortedTransactions.length} unique transaction hashes`);
+      console.log(`Found ${sortedTransactions.length} unique transaction hashes (${cachedTransactions.length} from cache, ${sortedTransactions.length - cachedTransactions.length} new)`);
+      if (sortedTransactions.length > 0) {
+        console.log(`  Most recent: Block ${sortedTransactions[0].blockNumber}, Oldest: Block ${sortedTransactions[sortedTransactions.length - 1].blockNumber}`);
+      }
     }
     
     // Fetch event logs for each transaction if requested
+    // Process transactions in order (newest first) to prioritize recent transactions
     if (includeEventLogs && sortedTransactions.length > 0) {
-      console.log(`\n📋 Fetching event logs for ${sortedTransactions.length} transactions...`);
+      console.log(`\n📋 Fetching event logs for ${sortedTransactions.length} transactions (processing newest first)...`);
       
       // Optional function to check if transaction already has events in database
       const checkTransactionExists = options.checkTransactionExists || null;
       
       let skippedCount = 0;
       let fetchedCount = 0;
+      let cachedCount = 0;
       
-      for (let i = 0; i < sortedTransactions.length; i++) {
+      // Process transactions in order (newest first) - most recent transactions are checked and parsed first
+      // Start from lastProcessedTxIndex + 1 to skip already processed transactions
+      const startIndex = lastProcessedTxIndex + 1;
+      for (let i = startIndex; i < sortedTransactions.length; i++) {
         const tx = sortedTransactions[i];
+        
+        // Check if transaction already has event logs in cache
+        if (tx.eventLogs && tx.eventLogs.length > 0) {
+          console.log(`  [${i + 1}/${sortedTransactions.length}] ✅ Using cached event logs for ${tx.txHash.substring(0, 16)}... (${tx.eventLogs.length} logs)`);
+          cachedCount++;
+          continue;
+        }
         
         // Check if transaction already exists in database
         if (checkTransactionExists) {
@@ -120,6 +279,14 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
               console.log(`  [${i + 1}/${sortedTransactions.length}] ⏭️  Skipping ${tx.txHash.substring(0, 16)}... (already in database)`);
               tx.eventLogs = []; // Mark as skipped
               skippedCount++;
+              // Save state after skipping
+              saveParserState(normalizedAddress, {
+                pagesFetched: totalPagesFetched,
+                lastProcessedPage: page - 1,
+                lastProcessedTxIndex: i,
+                blockNumbers: uniqueBlocks,
+                transactions: sortedTransactions
+              });
               continue;
             }
           } catch (error) {
@@ -139,9 +306,26 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
           } else {
             console.log(`    ℹ️  No event logs found`);
           }
+          
+          // Save state after each transaction with event logs
+          saveParserState(normalizedAddress, {
+            pagesFetched: totalPagesFetched,
+            lastProcessedPage: page - 1,
+            lastProcessedTxIndex: i,
+            blockNumbers: uniqueBlocks,
+            transactions: sortedTransactions
+          });
         } catch (error) {
           console.log(`    ⚠️  Failed to fetch event logs: ${error.message}`);
           tx.eventLogs = [];
+          // Save state even on error to track progress
+          saveParserState(normalizedAddress, {
+            pagesFetched: totalPagesFetched,
+            lastProcessedPage: page - 1,
+            lastProcessedTxIndex: i,
+            blockNumbers: uniqueBlocks,
+            transactions: sortedTransactions
+          });
         }
         
         // Add random delay between transaction fetches to avoid rate limiting and detection
@@ -153,6 +337,9 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       
       const totalEventLogs = sortedTransactions.reduce((sum, tx) => sum + (tx.eventLogs?.length || 0), 0);
       console.log(`\n✅ Event log fetching complete: ${totalEventLogs} total event logs found`);
+      if (cachedCount > 0) {
+        console.log(`   📦 Used ${cachedCount} cached transaction(s)`);
+      }
       if (skippedCount > 0) {
         console.log(`   ⏭️  Skipped ${skippedCount} transactions (already in database)`);
       }
@@ -161,22 +348,40 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       }
     }
     
+    // Final state save
+    saveParserState(normalizedAddress, {
+      pagesFetched: totalPagesFetched,
+      lastProcessedPage: page - 1,
+      lastProcessedTxIndex: includeEventLogs ? sortedTransactions.length - 1 : -1,
+      blockNumbers: uniqueBlocks,
+      transactions: sortedTransactions
+    });
+    
     return {
       success: true,
       blockNumbers: uniqueBlocks,
       transactions: sortedTransactions,
       error: null,
-      pagesFetched: page - 1
+      pagesFetched: totalPagesFetched
     };
     
   } catch (error) {
     console.error('❌ Error parsing Etherscan:', error);
+    // Save state even on error to preserve progress
+    saveParserState(normalizedAddress, {
+      pagesFetched: lastProcessedPage + pagesFetched,
+      lastProcessedPage: page - 1,
+      lastProcessedTxIndex: lastProcessedTxIndex,
+      blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
+      transactions: allTransactions,
+      error: error.message
+    });
     return {
       success: false,
       blockNumbers: [],
       transactions: [],
       error: error.message,
-      pagesFetched: 0
+      pagesFetched: lastProcessedPage + pagesFetched
     };
   }
 }
@@ -713,5 +918,9 @@ module.exports = {
   fetchTransactionEventLogs,
   extractEventLogs,
   parseEventLogEntry,
-  testEtherscanSimpleParser
+  testEtherscanSimpleParser,
+  loadParserState,
+  saveParserState,
+  clearParserCache,
+  getCacheFilePath
 };

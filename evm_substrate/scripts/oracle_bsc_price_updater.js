@@ -18,6 +18,7 @@ const { getProvider } = require('../../evm/provider.js');
 const { wait } = require('../../utils.js');
 const { fetchCoingeckoExchangeRateCached } = require('../../prices.js');
 const conf = require('ocore/conf.js');
+const { normalizeAddress } = require('../../address_normalizer.js');
 
 // Import Oracle ABI
 const oracleJson = require('../build/contracts/Oracle.json');
@@ -90,10 +91,15 @@ class OracleBSCUpdater {
             log(`✅ Oracle signer address: ${this.signer.address}`, colors.green);
             
             // Verify signer address matches expected oracle manager address
-            if (keys.oracle_manager_evm_address && keys.oracle_manager_evm_address.toLowerCase() !== this.signer.address.toLowerCase()) {
-                log(`⚠️  Warning: Signer address ${this.signer.address} does not match expected oracle manager address ${keys.oracle_manager_evm_address}`, colors.yellow);
-            } else if (keys.oracle_manager_evm_address) {
-                log(`✅ Signer address matches expected oracle manager address`, colors.green);
+            // Use centralized normalizeAddress function for consistent comparison
+            if (keys.oracle_manager_evm_address) {
+                const normalizedExpected = normalizeAddress(keys.oracle_manager_evm_address, null);
+                const normalizedSigner = normalizeAddress(this.signer.address, null);
+                if (normalizedExpected !== normalizedSigner) {
+                    log(`⚠️  Warning: Signer address ${this.signer.address} does not match expected oracle manager address ${keys.oracle_manager_evm_address}`, colors.yellow);
+                } else {
+                    log(`✅ Signer address matches expected oracle manager address`, colors.green);
+                }
             }
             
             // Initialize oracle contract
@@ -103,7 +109,9 @@ class OracleBSCUpdater {
             // Check if signer is oracle owner
             try {
                 const owner = await this.oracle.owner();
-                if (owner.toLowerCase() !== this.signer.address.toLowerCase()) {
+                const normalizedOwner = normalizeAddress(owner, null);
+                const normalizedSigner = normalizeAddress(this.signer.address, null);
+                if (normalizedOwner !== normalizedSigner) {
                     log(`⚠️  Warning: Signer ${this.signer.address} is not the oracle owner (${owner})`, colors.yellow);
                 } else {
                     log(`✅ Signer is confirmed as oracle owner`, colors.green);

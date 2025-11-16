@@ -11,7 +11,7 @@
  */
 
 const db = require('ocore/db.js');
-const { ethers: { utils } } = require("ethers");
+const { normalizeAddress } = require('./address_normalizer.js');
 
 async function findDuplicateBridges() {
     console.log('🔍 Searching for duplicate bridges...\n');
@@ -19,14 +19,15 @@ async function findDuplicateBridges() {
     // Get all bridges
     const allBridges = await db.query("SELECT * FROM bridges ORDER BY bridge_id");
     
-    // Group bridges by case-insensitive foreign_asset
+    // Group bridges by normalized foreign_asset (handles EVM addresses and Obyte assets)
     const bridgesByForeignAsset = {};
     
     for (const bridge of allBridges) {
         if (!bridge.foreign_asset) continue;
         
-        // Normalize foreign_asset to lowercase for grouping
-        const normalized = bridge.foreign_asset.toLowerCase();
+        // Normalize foreign_asset for grouping (checksums EVM addresses, leaves Obyte as-is)
+        // Use normalizeAddress for proper EVM address handling, then lowercase for consistent grouping
+        const normalized = normalizeAddress(bridge.foreign_asset, null).toLowerCase();
         
         if (!bridgesByForeignAsset[normalized]) {
             bridgesByForeignAsset[normalized] = [];
@@ -39,9 +40,12 @@ async function findDuplicateBridges() {
     for (const [normalizedAsset, bridges] of Object.entries(bridgesByForeignAsset)) {
         if (bridges.length > 1) {
             // Check if they're actually duplicates (same home_network, foreign_network, home_asset)
+            // Normalize home_asset for consistent comparison
             const groupedByKey = {};
             for (const bridge of bridges) {
-                const key = `${bridge.home_network}-${bridge.foreign_network}-${bridge.home_asset}`;
+                // Normalize home_asset for consistent key generation
+                const normalizedHomeAsset = normalizeAddress(bridge.home_asset || '', null).toLowerCase();
+                const key = `${bridge.home_network}-${bridge.foreign_network}-${normalizedHomeAsset}`;
                 if (!groupedByKey[key]) {
                     groupedByKey[key] = [];
                 }

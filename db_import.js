@@ -30,6 +30,16 @@ async function initDB(){
 		await db.query("ALTER TABLE transfers ADD COLUMN is_bad TINYINT NOT NULL DEFAULT 0");
 	}
 
+	// Create import_metadata table if it doesn't exist (for tracking imported data)
+	await db.query(`
+		CREATE TABLE IF NOT EXISTS import_metadata (
+			network VARCHAR(10) NOT NULL PRIMARY KEY,
+			import_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			export_date VARCHAR(50),
+			last_block INT NOT NULL DEFAULT 0
+		)
+	`);
+
 }
 
 exports.initDB = initDB;

@@ -12,6 +12,7 @@ const { getProvider } = require("./evm/provider.js");
 const exportJson = require('./evm/build/contracts/Export.json');
 const importJson = require('./evm/build/contracts/Import.json');
 const { BigNumber } = require("ethers");
+const { normalizeAddress } = require('./address_normalizer.js');
 
 // Data matching functions (don't require full network API initialization)
 const string_utils = require('ocore/string_utils.js');
@@ -203,7 +204,11 @@ async function linkOrphanedClaims() {
 				
 				// Determine network and contract address for verification
 				const network = claim.type === 'expatriation' ? claim.home_network : claim.foreign_network;
-				const bridge_aa = claim.type === 'expatriation' ? claim.export_aa : claim.import_aa;
+				// Normalize bridge address for consistent contract creation (handles checksummed addresses from DB)
+				const bridge_aa = normalizeAddress(
+					claim.type === 'expatriation' ? claim.export_aa : claim.import_aa,
+					null
+				);
 				
 				// Skip blockchain verification for Obyte (not an EVM chain)
 				let eventFound = true; // Assume valid for Obyte
@@ -252,11 +257,14 @@ async function linkOrphanedClaims() {
 							const parsed = contract.interface.parseLog(log);
 							if (parsed && parsed.name === eventName) {
 								eventFound = true;
+								// Normalize addresses from event parsing (handles checksummed addresses from blockchain)
+								const rawSenderAddress = parsed.args.sender_address || parsed.args.sender;
+								const rawDestAddress = parsed.args.foreign_address || parsed.args.home_address || parsed.args.dest_address;
 								eventData = {
-									sender_address: parsed.args.sender_address || parsed.args.sender,
+									sender_address: normalizeAddress(rawSenderAddress, null),
 									amount: parsed.args.amount,
 									reward: parsed.args.reward,
-									dest_address: parsed.args.foreign_address || parsed.args.home_address || parsed.args.dest_address,
+									dest_address: normalizeAddress(rawDestAddress, null),
 									data: parsed.args.data || '0x'
 								};
 								break;

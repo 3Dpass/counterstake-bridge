@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { wait } = require('./utils.js');
 const { BrowserSession, getRandomDelay } = require('./browser-headers.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 // Cache directory for storing parser state
 const CACHE_DIR = path.join(__dirname, '.bscscan-cache');
@@ -32,8 +33,10 @@ function getCacheFilePath(address) {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
   }
   
-  // Use address (lowercase) as filename
-  const filename = `${address.toLowerCase()}.json`;
+  // Normalize address first, then use lowercase for filename (consistent cache key)
+  // This ensures checksummed addresses from etherscan.js are handled correctly
+  const normalizedAddress = normalizeAddress(address, null);
+  const filename = `${normalizedAddress.toLowerCase()}.json`;
   return path.join(CACHE_DIR, filename);
 }
 
@@ -44,7 +47,9 @@ function getCacheFilePath(address) {
  */
 function loadParserState(address) {
   try {
-    const cacheFile = getCacheFilePath(address);
+    // Normalize address for consistent cache file path lookup
+    const normalizedAddress = normalizeAddress(address, null);
+    const cacheFile = getCacheFilePath(normalizedAddress);
     
     if (!fs.existsSync(cacheFile)) {
       return null;
@@ -55,11 +60,11 @@ function loadParserState(address) {
     
     // Validate state structure
     if (!state.address || !state.timestamp) {
-      console.log(`⚠️  Invalid cache file format for ${address}, ignoring`);
+      console.log(`⚠️  Invalid cache file format for ${normalizedAddress}, ignoring`);
       return null;
     }
     
-    console.log(`📂 Loaded cache state for ${address}: ${state.pagesFetched || 0} pages, ${state.transactions?.length || 0} transactions`);
+    console.log(`📂 Loaded cache state for ${normalizedAddress}: ${state.pagesFetched || 0} pages, ${state.transactions?.length || 0} transactions`);
     return state;
   } catch (error) {
     console.log(`⚠️  Error loading cache for ${address}: ${error.message}`);
@@ -74,9 +79,11 @@ function loadParserState(address) {
  */
 function saveParserState(address, state) {
   try {
-    const cacheFile = getCacheFilePath(address);
+    // Normalize address for consistent cache file path
+    const normalizedAddress = normalizeAddress(address, null);
+    const cacheFile = getCacheFilePath(normalizedAddress);
     const stateToSave = {
-      address: address.toLowerCase(),
+      address: normalizedAddress.toLowerCase(), // Store lowercase for consistency
       timestamp: Date.now(),
       ...state
     };
@@ -93,10 +100,12 @@ function saveParserState(address, state) {
  */
 function clearParserCache(address) {
   try {
-    const cacheFile = getCacheFilePath(address);
+    // Normalize address for consistent cache file path lookup
+    const normalizedAddress = normalizeAddress(address, null);
+    const cacheFile = getCacheFilePath(normalizedAddress);
     if (fs.existsSync(cacheFile)) {
       fs.unlinkSync(cacheFile);
-      console.log(`🗑️  Cleared cache for ${address}`);
+      console.log(`🗑️  Cleared cache for ${normalizedAddress}`);
     }
   } catch (error) {
     console.log(`⚠️  Error clearing cache for ${address}: ${error.message}`);
@@ -122,13 +131,16 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
     clearCache = false // Option to clear existing cache and start fresh
   } = options;
   
+  // Normalize address for consistent cache handling and URL usage (handles checksummed addresses from etherscan.js)
+  const normalizedAddress = normalizeAddress(bridgeAddress, null);
+  
   // Clear cache if requested
   if (clearCache) {
-    clearParserCache(bridgeAddress);
+    clearParserCache(normalizedAddress);
   }
   
-  // Load existing cache state
-  const cachedState = loadParserState(bridgeAddress);
+  // Load existing cache state (uses normalized address internally)
+  const cachedState = loadParserState(normalizedAddress);
   const cachedTransactions = cachedState?.transactions || [];
   const cachedTxHashes = new Set(cachedTransactions.map(tx => tx.txHash.toLowerCase()));
   const lastProcessedTxIndex = cachedState?.lastProcessedTxIndex !== undefined ? cachedState.lastProcessedTxIndex : -1;
@@ -140,7 +152,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
   const baseUrl = 'https://bscscan.com/';
   
   const resumeMsg = cachedState ? ` (resuming from page ${lastProcessedPage + 1}, ${cachedTransactions.length} cached transactions)` : '';
-  console.log(`🔍 Parsing BSCScan for address ${bridgeAddress} - block numbers${includeTransactions ? ' and transactions' : ''}${includeEventLogs ? ' with event logs' : ''} (max ${maxPages === 0 ? 'all' : maxPages} pages)${resumeMsg}`);
+  console.log(`🔍 Parsing BSCScan for address ${normalizedAddress} - block numbers${includeTransactions ? ' and transactions' : ''}${includeEventLogs ? ' with event logs' : ''} (max ${maxPages === 0 ? 'all' : maxPages} pages)${resumeMsg}`);
   
   try {
     const allBlockNumbers = new Set();
@@ -157,7 +169,8 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
     
     while (hasMorePages && (maxPages === 0 || page <= maxPages)) {
       // BSCScan pagination: p parameter (1-indexed)
-      const targetUrl = `${baseUrl}txs?a=${bridgeAddress}&p=${page}`;
+      // Use normalized address in URL (BSCScan accepts both formats, but normalizing ensures consistency)
+      const targetUrl = `${baseUrl}txs?a=${normalizedAddress}&p=${page}`;
       console.log(`📄 Fetching page ${page}...`);
       
       const result = await fetchBSCScanPage(targetUrl, { retries, delay, includeTransactions, session: browserSession });
@@ -165,7 +178,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
       if (!result.success) {
         console.log(`⚠️  Failed to fetch page ${page}, stopping pagination`);
         // Save state before stopping
-        saveParserState(bridgeAddress, {
+        saveParserState(normalizedAddress, {
           pagesFetched: lastProcessedPage + pagesFetched,
           lastProcessedPage: page - 1,
           lastProcessedTxIndex: lastProcessedTxIndex,
@@ -193,7 +206,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
       console.log(`  ✅ Page ${page}: Found ${result.blockNumbers.length} blocks, ${result.transactions?.length || 0} transactions`);
       
       // Save state after each page
-      saveParserState(bridgeAddress, {
+      saveParserState(normalizedAddress, {
         pagesFetched: lastProcessedPage + pagesFetched,
         lastProcessedPage: page,
         lastProcessedTxIndex: lastProcessedTxIndex,
@@ -267,7 +280,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
               tx.eventLogs = []; // Mark as skipped
               skippedCount++;
               // Save state after skipping
-              saveParserState(bridgeAddress, {
+              saveParserState(normalizedAddress, {
                 pagesFetched: totalPagesFetched,
                 lastProcessedPage: page - 1,
                 lastProcessedTxIndex: i,
@@ -295,7 +308,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
           }
           
           // Save state after each transaction with event logs
-          saveParserState(bridgeAddress, {
+          saveParserState(normalizedAddress, {
             pagesFetched: totalPagesFetched,
             lastProcessedPage: page - 1,
             lastProcessedTxIndex: i,
@@ -306,7 +319,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
           console.log(`    ⚠️  Failed to fetch event logs: ${error.message}`);
           tx.eventLogs = [];
           // Save state even on error to track progress
-          saveParserState(bridgeAddress, {
+          saveParserState(normalizedAddress, {
             pagesFetched: totalPagesFetched,
             lastProcessedPage: page - 1,
             lastProcessedTxIndex: i,
@@ -336,7 +349,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
     }
     
     // Final state save
-    saveParserState(bridgeAddress, {
+    saveParserState(normalizedAddress, {
       pagesFetched: totalPagesFetched,
       lastProcessedPage: page - 1,
       lastProcessedTxIndex: includeEventLogs ? sortedTransactions.length - 1 : -1,
@@ -355,7 +368,7 @@ async function parseBSCScanBlockNumbers(bridgeAddress, options = {}) {
   } catch (error) {
     console.error('❌ Error parsing BSCScan:', error);
     // Save state even on error to preserve progress
-    saveParserState(bridgeAddress, {
+    saveParserState(normalizedAddress, {
       pagesFetched: lastProcessedPage + pagesFetched,
       lastProcessedPage: page - 1,
       lastProcessedTxIndex: lastProcessedTxIndex,

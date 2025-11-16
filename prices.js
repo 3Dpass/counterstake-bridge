@@ -4,6 +4,7 @@ const { asyncCallWithTimeout } = require('./utils.js');
 const network = require('ocore/network.js');
 const mutex = require('ocore/mutex.js');
 const { getProvider } = require('./evm/provider.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 const { constants: { AddressZero } } = ethers;
 
@@ -267,7 +268,8 @@ async function tryGetTokenPrice(network, token_address, nativeSymbol, cached) {
 			break;
 		case '3DPass':
 			// Handle P3D native token specially
-			if (token_address === P3D_ADDRESS) {
+			// Normalize address for comparison (handles checksummed addresses from DB)
+			if (normalizeAddress(token_address, null) === normalizeAddress(P3D_ADDRESS, null)) {
 				console.log(`P3D is native token, using direct price fetch instead of contract lookup`);
 				try {
 					// For P3D, use direct CoinGecko API call for the native token
@@ -305,13 +307,17 @@ async function fetchSimpleTokenPrice(token_address, nativeSymbol, cached) {
 		console.log(`Fetching simple price for ${token_address}/${nativeSymbol}`);
 		
 		// Get token symbol for CoinGecko lookup
+		// Normalize addresses for comparison (handles checksummed addresses from DB)
+		const normalizedTokenAddress = normalizeAddress(token_address, null);
+		const normalizedUSDT = normalizeAddress(USDT_ADDRESS, null);
+		const normalizedWUSDT = normalizeAddress(WUSDT_ADDRESS, null);
+		const normalizedUSDTEthereum = normalizeAddress('0xdAC17F958D2ee523a2206206994597C13D831ec7', null);
+		
 		let tokenId;
-		if (token_address === USDT_ADDRESS) {
+		if (normalizedTokenAddress === normalizedUSDT || normalizedTokenAddress === normalizedUSDTEthereum) {
 			tokenId = 'tether';
-		} else if (token_address === WUSDT_ADDRESS) {
+		} else if (normalizedTokenAddress === normalizedWUSDT) {
 			tokenId = 'tether'; // wUSDT is wrapped USDT, use same price
-		} else if (token_address === '0xdAC17F958D2ee523a2206206994597C13D831ec7') {
-			tokenId = 'tether'; // USDT on Ethereum
 		} else {
 			throw new Error(`Unknown token address ${token_address} for simple price lookup`);
 		}
@@ -369,12 +375,17 @@ async function fetch3DPassOraclePrice(token_address, nativeSymbol, cached) {
 		// Determine token symbols for oracle query
 		let tokenA, tokenB;
 		
+		// Normalize addresses for comparison (handles checksummed addresses from DB)
+		const normalizedTokenAddress = normalizeAddress(token_address, null);
+		const normalizedUSDT = normalizeAddress(USDT_ADDRESS, null);
+		const normalizedWUSDT = normalizeAddress(WUSDT_ADDRESS, null);
+		
 		if (nativeSymbol === 'P3D') {
 			// We want token_address/P3D rate
-			if (token_address === WUSDT_ADDRESS) {
+			if (normalizedTokenAddress === normalizedWUSDT) {
 				tokenA = 'P3D';
 				tokenB = WUSDT_ADDRESS;
-			} else if (token_address === USDT_ADDRESS) {
+			} else if (normalizedTokenAddress === normalizedUSDT) {
 				// For USDT/P3D rate, we need to query P3D/USDT and invert
 				tokenA = 'P3D';
 				tokenB = USDT_ADDRESS;
@@ -384,7 +395,7 @@ async function fetch3DPassOraclePrice(token_address, nativeSymbol, cached) {
 			}
 		} else if (nativeSymbol === 'ETH') {
 			// We want token_address/ETH rate
-			if (token_address === USDT_ADDRESS) {
+			if (normalizedTokenAddress === normalizedUSDT) {
 				tokenA = 'ETH';
 				tokenB = USDT_ADDRESS;
 			} else {
@@ -462,7 +473,8 @@ async function fetchExchangeRateInUSD(network, asset, cached) {
 		return price_in_usd || null;
 	}
 	// Handle P3D native token specially for 3DPass
-	if (network === '3DPass' && asset === P3D_ADDRESS) {
+	// Normalize address for comparison (handles checksummed addresses from DB)
+	if (network === '3DPass' && normalizeAddress(asset, null) === normalizeAddress(P3D_ADDRESS, null)) {
 		console.log(`P3D is native token, using direct USD price fetch`);
 		try {
 			const p3dUsdUrl = `https://api.coingecko.com/api/v3/simple/price?ids=3dpass&vs_currencies=usd`;

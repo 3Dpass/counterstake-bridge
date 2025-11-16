@@ -6,6 +6,7 @@ const { getAddressBlocks, getAddressTransactionBlocks } = require("./3dpscan.js"
 const { ethers, BigNumber, constants: { AddressZero } } = require("ethers");
 const { wait } = require('./utils.js');
 const mutex = require('ocore/mutex.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 // 3DPass-specific ABI imports from evm_substrate
 const exportJson = require('./evm_substrate/build/contracts/Export.json');
@@ -21,8 +22,8 @@ const ip3dJson = require('./evm_substrate/build/contracts/IP3D.json');
 const iprecompileErc20Json = require('./evm_substrate/build/contracts/IPrecompileERC20.json');
 
 // 3DPass-specific constants
-// P3D native token ERC20 precompile address
-const P3D_PRECOMPILE = '0x0000000000000000000000000000000000000802';
+// P3D native token ERC20 precompile address (from conf.js)
+const P3D_PRECOMPILE = conf.p3d_precompile_address;
 
 let bCreated = false;
 
@@ -63,8 +64,8 @@ class ThreeDPass extends EvmChain {
 
 	// 3DPass-specific token validation
 	isValidNonnativeAsset(asset) {
-		// Allow P3D precompile
-		if (asset === P3D_PRECOMPILE) {
+		// Allow P3D precompile (normalize for comparison)
+		if (asset && normalizeAddress(asset, null) === normalizeAddress(P3D_PRECOMPILE, null)) {
 			return true;
 		}
 		// Allow 3DPass ERC20 precompiles (prefix 0xFBFBFBFA)
@@ -90,7 +91,11 @@ class ThreeDPass extends EvmChain {
 
 	// Helper function to check if token is P3D precompile
 	isP3D(token) {
-		return token !== null && token !== undefined && token === P3D_PRECOMPILE;
+		if (token === null || token === undefined) {
+			return false;
+		}
+		// Normalize addresses for comparison (handles checksummed addresses from DB)
+		return normalizeAddress(token, null) === normalizeAddress(P3D_PRECOMPILE, null);
 	}
 
 	// Override getMyBalance to handle 3DPass precompiles
@@ -610,9 +615,15 @@ class ThreeDPass extends EvmChain {
 				throw Error(`failed to approve ${bridge_aa} to spend our ${staked_asset}`);
 		}
 
-		const bThirdPartyClaiming = (dest_address && dest_address !== this.getMyAddress());
+		// Normalize addresses for comparison (handles checksummed addresses from DB)
+		const normalizedDestAddress = dest_address ? normalizeAddress(dest_address, this) : null;
+		const normalizedMyAddress = normalizeAddress(this.getMyAddress(), this);
+		const bThirdPartyClaiming = (normalizedDestAddress && normalizedDestAddress !== normalizedMyAddress);
 		const paid_amount = bThirdPartyClaiming ? amount.sub(reward) : BigNumber.from(0);
-		const total = (claimed_asset === staked_asset) ? stake.add(paid_amount) : stake;
+		// Normalize asset addresses for comparison
+		const normalizedClaimedAsset = claimed_asset ? normalizeAddress(claimed_asset, this) : null;
+		const normalizedStakedAsset = staked_asset ? normalizeAddress(staked_asset, this) : null;
+		const total = (normalizedClaimedAsset && normalizedClaimedAsset === normalizedStakedAsset) ? stake.add(paid_amount) : stake;
 		const contract = this.getContractReference(bridge_aa);
 		if (!contract)
 			throw Error(`no contract by bridge AA ${bridge_aa}`);
@@ -775,10 +786,13 @@ class ThreeDPass extends EvmChain {
 		
 		if (to_address) { // Assistant contract withdrawal
 			const code = await this.getProvider().getCode(to_address);
-			const masterAddress = ethers.utils.getAddress('0x' + code.slice(22, 62));
+			// Extract and normalize address from contract code
+			const extractedAddress = '0x' + code.slice(22, 62);
+			const masterAddress = normalizeAddress(extractedAddress, this);
+			const normalizedToAddress = normalizeAddress(to_address, this);
 			opts.accessList = [
 				{ address: masterAddress, storageKeys: [] },
-				{ address: to_address, storageKeys: ["0x0000000000000000000000000000000000000000000000000000000000000007"] },
+				{ address: normalizedToAddress, storageKeys: ["0x0000000000000000000000000000000000000000000000000000000000000007"] },
 			];
 		}
 		

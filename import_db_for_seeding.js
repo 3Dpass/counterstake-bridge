@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('ocore/db.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 async function importDatabase(exportFile) {
 	try {
@@ -36,6 +37,16 @@ async function importDatabase(exportFile) {
 		
 		console.log(`Export date: ${exportData.exportDate || 'unknown'}\n`);
 		
+		// Create metadata table to track imports (if it doesn't exist)
+		await db.query(`
+			CREATE TABLE IF NOT EXISTS import_metadata (
+				network VARCHAR(10) NOT NULL PRIMARY KEY,
+				import_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				export_date VARCHAR(50),
+				last_block INT NOT NULL DEFAULT 0
+			)
+		`);
+		
 		// Import tables in order (respecting foreign key constraints)
 		// Order: bridges (no deps) -> transfers (needs bridges) -> claims (needs bridges, transfers) 
 		// -> challenges (needs bridges, claims) -> pooled_assistants (needs bridges) -> last_blocks (no deps)
@@ -60,12 +71,33 @@ async function importDatabase(exportFile) {
 			const placeholders = columns.map(() => '?').join(', ');
 			const columnNames = columns.join(', ');
 			
+			// Define address columns for each table that need normalization
+			const addressColumns = {
+				bridges: ['export_aa', 'export_assistant_aa', 'import_aa', 'import_assistant_aa', 'home_asset', 'foreign_asset', 'stake_asset'],
+				transfers: ['sender_address', 'dest_address'],
+				claims: ['sender_address', 'dest_address', 'claimant_address'],
+				challenges: ['address'],
+				pooled_assistants: ['assistant_aa', 'bridge_aa', 'manager', 'shares_asset']
+			};
+			
+			// Get address columns for this table (if any)
+			const tableAddressColumns = addressColumns[tableName] || [];
+			
 			// Use INSERT OR IGNORE to avoid duplicates
 			const sql = `INSERT OR IGNORE INTO ${tableName} (${columnNames}) VALUES (${placeholders})`;
 			
 			let imported = 0;
 			for (const row of rows) {
-				const values = columns.map(col => row[col]);
+				// Normalize addresses before inserting (ensures checksummed format for EVM addresses)
+				const normalizedRow = { ...row };
+				for (const addressCol of tableAddressColumns) {
+					if (normalizedRow[addressCol] && typeof normalizedRow[addressCol] === 'string') {
+						// Normalize address (checksums EVM addresses, leaves Obyte as-is)
+						normalizedRow[addressCol] = normalizeAddress(normalizedRow[addressCol], null);
+					}
+				}
+				
+				const values = columns.map(col => normalizedRow[col]);
 				const result = await db.query(sql, values);
 				if (result.affectedRows > 0) {
 					imported++;
@@ -73,6 +105,19 @@ async function importDatabase(exportFile) {
 			}
 			
 			console.log(`  Imported ${imported} new rows (${rows.length - imported} duplicates skipped)`);
+		}
+		
+		// Record import metadata for each network that has last_blocks imported
+		if (exportData.tables.last_blocks) {
+			for (const lastBlockRow of exportData.tables.last_blocks) {
+				if (lastBlockRow.last_block > 0) {
+					await db.query(`
+						INSERT OR REPLACE INTO import_metadata (network, import_date, export_date, last_block)
+						VALUES (?, CURRENT_TIMESTAMP, ?, ?)
+					`, [lastBlockRow.network, exportData.exportDate || null, lastBlockRow.last_block]);
+					console.log(`  Recorded import metadata for ${lastBlockRow.network} (last_block: ${lastBlockRow.last_block})`);
+				}
+			}
 		}
 		
 		console.log(`\n✅ Database import completed successfully!`);

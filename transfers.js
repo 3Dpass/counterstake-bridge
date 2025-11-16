@@ -16,6 +16,7 @@ const Polygon = require('./polygon.js');
 const Kava = require('./kava.js');
 const ThreeDPass = require('./threedpass.js');
 const { wait, asyncCallWithTimeout } = require('./utils.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 const networkApi = {};
 let maxAmounts;
@@ -78,10 +79,9 @@ async function linkOrphanedClaimsToTransfer(transfer, transfer_id) {
 	
 	try {
 		// Find orphaned claims (transfer_id IS NULL) that match this transfer's txid
-		// Use case-insensitive comparison for addresses to handle legacy data stored with different case
 		const orphanedClaims = await db.query(
 			`SELECT * FROM claims 
-			WHERE bridge_id=? AND type=? AND txid=? AND txts=? AND LOWER(sender_address)=LOWER(?) AND LOWER(dest_address)=LOWER(?) 
+			WHERE bridge_id=? AND type=? AND txid=? AND txts=? AND sender_address=? AND dest_address=? 
 			AND transfer_id IS NULL`,
 			[bridge_id, type, txid, txts, sender_address, dest_address]
 		);
@@ -530,22 +530,13 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 
 	// Normalize EVM addresses to checksummed format for consistent matching
 	// This ensures addresses from events match addresses stored in the database
-	try {
-		if (sender_address && sender_address.startsWith('0x') && sender_address.length === 42) {
-			sender_address = utils.getAddress(sender_address);
-		}
-		if (dest_address && dest_address.startsWith('0x') && dest_address.length === 42) {
-			dest_address = utils.getAddress(dest_address);
-		}
-		if (claimant_address && claimant_address.startsWith('0x') && claimant_address.length === 42) {
-			claimant_address = utils.getAddress(claimant_address);
-		}
-	} catch (e) {
-		// If address normalization fails, continue with original addresses
-		// (might be non-EVM addresses like Obyte)
-	}
-
+	// Use centralized normalizeAddress function
 	const network = type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
+	const opposite_network = type === 'expatriation' ? bridge.home_network : bridge.foreign_network;
+	sender_address = normalizeAddress(sender_address, networkApi[network]);
+	dest_address = normalizeAddress(dest_address, networkApi[opposite_network]);
+	claimant_address = normalizeAddress(claimant_address, networkApi[network]);
+
 	const unlock = await mutex.lock(network);
 	console.log(`handling claim ${claim_num} in tx ${claim_txid}`);
 
@@ -554,7 +545,7 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 		return unlock(`duplicate claim ${claim_num} in tx ${claim_txid}`);
 
 	// make sure the opposite network is up to date and we know all the transfers initiated there
-	const opposite_network = type === 'expatriation' ? bridge.home_network : bridge.foreign_network;
+	// opposite_network already declared above
 	if (!networkApi[opposite_network])
 		return unlock(`opposite network ${opposite_network} not active, ignoring claim ${claim_txid}`);
 	await networkApi[opposite_network].waitUntilSynced();
@@ -579,9 +570,8 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 	};
 
 	// sender_address and dest_address are case-sensitive! For Ethereum, use mixed case checksummed addresses only
-	// Use case-insensitive comparison for addresses to handle legacy data stored with different case
 	const findTransfers = async () => {
-		const transfers = await db.query("SELECT * FROM transfers WHERE bridge_id=? AND txid=? AND txts=? AND LOWER(sender_address)=LOWER(?) AND LOWER(dest_address)=LOWER(?) AND type=? AND is_confirmed=1", [bridge_id, txid, txts, sender_address, dest_address, type]);
+		const transfers = await db.query("SELECT * FROM transfers WHERE bridge_id=? AND txid=? AND txts=? AND sender_address=? AND dest_address=? AND type=? AND is_confirmed=1", [bridge_id, txid, txts, sender_address, dest_address, type]);
 		console.log(`transfer candidates for ${txid}`, transfers);
 		// Debug: Check if any transfer exists with this txid (regardless of other fields)
 		if (transfers.length === 0) {
@@ -1316,9 +1306,13 @@ function forgetUnconfirmedClaim(claim_txid) {
 async function handleNewExportAA(export_aa, home_network, home_asset, home_asset_decimals, foreign_network, foreign_asset, version) {
 	const unlock = await mutex.lock('new_bridge');
 	console.log('new export', { export_aa, home_network, home_asset, home_asset_decimals, foreign_network, foreign_asset, version });
-	// Normalize address to lowercase for case-insensitive comparison (addresses are case-insensitive)
-	const normalized_export_aa = export_aa ? export_aa.toLowerCase() : export_aa;
-	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE LOWER(export_aa)=?", [normalized_export_aa]);
+	
+	// Checksum export_aa if it's a valid EVM address
+	// export_aa is on home_network (where the export bridge contract is deployed)
+	// Only checksum EVM addresses (0x...), not Obyte addresses (base58)
+	const checksummed_export_aa = normalizeAddress(export_aa, networkApi[home_network]);
+	
+	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE export_aa=?", [export_aa]);
 	if (existing_bridge)
 		return unlock(`export AA ${export_aa} already belongs to bridge ${existing_bridge.bridge_id}`);
 //	if (!networkApi[home_network])
@@ -1350,31 +1344,24 @@ async function handleNewExportAA(export_aa, home_network, home_asset, home_asset
 		const [claim] = await db.query(`SELECT * FROM claims WHERE bridge_id=? AND transfer_id IS NULL LIMIT 1`);
 		if (claim)
 			return unlock(`already had at least one invalid claim ${claim.claim_num} on half-complete import-only bridge ${bridge_id}, will not complete the bridge`);
-		// Normalize export_aa to lowercase before updating (addresses are case-insensitive)
-		const normalized_export_aa_for_update = export_aa ? export_aa.toLowerCase() : export_aa;
-		await db.query(`UPDATE bridges SET export_aa=?, home_asset_decimals=?, home_symbol=?, foreign_symbol=?, e_v=? WHERE bridge_id=?`, [normalized_export_aa_for_update, home_asset_decimals, home_symbol, foreign_symbol, version, bridge_id]);
-		unlock(`completed bridge ${bridge_id} ${home_symbol} ${home_network}->${foreign_network} by adding export AA ${export_aa}`);
+		await db.query(`UPDATE bridges SET export_aa=?, home_asset_decimals=?, home_symbol=?, foreign_symbol=?, e_v=? WHERE bridge_id=?`, [checksummed_export_aa, home_asset_decimals, home_symbol, foreign_symbol, version, bridge_id]);
+		unlock(`completed bridge ${bridge_id} ${home_symbol} ${home_network}->${foreign_network} by adding export AA ${checksummed_export_aa}`);
 		if (networkApi[foreign_network])
 			networkApi[foreign_network].startWatchingImportAA(import_aa);
-		networkApi[home_network].startWatchingExportAA(export_aa);
+		networkApi[home_network].startWatchingExportAA(checksummed_export_aa);
 		return true;
 	}
 	const params = [export_aa, home_network, home_asset, home_asset_decimals, home_symbol, foreign_network, foreign_asset, foreign_symbol, version, '', '', ''];
-	// Normalize export_aa to lowercase before inserting (addresses are case-insensitive)
-	const normalized_export_aa_for_insert = export_aa ? export_aa.toLowerCase() : export_aa;
-	params[0] = normalized_export_aa_for_insert; // Replace export_aa in params with normalized version
-	// Checksum foreign_asset if it's an EVM address (starts with 0x and is 42 chars)
+	// Checksum export_aa if it's a valid EVM address (already done above, but ensure it's in params)
+	params[0] = checksummed_export_aa; // Replace export_aa in params with checksummed version (index 0)
+	// Checksum foreign_asset if it's a valid EVM address (use isValidAddress pattern to match original implementation)
 	let checksummed_foreign_asset = foreign_asset;
-	if (foreign_asset && foreign_asset.startsWith('0x') && foreign_asset.length === 42) {
-		try {
-			checksummed_foreign_asset = utils.getAddress(foreign_asset);
-		} catch (e) {
-			// If checksumming fails, use as-is
-		}
+	if (networkApi[foreign_network] && networkApi[foreign_network].isValidAddress(foreign_asset)) {
+		checksummed_foreign_asset = utils.getAddress(foreign_asset);
 	}
 	params[6] = checksummed_foreign_asset; // Replace foreign_asset in params with checksummed version (index 6)
 	await db.query(`INSERT INTO bridges (export_aa, home_network, home_asset, home_asset_decimals, home_symbol, foreign_network, foreign_asset, foreign_symbol, e_v, i_v, ea_v, ia_v) VALUES (${Array(params.length).fill('?').join(', ')})`, params);
-	unlock(`created a new half-bridge ${export_aa} ${home_symbol} ${home_network}->${foreign_network} with only export end`);
+	unlock(`created a new half-bridge ${checksummed_export_aa} ${home_symbol} ${home_network}->${foreign_network} with only export end`);
 	return true;
 }
 
@@ -1382,9 +1369,13 @@ async function handleNewExportAA(export_aa, home_network, home_asset, home_asset
 async function handleNewImportAA(import_aa, home_network, home_asset, foreign_network, foreign_asset, foreign_asset_decimals, stake_asset, version) {
 	const unlock = await mutex.lock('new_bridge');
 	console.log('new import', { import_aa, home_network, home_asset, foreign_network, foreign_asset, foreign_asset_decimals, stake_asset, version });
-	// Normalize address to lowercase for case-insensitive comparison (addresses are case-insensitive)
-	const normalized_import_aa = import_aa ? import_aa.toLowerCase() : import_aa;
-	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE LOWER(import_aa)=?", [normalized_import_aa]);
+	
+	// Checksum import_aa if it's a valid EVM address
+	// import_aa is on foreign_network (where the import bridge contract is deployed)
+	// Only checksum EVM addresses (0x...), not Obyte addresses (base58)
+	const checksummed_import_aa = normalizeAddress(import_aa, networkApi[foreign_network]);
+	
+	const [existing_bridge] = await db.query("SELECT bridge_id FROM bridges WHERE import_aa=?", [import_aa]);
 	if (existing_bridge)
 		return unlock(`import AA ${import_aa} already belongs to bridge ${existing_bridge.bridge_id}`);
 //	if (!networkApi[home_network])
@@ -1411,53 +1402,49 @@ async function handleNewImportAA(import_aa, home_network, home_asset, foreign_ne
 		const [claim] = await db.query(`SELECT * FROM claims WHERE bridge_id=? AND transfer_id IS NULL LIMIT 1`);
 		if (claim)
 			return unlock(`already had at least one invalid claim ${claim.claim_num} on half-complete export-only bridge ${bridge_id}, will not complete the bridge`);
-		// Normalize import_aa to lowercase before updating (addresses are case-insensitive)
-		const normalized_import_aa_for_update = import_aa ? import_aa.toLowerCase() : import_aa;
-		await db.query(`UPDATE bridges SET import_aa=?, foreign_asset_decimals=?, stake_asset=?, home_symbol=?, foreign_symbol=?, i_v=? WHERE bridge_id=?`, [normalized_import_aa_for_update, foreign_asset_decimals, stake_asset, home_symbol, foreign_symbol, version, bridge_id]);
-		unlock(`completed bridge ${bridge_id} ${import_aa} ${foreign_symbol} ${home_network}->${foreign_network} by adding import AA ${import_aa}`);
-		networkApi[foreign_network].startWatchingImportAA(import_aa);
+		await db.query(`UPDATE bridges SET import_aa=?, foreign_asset_decimals=?, stake_asset=?, home_symbol=?, foreign_symbol=?, i_v=? WHERE bridge_id=?`, [checksummed_import_aa, foreign_asset_decimals, stake_asset, home_symbol, foreign_symbol, version, bridge_id]);
+		unlock(`completed bridge ${bridge_id} ${checksummed_import_aa} ${foreign_symbol} ${home_network}->${foreign_network} by adding import AA ${checksummed_import_aa}`);
+		networkApi[foreign_network].startWatchingImportAA(checksummed_import_aa);
 		if (networkApi[home_network])
 			networkApi[home_network].startWatchingExportAA(export_aa);
 		return true;
 	}
 	const params = [import_aa, home_network, home_asset, home_symbol, foreign_network, foreign_asset, foreign_asset_decimals, foreign_symbol, stake_asset, '', version, '', ''];
-	// Normalize import_aa to lowercase before inserting (addresses are case-insensitive)
-	const normalized_import_aa_for_insert = import_aa ? import_aa.toLowerCase() : import_aa;
-	params[0] = normalized_import_aa_for_insert; // Replace import_aa in params with normalized version
-	// Checksum foreign_asset if it's an EVM address (starts with 0x and is 42 chars)
+	// Checksum import_aa if it's a valid EVM address (already done above, but ensure it's in params)
+	params[0] = checksummed_import_aa; // Replace import_aa in params with checksummed version (index 0)
+	// Checksum foreign_asset if it's a valid EVM address (use isValidAddress pattern to match original implementation)
 	let checksummed_foreign_asset = foreign_asset;
-	if (foreign_asset && foreign_asset.startsWith('0x') && foreign_asset.length === 42) {
-		try {
-			checksummed_foreign_asset = utils.getAddress(foreign_asset);
-		} catch (e) {
-			// If checksumming fails, use as-is
-		}
+	if (networkApi[foreign_network] && networkApi[foreign_network].isValidAddress(foreign_asset)) {
+		checksummed_foreign_asset = utils.getAddress(foreign_asset);
 	}
 	params[5] = checksummed_foreign_asset; // Replace foreign_asset in params with checksummed version (index 5)
 	await db.query(`INSERT INTO bridges (import_aa, home_network, home_asset, home_symbol, foreign_network, foreign_asset, foreign_asset_decimals, foreign_symbol, stake_asset, e_v, i_v, ea_v, ia_v) VALUES (${Array(params.length).fill('?').join(', ')})`, params);
-	unlock(`created a new half-bridge ${import_aa} ${foreign_symbol} ${home_network}->${foreign_network} with only import end`);
+	unlock(`created a new half-bridge ${checksummed_import_aa} ${foreign_symbol} ${home_network}->${foreign_network} with only import end`);
 	return true;
 }
 
 async function handleNewAssistantAA(side, assistant_aa, bridge_aa, network, manager, assistant_shares_asset, assistant_shares_symbol, version) {
 	const unlock = await mutex.lock('new_bridge');
 	console.log(`new assistant`, { side, assistant_aa, bridge_aa, manager, assistant_shares_asset, assistant_shares_symbol, version });
-	// Normalize address to lowercase for case-insensitive comparison (addresses are case-insensitive)
-	const normalized_bridge_aa = bridge_aa ? bridge_aa.toLowerCase() : bridge_aa;
-	const [bridge] = await db.query(`SELECT * FROM bridges WHERE LOWER(${side}_aa)=? AND ${side === 'export' ? 'home_network' : 'foreign_network'}=?`, [normalized_bridge_aa, network]);
+	
+	// Checksum addresses if they are EVM addresses
+	// assistant_aa is on the network where the assistant contract is deployed
+	const checksummed_assistant_aa = normalizeAddress(assistant_aa, networkApi[network]);
+	// Also checksum bridge_aa and manager if they are EVM addresses
+	const checksummed_bridge_aa = normalizeAddress(bridge_aa, networkApi[network]);
+	const checksummed_manager = normalizeAddress(manager, networkApi[network]);
+	
+	// Use checksummed bridge_aa for lookup to match what's stored in the database
+	const [bridge] = await db.query(`SELECT * FROM bridges WHERE ${side}_aa=? AND ${side === 'export' ? 'home_network' : 'foreign_network'}=?`, [checksummed_bridge_aa, network]);
 	if (!bridge)
 		return unlock(`got new ${side} assistant for AA ${bridge_aa} but the bridge not found`);
 	const { bridge_id } = bridge;
 	// Use network name directly as networkApi key (network names are consistent)
 	const meIsManager = networkApi[network].getMyAddress() === manager;
 	
-	// Normalize addresses to lowercase before inserting/updating (addresses are case-insensitive)
-	const normalized_assistant_aa = assistant_aa ? assistant_aa.toLowerCase() : assistant_aa;
-	const normalized_bridge_aa_for_insert = bridge_aa ? bridge_aa.toLowerCase() : bridge_aa;
-	
 	if (meIsManager)
-		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, [normalized_assistant_aa, version, bridge_id]);
-	await db.query(`INSERT ${db.getIgnore()} INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [normalized_assistant_aa, bridge_id, normalized_bridge_aa_for_insert, network, side, manager, assistant_shares_asset, assistant_shares_symbol, version]);
+		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, [checksummed_assistant_aa, version, bridge_id]);
+	await db.query(`INSERT ${db.getIgnore()} INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [checksummed_assistant_aa, bridge_id, checksummed_bridge_aa, network, side, checksummed_manager, assistant_shares_asset, assistant_shares_symbol, version]);
 	unlock();
 	return meIsManager;
 }
@@ -1488,10 +1475,13 @@ async function handleNewManager(assistant_aa, previousManager, newManager, netwo
 	if (meIsNewManager) {
 		console.log(`🤖 Bot became the manager of assistant ${assistant_aa}, updating bridges table`);
 		
+		// Checksum assistant_aa if it's a valid EVM address
+		const checksummed_assistant_aa = normalizeAddress(assistant_aa, networkApiInstance);
+		
 		// Update the bridges table with the assistant address
 		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, 
-			[assistant_aa, assistant.version, bridge_id]);
-		console.log(`✅ Updated bridges table: ${side}_assistant_aa = ${assistant_aa}`);
+			[checksummed_assistant_aa, assistant.version, bridge_id]);
+		console.log(`✅ Updated bridges table: ${side}_assistant_aa = ${checksummed_assistant_aa}`);
 	} else {
 		console.log(`ℹ️  Bot is not the new manager of assistant ${assistant_aa} (new manager: ${newManager}, bot: ${botAddress})`);
 		
@@ -1504,10 +1494,14 @@ async function handleNewManager(assistant_aa, previousManager, newManager, netwo
 		}
 	}
 	
+	// Checksum addresses if they are EVM addresses
+	const checksummed_assistant_aa = normalizeAddress(assistant_aa, networkApiInstance);
+	const checksummed_newManager = normalizeAddress(newManager, networkApiInstance);
+	
 	// Update the manager in pooled_assistants table
 	await db.query(`UPDATE pooled_assistants SET manager = ? WHERE assistant_aa = ? AND network = ?`, 
-		[newManager, assistant_aa, network]);
-	console.log(`✅ Updated manager in pooled_assistants table: ${newManager}`);
+		[checksummed_newManager, checksummed_assistant_aa, network]);
+	console.log(`✅ Updated manager in pooled_assistants table: ${checksummed_newManager}`);
 	
 	unlock();
 	return meIsNewManager;
@@ -1537,7 +1531,14 @@ async function populatePooledAssistantsTable() {
 			version = conf.version;
 		}
 		const shares_symbol = await api.getSymbol(shares_asset);
-		await db.query(`INSERT INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, version]);
+		
+		// Checksum addresses if they are EVM addresses
+		const checksummed_assistant_aa = normalizeAddress(assistant_aa, api);
+		const checksummed_bridge_aa = normalizeAddress(bridge_aa, api);
+		const checksummed_manager = normalizeAddress(manager, api);
+		const checksummed_shares_asset = normalizeAddress(shares_asset, api);
+		
+		await db.query(`INSERT INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?,?, ?,?,?, ?,?, ?)`, [checksummed_assistant_aa, bridge_id, checksummed_bridge_aa, network, side, checksummed_manager, checksummed_shares_asset, shares_symbol, version]);
 	}
 
 	const bridges = await db.query("SELECT * FROM bridges");
