@@ -10,16 +10,14 @@
 const db_import = require('./db_import.js');
 const db = require('ocore/db.js');
 const { ethers } = require("ethers");
-const { normalizeAddressCaseInsensitive } = require('./address_normalizer.js');
+const { normalizeAddress } = require('./address_normalizer.js');
 
 async function init() {
     await db_import.initDB();
     console.log('Database initialized');
 }
 
-function normalizeAddress(address) {
-    return normalizeAddressCaseInsensitive(address);
-}
+// Use normalizeAddress directly from address_normalizer.js
 
 async function checkDuplicateBridges() {
     console.log('🔍 Checking for duplicate bridges by foreign address...\n');
@@ -95,7 +93,10 @@ async function checkDuplicateBridges() {
             console.log(`Number of Duplicates: ${dup.bridges.length}`);
             console.log(`\n🔍 Duplicated Foreign Assets (raw values from DB):`);
             dup.bridges.forEach((b, idx) => {
-                console.log(`   ${idx + 1}. Bridge #${b.bridge_id}: ${b.foreign_asset} ${b.foreign_asset.toLowerCase() === address.toLowerCase() ? '✅' : '❌'}`);
+                // Normalize addresses before comparison for consistent display
+                const normalizedBridgeAsset = normalizeAddress(b.foreign_asset, null);
+                const normalizedAddress = normalizeAddress(address, null);
+                console.log(`   ${idx + 1}. Bridge #${b.bridge_id}: ${b.foreign_asset} ${normalizedBridgeAsset === normalizedAddress ? '✅' : '❌'}`);
             });
             console.log('');
             

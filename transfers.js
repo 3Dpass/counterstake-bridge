@@ -903,7 +903,10 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 			throw Error(`duplicate valid claim in trigger ${claim_txid}, previous ${db_claim.claim_num}`);
 	}
 
-	const my_stake = (networkApi[network].isMyAddress(claimant_address) || claimant_address === assistant_aa) ? stake.toString() : '0';
+	// Normalize assistant_aa before comparison (addresses from DB are stored checksummed, but normalize for consistency)
+	const normalized_assistant_aa = assistant_aa ? normalizeAddress(assistant_aa, networkApi[network]) : null;
+	const normalized_claimant_address = normalizeAddress(claimant_address, networkApi[network]);
+	const my_stake = (networkApi[network].isMyAddress(claimant_address) || normalized_claimant_address === normalized_assistant_aa) ? stake.toString() : '0';
 
 	// log the claim either way, valid or not valid
 	await db.query("INSERT INTO claims (claim_num, bridge_id, type, amount, reward, sender_address, dest_address, claimant_address, data, txid, txts, transfer_id, claim_txid, my_stake) VALUES (?,?,?, ?,?, ?,?,?, ?, ?,?, ?, ?,?)", [claim_num, bridge_id, type, amount.toString(), reward.toString(), sender_address, dest_address, claimant_address, data, txid, txts, transfer_id, claim_txid, my_stake]);
@@ -958,15 +961,17 @@ async function handleChallenge(bridge, type, claim_num, address, stake_on, stake
 	eventBus.emit('challenge', bridge, type, claim_num, address, stake_on, stake, challenge_txid, claim, valid_outcome);
 
 	const my_stake = await getMyStake({ claim_num, bridge_id, type });
-	if (my_stake && my_stake !== '0' && !api.isMyAddress(address) && address !== assistant_aa)
+	// Normalize assistant_aa before comparison (addresses from DB are stored checksummed, but normalize for consistency)
+	const normalized_assistant_aa = assistant_aa ? normalizeAddress(assistant_aa, api) : null;
+	// Normalize address before comparison and storage to ensure consistent format
+	const normalized_address = normalizeAddress(address, api);
+	if (my_stake && my_stake !== '0' && !api.isMyAddress(address) && normalized_address !== normalized_assistant_aa)
 		notifications.notifyAdmin(`my claim ${claim_num} challenged by ${address}`, `network ${network}, bridge ${bridge_id}, AA ${bridge_aa}\nstaked ${stake.toString()} on '${stake_on}'\nvalid outcome ${valid_outcome}, current outcome ${claim.current_outcome}, challenge txid ${challenge_txid}, type ${type}`);
 
 //	if (claim.type !== type)
 //		throw Error(`wrong type in claim ${claim_num}`);
 	
-	// Normalize address before storage to ensure consistent format
-	const normalized_address = normalizeAddress(address, api);
-	
+	// Use the already normalized address for storage (normalized above for comparison)
 	await db.query("INSERT INTO challenges (claim_num, bridge_id, type, address, stake_on, stake, challenge_txid) VALUES(?,?, ?,?, ?,?, ?)", [claim_num, bridge_id, type, normalized_address, stake_on, stake.toString(), challenge_txid]);
 	
 	if (stake_on !== claim.current_outcome)
@@ -1482,8 +1487,9 @@ async function handleNewAssistantAA(side, assistant_aa, bridge_aa, network, mana
 	if (!bridge)
 		return unlock(`got new ${side} assistant for AA ${bridge_aa} but the bridge not found`);
 	const { bridge_id } = bridge;
-	// Use network name directly as networkApi key (network names are consistent)
-	const meIsManager = networkApi[network].getMyAddress() === manager;
+	// Normalize manager before comparison (addresses should be checksummed)
+	const normalized_manager = normalizeAddress(manager, networkApi[network]);
+	const meIsManager = networkApi[network].getMyAddress() === normalized_manager;
 	
 	if (meIsManager)
 		await db.query(`UPDATE bridges SET ${side}_assistant_aa=?, ${side === 'export' ? 'ea_v' : 'ia_v'}=? WHERE bridge_id=?`, [checksummed_assistant_aa, version, bridge_id]);

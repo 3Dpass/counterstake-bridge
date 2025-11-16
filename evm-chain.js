@@ -545,7 +545,9 @@ class EvmChain {
 	}
 
 	isMyAddress(address) {
-		return address === this.#wallet.address;
+		// Normalize address before comparison (wallet.address is already checksummed from ethers)
+		const normalizedAddress = normalizeAddress(address, this);
+		return normalizedAddress === this.#wallet.address;
 	}
 
 	// only mixed case hex addresses are allowed (ICAP addresses not allowed)
@@ -673,7 +675,9 @@ class EvmChain {
 				throw Error(`failed to approve ${bridge_aa} to spend our ${staked_asset}`);
 		}
 
-		const bThirdPartyClaiming = (dest_address && dest_address !== this.#wallet.address);
+		// Normalize dest_address before comparison (wallet.address is already checksummed from ethers)
+		const normalized_dest_address = dest_address ? normalizeAddress(dest_address, this) : null;
+		const bThirdPartyClaiming = (normalized_dest_address && normalized_dest_address !== this.#wallet.address);
 		const paid_amount = bThirdPartyClaiming ? amount.sub(reward) : BigNumber.from(0);
 		const total = (claimed_asset === staked_asset) ? stake.add(paid_amount) : stake;
 		const contract = this.#contractsByAddress[bridge_aa];
@@ -884,15 +888,10 @@ class EvmChain {
 		}
 		const bridge = await transfers.getBridgeByAddress(event.address, true);
 		const { bridge_id, export_aa } = bridge;
-		// Checksum addresses for comparison (addresses are stored checksummed in DB)
-		let checksummedEventAddress = event.address;
-		let checksummedExportAa = export_aa;
-		if (this.isValidAddress(event.address)) {
-			checksummedEventAddress = ethers.utils.getAddress(event.address);
-		}
-		if (this.isValidAddress(export_aa)) {
-			checksummedExportAa = ethers.utils.getAddress(export_aa);
-		}
+		// Normalize addresses for comparison (addresses are stored checksummed in DB, but normalize for consistency)
+		// Use centralized normalizeAddress function instead of ethers.utils.getAddress()
+		const checksummedEventAddress = normalizeAddress(event.address, this);
+		const checksummedExportAa = normalizeAddress(export_aa, this);
 		if (checksummedExportAa && checksummedEventAddress !== checksummedExportAa)
 			throw Error(`expatriation on non-export address? export_aa=${export_aa}, address=${event.address}`);
 		// Normalize addresses to checksummed format for consistent matching
@@ -946,19 +945,11 @@ class EvmChain {
 			const { bridge_id, import_aa, export_aa } = bridge;
 			// NewRepatriation can come from either import_aa or export_aa (for bidirectional bridges)
 			// The getType function determines the type based on which address matches
-			// Checksum addresses for comparison (addresses are stored checksummed in DB)
-			let checksummedEventAddress = event.address;
-			let checksummedImportAa = import_aa;
-			let checksummedExportAa = export_aa;
-			if (this.isValidAddress(event.address)) {
-				checksummedEventAddress = ethers.utils.getAddress(event.address);
-			}
-			if (this.isValidAddress(import_aa)) {
-				checksummedImportAa = ethers.utils.getAddress(import_aa);
-			}
-			if (this.isValidAddress(export_aa)) {
-				checksummedExportAa = ethers.utils.getAddress(export_aa);
-			}
+			// Normalize addresses for comparison (addresses are stored checksummed in DB, but normalize for consistency)
+			// Use centralized normalizeAddress function instead of ethers.utils.getAddress()
+			const checksummedEventAddress = normalizeAddress(event.address, this);
+			const checksummedImportAa = normalizeAddress(import_aa, this);
+			const checksummedExportAa = normalizeAddress(export_aa, this);
 			if (checksummedImportAa && checksummedEventAddress !== checksummedImportAa && checksummedExportAa && checksummedEventAddress !== checksummedExportAa)
 				throw Error(`repatriation on unknown address? import_aa=${import_aa}, export_aa=${export_aa}, address=${event.address}`);
 			// Normalize addresses to checksummed format for consistent matching
