@@ -372,41 +372,57 @@ class ThreeDPass extends EvmChain {
 		const onNewExport = async (contractAddress, tokenAddress, foreign_network, foreign_asset, event) => {
 			console.log(`NewExport event for 3DPass:`, { contractAddress, tokenAddress, foreign_network, foreign_asset });
 			
+			// Normalize addresses before processing (handleNewExportAA will also normalize, but normalize here for consistency)
+			const normalizedContractAddress = normalizeAddress(contractAddress, this);
+			const normalizedTokenAddress = tokenAddress !== AddressZero ? normalizeAddress(tokenAddress, this) : tokenAddress;
+			// foreign_asset is on the foreign network, so we need to get the foreign network API to normalize it correctly
+			const networkApi = require('./transfers.js').networkApi;
+			const foreignNetworkApi = networkApi[foreign_network];
+			const normalizedForeignAsset = normalizeAddress(foreign_asset, foreignNetworkApi);
+			
 			// Get factory addresses from conf
 			const factoryAddresses = conf.threedpass_factory_contract_addresses;
 			const version = getVersion(factoryAddresses, event.address);
 			if (!version)
-				throw Error(`undefined version of new export ${contractAddress} ${JSON.stringify(event)}`);
+				throw Error(`undefined version of new export ${normalizedContractAddress} ${JSON.stringify(event)}`);
 			
 			// Get decimals for the token (P3D precompile or 3DPass ERC20 precompile)
-			const decimals = await this.getDecimals(tokenAddress);
+			const decimals = await this.getDecimals(normalizedTokenAddress);
 			if (decimals === null)
-				return console.log(`not adding new export contract ${contractAddress} as its token ${tokenAddress} didn't return decimals`);
+				return console.log(`not adding new export contract ${normalizedContractAddress} as its token ${normalizedTokenAddress} didn't return decimals`);
 			
 			// Normalize network names to ensure consistency
 			const normalizedForeignNetwork = foreign_network === '3dpass' ? '3DPass' : foreign_network;
 			
-			const bAdded = await transfers.handleNewExportAA(contractAddress, this.network, tokenAddress, decimals, normalizedForeignNetwork, foreign_asset, version);
+			const bAdded = await transfers.handleNewExportAA(normalizedContractAddress, this.network, normalizedTokenAddress, decimals, normalizedForeignNetwork, normalizedForeignAsset, version);
 			if (bAdded)
-				this.startWatchingExportAA(contractAddress);
+				this.startWatchingExportAA(normalizedContractAddress);
 		};
 
 		// Handle NewImportWrapper events specifically for 3DPass
 		const onNewImportWrapper = async (contractAddress, home_network, home_asset, precompileAddress, stakeTokenAddress, event) => {
 			console.log(`NewImportWrapper event for 3DPass:`, { contractAddress, home_network, home_asset, precompileAddress, stakeTokenAddress });
 			
+			// Normalize addresses before processing (handleNewImportAA will also normalize, but normalize here for consistency)
+			const normalizedContractAddress = normalizeAddress(contractAddress, this);
+			// home_asset is on the home network, so we need to get the home network API to normalize it correctly
+			const networkApi = require('./transfers.js').networkApi;
+			const homeNetworkApi = networkApi[home_network];
+			const normalizedHomeAsset = normalizeAddress(home_asset, homeNetworkApi);
+			const normalizedStakeTokenAddress = stakeTokenAddress !== AddressZero ? normalizeAddress(stakeTokenAddress, this) : stakeTokenAddress;
+			
 			// Get factory addresses from conf
 			const factoryAddresses = conf.threedpass_factory_contract_addresses;
 			const version = getVersion(factoryAddresses, event.address);
 			if (!version)
-				throw Error(`undefined version of new import wrapper ${contractAddress} ${JSON.stringify(event)}`);
+				throw Error(`undefined version of new import wrapper ${normalizedContractAddress} ${JSON.stringify(event)}`);
 			
 			// Normalize network names to ensure consistency
 			const normalizedHomeNetwork = home_network === '3dpass' ? '3DPass' : home_network;
 			
-			const bAdded = await transfers.handleNewImportAA(contractAddress, normalizedHomeNetwork, home_asset, this.network, precompileAddress, 18, stakeTokenAddress, version);
+			const bAdded = await transfers.handleNewImportAA(normalizedContractAddress, normalizedHomeNetwork, normalizedHomeAsset, this.network, normalizedContractAddress, 18, normalizedStakeTokenAddress, version);
 			if (bAdded)
-				this.startWatchingImportAA(contractAddress);
+				this.startWatchingImportAA(normalizedContractAddress);
 		};
 
 		// Set up Export and ImportWrapper event listeners and process historical events

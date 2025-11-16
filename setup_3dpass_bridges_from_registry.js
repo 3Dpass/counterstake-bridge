@@ -480,8 +480,10 @@ async function setupCorrect3DPassBridges(networkApi) {
                             const checksummedBridgeAa = normalizeAddress(bridgeAa, threeDPassApi);
                             // Manager address could be from any network, normalize it
                             const checksummedManagerAddress = normalizeAddress(managerAddress, threeDPassApi);
+                            // Normalize shares_asset before storage (addresses in DB are stored checksummed)
+                            const checksummedSharesAsset = normalizeAddress(sharesAsset, threeDPassApi);
                             await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                                [checksummedAssistantAddress, bridgeId, checksummedBridgeAa, network, side, checksummedManagerAddress, sharesAsset, sharesSymbol, version]);
+                                [checksummedAssistantAddress, bridgeId, checksummedBridgeAa, network, side, checksummedManagerAddress, checksummedSharesAsset, sharesSymbol, version]);
                             console.log(`    ✅ Assistant added/updated in pooled_assistants table`);
                         
                         // Separately: Update bridges table ONLY if bot is the manager (sets primary assistant)
@@ -832,8 +834,10 @@ async function setupCorrect3DPassBridges(networkApi) {
                     const checksummedBridgeAddressForAssistant = normalizeAddress(bridge.address, threeDPassApi);
                     // Manager address could be from any network, normalize it
                     const checksummedAssistantManagerAddress = normalizeAddress(assistantInfo.managerAddress, threeDPassApi);
+                    // Normalize shares_asset before storage (addresses in DB are stored checksummed)
+                    const checksummedSharesAsset = normalizeAddress(sharesAsset, threeDPassApi);
                     await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                        [checksummedAssistantInfoAddress, newBridgeId, checksummedBridgeAddressForAssistant, network, side, checksummedAssistantManagerAddress, sharesAsset, sharesSymbol, version]);
+                        [checksummedAssistantInfoAddress, newBridgeId, checksummedBridgeAddressForAssistant, network, side, checksummedAssistantManagerAddress, checksummedSharesAsset, sharesSymbol, version]);
                     console.log(`    ✅ Assistant added to pooled_assistants table`);
                 } catch (err) {
                     console.log(`    ⚠️  Could not add assistant ${assistantInfo.address} to pooled_assistants: ${err.message}`);
@@ -949,8 +953,10 @@ async function setupCorrect3DPassBridges(networkApi) {
                     const checksummedBridgeAddressForAssistant2 = normalizeAddress(bridge.address, threeDPassApi);
                     // Manager address could be from any network, normalize it
                     const checksummedAssistantManagerAddress2 = normalizeAddress(assistantInfo.managerAddress, threeDPassApi);
+                    // Normalize shares_asset before storage (addresses in DB are stored checksummed)
+                    const checksummedSharesAsset2 = normalizeAddress(sharesAsset, threeDPassApi);
                     await db.query(`INSERT OR REPLACE INTO pooled_assistants (assistant_aa, bridge_id, bridge_aa, network, side, manager, shares_asset, shares_symbol, \`version\`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                        [checksummedAssistantInfoAddress2, newBridgeId, checksummedBridgeAddressForAssistant2, network, side, checksummedAssistantManagerAddress2, sharesAsset, sharesSymbol, version]);
+                        [checksummedAssistantInfoAddress2, newBridgeId, checksummedBridgeAddressForAssistant2, network, side, checksummedAssistantManagerAddress2, checksummedSharesAsset2, sharesSymbol, version]);
                     console.log(`    ✅ Assistant added to pooled_assistants table`);
                 } catch (err) {
                     console.log(`    ⚠️  Could not add assistant ${assistantInfo.address} to pooled_assistants: ${err.message}`);

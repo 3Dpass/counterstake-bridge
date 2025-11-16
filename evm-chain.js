@@ -1187,7 +1187,10 @@ class EvmChain {
 			// Normalize addresses before processing (handleNewExportAA will also normalize, but normalize here for consistency)
 			const normalizedContractAddress = normalizeAddress(contractAddress, this);
 			const normalizedTokenAddress = tokenAddress !== AddressZero ? normalizeAddress(tokenAddress, this) : tokenAddress;
-			const normalizedForeignAsset = normalizeAddress(foreign_asset, this);
+			// foreign_asset is on the foreign network, so we need to get the foreign network API to normalize it correctly
+			const networkApi = require('./transfers.js').networkApi;
+			const foreignNetworkApi = networkApi[foreign_network];
+			const normalizedForeignAsset = normalizeAddress(foreign_asset, foreignNetworkApi);
 			
 			const decimals = await this.getDecimals(normalizedTokenAddress);
 			if (decimals === null)
