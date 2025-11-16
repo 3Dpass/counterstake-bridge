@@ -1234,11 +1234,11 @@ class EvmChain {
 			contract.on('NewExport', onNewExport);
 			contract.on('NewImport', onNewImport);
 
-			const processPastEventsOnContract = async (from_block, to_block) => {
-				console.log('factories processPastEventsOnContract', this.network, from_block, to_block);
-				await processPastEvents(contract, contract.filters.NewExport(), from_block, to_block, this, onNewExport);
-				await processPastEvents(contract, contract.filters.NewImport(), from_block, to_block, this, onNewImport);
-			};
+		const processPastEventsOnContract = async (from_block, to_block) => {
+			console.log('factories processPastEventsOnContract', this.network, from_block, to_block);
+			await processPastEvents(contract, contract.filters.NewExport(), from_block, to_block, this, onNewExport);
+			await processPastEvents(contract, contract.filters.NewImport(), from_block, to_block, this, onNewImport);
+		};
 		
 			try {
 				// Check if connection is still alive before making provider calls
@@ -1291,11 +1291,11 @@ class EvmChain {
 					}
 				} else {
 					console.log(`ℹ️  ${this.network} factory ${factory_contract_address}: no missed blocks (top_available_block=${top_available_block} <= last_block=${last_block})`);
-				}
+			}
 
-				const since_block = await this.getSinceBlock();
-				console.log(`📜 Processing past events for ${this.network} factory ${factory_contract_address} from block ${since_block}...`);
-				await processPastEventsOnContract(since_block, 0);
+			const since_block = await this.getSinceBlock();
+			console.log(`📜 Processing past events for ${this.network} factory ${factory_contract_address} from block ${since_block}...`);
+			await processPastEventsOnContract(since_block, 0);
 				console.log(`✅ Completed factory monitoring setup for ${factory_contract_address} on ${this.network}`);
 			} catch (err) {
 				console.error(`❌ Error in startWatchingFactories for ${this.network}:`, err.message);
@@ -1414,11 +1414,11 @@ class EvmChain {
 			contract.on('NewExportAssistant', onNewExportAssistant);
 			contract.on('NewImportAssistant', onNewImportAssistant);
 
-			const processPastEventsOnContract = async (from_block, to_block) => {
-				console.log('assistants processPastEventsOnContract', this.network, from_block, to_block);
-				await processPastEvents(contract, contract.filters.NewExportAssistant(), from_block, to_block, this, onNewExportAssistant);
-				await processPastEvents(contract, contract.filters.NewImportAssistant(), from_block, to_block, this, onNewImportAssistant);
-			};
+		const processPastEventsOnContract = async (from_block, to_block) => {
+			console.log('assistants processPastEventsOnContract', this.network, from_block, to_block);
+			await processPastEvents(contract, contract.filters.NewExportAssistant(), from_block, to_block, this, onNewExportAssistant);
+			await processPastEvents(contract, contract.filters.NewImportAssistant(), from_block, to_block, this, onNewImportAssistant);
+		};
 
 			try {
 				// Check if connection is still alive before making provider calls
@@ -1473,9 +1473,9 @@ class EvmChain {
 					console.log(`ℹ️  ${this.network} assistant factory ${assistant_factory_contract_address}: no missed blocks (top_available_block=${top_available_block} <= last_block=${last_block})`);
 				}
 
-				const since_block = await this.getSinceBlock();
-				console.log(`📜 Processing past events for ${this.network} assistant factory ${assistant_factory_contract_address} from block ${since_block}...`);
-				await processPastEventsOnContract(since_block, 0);
+			const since_block = await this.getSinceBlock();
+			console.log(`📜 Processing past events for ${this.network} assistant factory ${assistant_factory_contract_address} from block ${since_block}...`);
+			await processPastEventsOnContract(since_block, 0);
 				console.log(`✅ Completed assistant factory monitoring setup for ${assistant_factory_contract_address} on ${this.network}`);
 			} catch (err) {
 				console.error(`❌ Error in startWatchingAssistantFactories for ${this.network}:`, err.message);
@@ -1518,6 +1518,96 @@ class EvmChain {
 	 * @returns {Promise<number>} Number of events processed
 	 */
 	/**
+	 * Map event data object to correct parameter order based on event name
+	 * This ensures that when event fragment is not available, we still pass arguments in the correct order
+	 * @param {string} eventName - Name of the event
+	 * @param {Object} data - Event data object from parser
+	 * @returns {Array} Array of arguments in the correct order
+	 */
+	mapEventDataToArgs(eventName, data) {
+		if (!data || typeof data !== 'object') {
+			return [];
+		}
+		
+		// Define parameter order for known events based on their signatures
+		const eventParamOrder = {
+			'NewExport': ['contractAddress', 'tokenAddress', 'foreign_network', 'foreign_asset'],
+			'NewImport': ['contractAddress', 'home_network', 'home_asset', 'symbol', 'stakeTokenAddress'],
+			'NewExportAssistant': ['contractAddress', 'bridgeAddress', 'manager', 'symbol'],
+			'NewImportAssistant': ['contractAddress', 'bridgeAddress', 'manager', 'symbol'],
+			'NewImportWrapper': ['contractAddress', 'home_network', 'home_asset', 'precompileAddress', 'stakeTokenAddress'],
+			'NewImportWrapperAssistant': ['contractAddress', 'bridgeAddress', 'precompileAddress', 'name', 'symbol']
+		};
+		
+		const paramOrder = eventParamOrder[eventName];
+		if (!paramOrder) {
+			// Unknown event, try to use data object values (may be in wrong order, but better than nothing)
+			console.log(`mapEventDataToArgs: unknown event ${eventName}, using data object values in arbitrary order`);
+			return Object.values(data);
+		}
+		
+		// Map data object to correct parameter order
+		// Also need to determine which parameters are addresses to normalize them
+		const args = [];
+		// Get event fragment to determine parameter types (if available)
+		let eventFragment = null;
+		try {
+			// Try to get event fragment from a contract interface if available
+			// This is a best-effort attempt - if we can't get it, we'll normalize all potential addresses
+			const factoryJson = require('./evm/build/contracts/CounterstakeFactory.json');
+			const assistantFactoryJson = require('./evm/build/contracts/AssistantFactory.json');
+			const { ethers } = require('ethers');
+			let iface = null;
+			if (eventName === 'NewExport' || eventName === 'NewImport' || eventName === 'NewImportWrapper') {
+				iface = new ethers.utils.Interface(factoryJson.abi);
+			} else if (eventName === 'NewExportAssistant' || eventName === 'NewImportAssistant' || eventName === 'NewImportWrapperAssistant') {
+				iface = new ethers.utils.Interface(assistantFactoryJson.abi);
+			}
+			if (iface) {
+				try {
+					eventFragment = iface.getEvent(eventName);
+				} catch (e) {
+					// Event not found in this ABI, continue without fragment
+				}
+			}
+		} catch (e) {
+			// Can't determine types, will normalize potential addresses based on name patterns
+		}
+		
+		for (let i = 0; i < paramOrder.length; i++) {
+			const paramName = paramOrder[i];
+			if (data.hasOwnProperty(paramName)) {
+				let paramValue = data[paramName];
+				
+				// Normalize addresses - check if this parameter is an address type
+				// Either from event fragment or by name pattern
+				const isAddress = eventFragment && eventFragment.inputs && eventFragment.inputs[i] 
+					? eventFragment.inputs[i].type === 'address'
+					: paramName.toLowerCase().includes('address') || paramName.toLowerCase().includes('manager') || paramName.toLowerCase().includes('token');
+				
+				if (isAddress && paramValue && typeof paramValue === 'string' && paramValue.startsWith('0x')) {
+					// This is an address parameter - normalize it
+					// Note: we don't have networkApi here, but normalizeAddress can work without it for EVM addresses
+					try {
+						const { normalizeAddress } = require('./address_normalizer.js');
+						paramValue = normalizeAddress(paramValue, null);
+					} catch (e) {
+						// If normalization fails, keep original value
+					}
+				}
+				
+				args.push(paramValue);
+			} else {
+				// Parameter not found in data, push undefined (handler should handle this)
+				console.log(`mapEventDataToArgs: parameter ${paramName} not found in data for event ${eventName}`);
+				args.push(undefined);
+			}
+		}
+		
+		return args;
+	}
+
+	/**
 	 * Process past events from parser cache (when AlwaysUseBSCscanParser or AlwaysUseEtherscanParser is enabled)
 	 * @param {Object} contract - Contract instance
 	 * @param {Object} filter - Event filter
@@ -1542,7 +1632,8 @@ class EvmChain {
 		
 		// Determine actual_to_block
 		let actual_to_block = to_block;
-		if (!to_block || to_block === 'latest' || to_block === 0) {
+		const isProcessAllRequest = (!to_block || to_block === 'latest' || to_block === 0);
+		if (isProcessAllRequest) {
 			actual_to_block = await thisArg.getBlockNumber();
 		}
 		
@@ -1564,6 +1655,12 @@ class EvmChain {
 			if (since_block === to_block && since_block > 0) {
 				console.log(`processPastEventsFromParserCache ${network}: single block query during catchup, processing all ${transactions.length} cached transactions to ensure transfers are detected`);
 				relevantTxs = transactions; // Process all cached transactions
+			} else if (isProcessAllRequest) {
+				// When to_block is 0/'latest', it means "process all events from since_block to latest"
+				// In this case, we should process ALL cached transactions regardless of their block range,
+				// because they're all historical events that need to be processed during catch-up
+				console.log(`processPastEventsFromParserCache ${network}: processing all events request (to_block=0), processing all ${transactions.length} cached transactions to catch all historical events`);
+				relevantTxs = transactions; // Process all cached transactions
 			} else if (since_block > 0 && to_block > 0) {
 				// For range queries during catchup, if the cache range doesn't overlap with requested range at all,
 				// it means the cache is stale. Process all cached transactions anyway to catch any missed transfers.
@@ -1584,9 +1681,25 @@ class EvmChain {
 					}
 				}
 			}
+		} else if (isProcessAllRequest && relevantTxs.length < transactions.length) {
+			// Even if we found some transactions in range, if this is a "process all" request,
+			// we should process ALL cached transactions to ensure we don't miss any historical events
+			console.log(`processPastEventsFromParserCache ${network}: processing all events request (to_block=0), found ${relevantTxs.length} in range but processing all ${transactions.length} cached transactions to catch all historical events`);
+			relevantTxs = transactions; // Process all cached transactions
 		}
 		
-		console.log(`processPastEventsFromParserCache ${network}: processing ${relevantTxs.length} transactions in range ${since_block}-${actual_to_block} (from ${transactions.length} total cached)`);
+		// Sort transactions by block number to ensure chronological processing
+		// This is important because assistant events depend on bridge events existing first
+		relevantTxs.sort((a, b) => {
+			// Sort by block number first
+			if (a.blockNumber !== b.blockNumber) {
+				return a.blockNumber - b.blockNumber;
+			}
+			// If same block, maintain original order (transactions are already in order within a block)
+			return 0;
+		});
+		
+		console.log(`processPastEventsFromParserCache ${network}: processing ${relevantTxs.length} transactions in range ${since_block}-${actual_to_block} (from ${transactions.length} total cached), sorted by block number`);
 		
 		let eventCount = 0;
 		
@@ -1622,8 +1735,10 @@ class EvmChain {
 			// Filter event logs by contract address and event topic
 			const matchingLogs = eventLogs.filter(log => {
 				// Check contract address - normalize addresses from external sources (parsers) before comparison
+				// Use null instead of thisArg because addresses from parsers are valid EVM addresses from the blockchain
+				// and isValidAddress() might reject lowercase addresses even though they're valid
 				if (log.address) {
-					const normalizedLogAddress = normalizeAddress(log.address, thisArg);
+					const normalizedLogAddress = normalizeAddress(log.address, null);
 					if (normalizedLogAddress !== contractAddress) {
 						return false;
 					}
@@ -1698,6 +1813,7 @@ class EvmChain {
 								}
 							} else {
 								// Non-indexed parameters are in data
+								// Try to get from log.data using input.name first (most reliable)
 								if (log.data && log.data[input.name] !== undefined) {
 									paramValue = log.data[input.name];
 									
@@ -1717,12 +1833,31 @@ class EvmChain {
 											// Keep as string if conversion fails
 										}
 									} else if (input.type === 'address') {
-										paramValue = paramValue.toLowerCase();
+										// Normalize address (checksum) instead of lowercasing
+										// Addresses from parser might be lowercase, but we need checksummed format for consistency
+										paramValue = normalizeAddress(paramValue, thisArg);
 									}
+								} else {
+									// Parameter not found in log.data by name - this shouldn't happen if parser extracted correctly
+									// but if it does, we'll fall back to using the mapped order from mapEventDataToArgs
+									console.log(`processPastEventsFromParserCache ${network}: parameter ${input.name} not found in log.data for event ${eventName}, will use fallback mapping`);
 								}
 							}
 							
 							eventArgs.push(paramValue);
+						}
+						
+						// If any parameters are null/undefined, try to fill them from log.data using the mapping function
+						// This handles cases where parameter names don't match exactly
+						if (eventArgs.some(v => v === null || v === undefined)) {
+							console.log(`processPastEventsFromParserCache ${network}: some parameters are null for event ${eventName}, attempting to fill from log.data using mapping`);
+							const mappedArgs = thisArg.mapEventDataToArgs(eventName, log.data);
+							// Replace null/undefined values with mapped values
+							for (let i = 0; i < eventArgs.length && i < mappedArgs.length; i++) {
+								if (eventArgs[i] === null || eventArgs[i] === undefined) {
+									eventArgs[i] = mappedArgs[i];
+								}
+							}
 						}
 					} else {
 						// Fallback: if we can't get event fragment, try to use raw data decoding
@@ -1737,20 +1872,35 @@ class EvmChain {
 								});
 								if (decodedLog) {
 									// Use decoded args from ethers (already in correct order)
-									eventArgs.push(...decodedLog.args);
+									// Normalize addresses in decoded args to ensure checksummed format
+									// Try to get event fragment from decoded log to determine address types
+									let decodedEventFragment = eventFragment;
+									if (!decodedEventFragment && decodedLog.name) {
+										try {
+											decodedEventFragment = contract.interface.getEvent(decodedLog.name);
+										} catch (e) {
+											// Event not found, will use name pattern matching
+										}
+									}
+									const normalizedArgs = decodedLog.args.map((arg, index) => {
+										if (decodedEventFragment && decodedEventFragment.inputs && decodedEventFragment.inputs[index]) {
+											const input = decodedEventFragment.inputs[index];
+											if (input.type === 'address' && arg && typeof arg === 'string' && arg.startsWith('0x')) {
+												return normalizeAddress(arg, thisArg);
+											}
+										}
+										return arg;
+									});
+									eventArgs.push(...normalizedArgs);
 								}
 							} catch (decodeError) {
 								console.log(`processPastEventsFromParserCache ${network}: failed to decode raw data for ${eventName}: ${decodeError.message}`);
-								// Last resort: use data object values (may be in wrong order)
-								for (const key in log.data) {
-									eventArgs.push(log.data[key]);
-								}
+								// Last resort: map data object to correct parameter order based on event name
+								eventArgs.push(...this.mapEventDataToArgs(eventName, log.data));
 							}
 						} else {
-							// No raw data, use data object values (may be in wrong order)
-							for (const key in log.data) {
-								eventArgs.push(log.data[key]);
-							}
+							// No raw data, map data object to correct parameter order based on event name
+							eventArgs.push(...this.mapEventDataToArgs(eventName, log.data));
 						}
 					}
 					

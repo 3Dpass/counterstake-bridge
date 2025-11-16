@@ -142,6 +142,7 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
   // Load existing cache state (uses normalized address internally)
   const cachedState = loadParserState(normalizedAddress);
   const cachedTransactions = cachedState?.transactions || [];
+  const cachedBlockNumbers = cachedState?.blockNumbers || [];
   const cachedTxHashes = new Set(cachedTransactions.map(tx => tx.txHash.toLowerCase()));
   const lastProcessedTxIndex = cachedState?.lastProcessedTxIndex !== undefined ? cachedState.lastProcessedTxIndex : -1;
   const lastProcessedPage = cachedState?.lastProcessedPage || 0;
@@ -162,21 +163,39 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
     let hasMorePages = true;
     let pagesFetched = 0;
     
-    // If we have cached transactions, add their block numbers
+    // Add block numbers from cached state (if available)
+    cachedBlockNumbers.forEach(block => {
+      if (block && block > 0) {
+        allBlockNumbers.add(block);
+      }
+    });
+    
+    // Also add block numbers from cached transactions (in case they're not in blockNumbers array)
     cachedTransactions.forEach(tx => {
-      allBlockNumbers.add(tx.blockNumber);
+      if (tx.blockNumber && tx.blockNumber > 0) {
+        allBlockNumbers.add(tx.blockNumber);
+      }
     });
     
     while (hasMorePages && (maxPages === 0 || page <= maxPages)) {
       // Etherscan pagination: p parameter (1-indexed)
       // Use normalized address in URL (Etherscan accepts both formats, but normalizing ensures consistency)
       const targetUrl = `${baseUrl}txs?a=${normalizedAddress}&p=${page}`;
-      console.log(`📄 Fetching page ${page}...`);
+      const isCheckingForNewPages = cachedTransactions.length > 0 && page > lastProcessedPage;
+      if (isCheckingForNewPages) {
+        console.log(`📄 Checking page ${page} for new data (${cachedTransactions.length} transactions already cached)...`);
+      } else {
+        console.log(`📄 Fetching page ${page}...`);
+      }
       
-      const result = await fetchEtherscanPage(targetUrl, { retries, delay, includeTransactions, session: browserSession });
+      const result = await fetchEtherscanPage(targetUrl, { retries, delay, includeTransactions, session: browserSession, suppressEmptyLogs: isCheckingForNewPages });
       
       if (!result.success) {
-        console.log(`⚠️  Failed to fetch page ${page}, stopping pagination`);
+        if (isCheckingForNewPages) {
+          console.log(`  ℹ️  No more pages found (using ${cachedTransactions.length} cached transactions)`);
+        } else {
+          console.log(`⚠️  Failed to fetch page ${page}, stopping pagination`);
+        }
         // Save state before stopping
         saveParserState(normalizedAddress, {
           pagesFetched: lastProcessedPage + pagesFetched,
@@ -192,18 +211,24 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       result.blockNumbers.forEach(block => allBlockNumbers.add(block));
       
       // Add transactions (avoid duplicates with cached ones)
+      let newTransactionsCount = 0;
       if (result.transactions) {
         result.transactions.forEach(tx => {
           const txHashLower = tx.txHash.toLowerCase();
           if (!cachedTxHashes.has(txHashLower) && !allTransactions.find(t => t.txHash.toLowerCase() === txHashLower)) {
             allTransactions.push(tx);
             cachedTxHashes.add(txHashLower);
+            newTransactionsCount++;
           }
         });
       }
       
       pagesFetched++;
-      console.log(`  ✅ Page ${page}: Found ${result.blockNumbers.length} blocks, ${result.transactions?.length || 0} transactions`);
+      if (isCheckingForNewPages && result.blockNumbers.length === 0 && newTransactionsCount === 0) {
+        console.log(`  ℹ️  Page ${page}: No new data (using ${cachedTransactions.length} cached transactions)`);
+      } else {
+        console.log(`  ✅ Page ${page}: Found ${result.blockNumbers.length} blocks, ${result.transactions?.length || 0} transactions${newTransactionsCount > 0 ? ` (${newTransactionsCount} new)` : ''}`);
+      }
       
       // Save state after each page
       saveParserState(normalizedAddress, {
@@ -394,14 +419,16 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
  * @returns {Promise<Object>} Parsed page result with hasMorePages flag
  */
 async function fetchEtherscanPage(url, options = {}) {
-  const { retries = 3, delay = 1000, includeTransactions = true, session = null } = options;
+  const { retries = 3, delay = 1000, includeTransactions = true, session = null, suppressEmptyLogs = false } = options;
   
   // Use provided session or create a new one for this request
   const browserSession = session || new BrowserSession();
   
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`  🔄 Attempt ${attempt}/${retries} for ${url}`);
+      if (!suppressEmptyLogs) {
+        console.log(`  🔄 Attempt ${attempt}/${retries} for ${url}`);
+      }
       
       // Generate realistic headers with referrer chain
       const headers = browserSession.getHeaders(url);
@@ -423,15 +450,17 @@ async function fetchEtherscanPage(url, options = {}) {
       }
       
       const html = await response.text();
-      console.log(`  ✅ Fetched HTML: ${html.length} characters`);
+      if (!suppressEmptyLogs) {
+        console.log(`  ✅ Fetched HTML: ${html.length} characters`);
+      }
       
       // Extract block numbers from HTML
-      const blockNumbers = extractBlockNumbers(html);
+      const blockNumbers = extractBlockNumbers(html, suppressEmptyLogs);
       
       // Extract transaction hashes if requested
       let transactions = [];
       if (includeTransactions) {
-        transactions = extractTransactions(html);
+        transactions = extractTransactions(html, suppressEmptyLogs);
       }
       
       // Check for pagination: look for "Next" button or page numbers
@@ -509,16 +538,20 @@ function detectNextPage(html) {
  * @param {string} html - HTML content
  * @returns {Array} Array of block numbers
  */
-function extractBlockNumbers(html) {
+function extractBlockNumbers(html, suppressEmptyLogs = false) {
   const blockNumbers = [];
   
-  console.log(`  🔍 Extracting block numbers from HTML (${html.length} characters)...`);
+  if (!suppressEmptyLogs) {
+    console.log(`  🔍 Extracting block numbers from HTML (${html.length} characters)...`);
+  }
   
   // Look for block links in the HTML
   const blockLinkPattern = /<a[^>]*href="\/block\/(\d+)"[^>]*>(\d+)<\/a>/gi;
   const blockMatches = [...html.matchAll(blockLinkPattern)];
   
-  console.log(`  🔍 Found ${blockMatches.length} block links in HTML`);
+  if (!suppressEmptyLogs || blockMatches.length > 0) {
+    console.log(`  🔍 Found ${blockMatches.length} block links in HTML`);
+  }
   
   blockMatches.forEach(match => {
     const blockNumber = parseInt(match[1], 10);
@@ -530,9 +563,11 @@ function extractBlockNumbers(html) {
   // Remove duplicates and sort (newest first)
   const uniqueBlocks = [...new Set(blockNumbers)].sort((a, b) => b - a);
   
-  console.log(`  🔍 Found ${uniqueBlocks.length} unique block numbers`);
-  if (uniqueBlocks.length > 0) {
-    console.log(`  📋 Block numbers: ${uniqueBlocks.slice(0, 10).join(', ')}`);
+  if (!suppressEmptyLogs || uniqueBlocks.length > 0) {
+    console.log(`  🔍 Found ${uniqueBlocks.length} unique block numbers`);
+    if (uniqueBlocks.length > 0) {
+      console.log(`  📋 Block numbers: ${uniqueBlocks.slice(0, 10).join(', ')}`);
+    }
   }
   
   return uniqueBlocks;
@@ -543,10 +578,12 @@ function extractBlockNumbers(html) {
  * @param {string} html - HTML content
  * @returns {Array} Array of transaction objects { txHash, blockNumber }
  */
-function extractTransactions(html) {
+function extractTransactions(html, suppressEmptyLogs = false) {
   const transactions = [];
   
-  console.log(`  🔍 Extracting transaction hashes from HTML (${html.length} characters)...`);
+  if (!suppressEmptyLogs) {
+    console.log(`  🔍 Extracting transaction hashes from HTML (${html.length} characters)...`);
+  }
   
   // Pattern to match transaction rows in Etherscan table
   // Looks for transaction hash links and associated block numbers
@@ -554,7 +591,9 @@ function extractTransactions(html) {
   const txRowPattern = /<tr[^>]*>[\s\S]*?<a[^>]*href="\/tx\/(0x[a-fA-F0-9]{64})"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*href="\/block\/(\d+)"[^>]*>(\d+)<\/a>[\s\S]*?<\/tr>/gi;
   const txMatches = [...html.matchAll(txRowPattern)];
   
-  console.log(`  🔍 Found ${txMatches.length} transaction rows in HTML`);
+  if (!suppressEmptyLogs || txMatches.length > 0) {
+    console.log(`  🔍 Found ${txMatches.length} transaction rows in HTML`);
+  }
   
   txMatches.forEach(match => {
     const txHash = match[1];
@@ -606,9 +645,11 @@ function extractTransactions(html) {
   // Sort by block number (newest first)
   uniqueTransactions.sort((a, b) => b.blockNumber - a.blockNumber);
   
-  console.log(`  🔍 Found ${uniqueTransactions.length} unique transactions`);
-  if (uniqueTransactions.length > 0) {
-    console.log(`  📋 Sample transactions: ${uniqueTransactions.slice(0, 5).map(t => `${t.txHash.substring(0, 10)}...@${t.blockNumber}`).join(', ')}`);
+  if (!suppressEmptyLogs || uniqueTransactions.length > 0) {
+    console.log(`  🔍 Found ${uniqueTransactions.length} unique transactions`);
+    if (uniqueTransactions.length > 0) {
+      console.log(`  📋 Sample transactions: ${uniqueTransactions.slice(0, 5).map(t => `${t.txHash.substring(0, 10)}...@${t.blockNumber}`).join(', ')}`);
+    }
   }
   
   return uniqueTransactions;
@@ -753,7 +794,8 @@ function parseEventLogEntry(logContent, logId, index) {
   // Extract contract address - look for address links (handle both quote styles)
   const addressMatch = logContent.match(/<a[^>]*href=["']\/address\/(0x[a-fA-F0-9]{40})["'][^>]*>([^<]*)<\/a>/i);
   if (addressMatch) {
-    eventLog.address = addressMatch[1].toLowerCase();
+    // Normalize address to checksummed format before storing
+    eventLog.address = normalizeAddress(addressMatch[1], null);
   }
   
   // Extract event name - look for funcname_0 or similar (handle both quote styles)
@@ -814,8 +856,8 @@ function parseEventLogEntry(logContent, logId, index) {
       let paramValue;
       
       if (addressLinkMatch) {
-        // Use the address from the href
-        paramValue = addressLinkMatch[1].toLowerCase();
+        // Normalize address to checksummed format before storing
+        paramValue = normalizeAddress(addressLinkMatch[1], null);
       } else {
         // Extract text content, removing any HTML tags
         paramValue = paramContent.replace(/<[^>]+>/g, '').trim();

@@ -160,7 +160,12 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 			if (result.success) {
 				// Handle case where parser succeeded but found no blocks (address has no transactions)
 				if (!result.blockNumbers || result.blockNumbers.length === 0) {
-					console.log(`ℹ️  BSCScan parser: address ${normalizedAddress} has no transactions (no blocks found)`);
+					// Check if we have transactions but no blocks - this might indicate a cache issue
+					if (result.transactions && result.transactions.length > 0) {
+						console.log(`ℹ️  BSCScan parser: address ${normalizedAddress} has ${result.transactions.length} transactions but 0 blocks (cache may be missing blockNumbers array)`);
+					} else {
+						console.log(`ℹ️  BSCScan parser: address ${normalizedAddress} has no transactions (no blocks found)`);
+					}
 					return [];
 				}
 				
@@ -170,7 +175,11 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 				if (startblock) {
 					const initLen = blocks.length;
 					blocks = blocks.filter(b => b >= startblock);
-					console.log(`Filtered parser blocks: ${initLen} -> ${blocks.length} (startblock: ${startblock})`);
+					if (initLen > 0 && blocks.length === 0) {
+						console.log(`ℹ️  BSCScan parser: all ${initLen} blocks filtered out by startblock ${startblock} (blocks range: ${Math.min(...result.blockNumbers)} - ${Math.max(...result.blockNumbers)})`);
+					} else if (initLen !== blocks.length) {
+						console.log(`Filtered parser blocks: ${initLen} -> ${blocks.length} (startblock: ${startblock})`);
+					}
 				}
 				
 				blocks.sort();
@@ -190,7 +199,12 @@ async function getAddressBlocks({ base_url, chainid, address, startblock, startt
 					}
 				}
 				
-				console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${blocks.length} blocks${result.transactions ? ` and ${result.transactions.length} transactions` : ''} for address ${normalizedAddress}`);
+				// Log result with context about filtering
+				if (startblock && result.blockNumbers.length > 0 && blocks.length === 0) {
+					console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${result.blockNumbers.length} blocks in cache, but all filtered out by startblock ${startblock}${result.transactions ? ` (${result.transactions.length} transactions available)` : ''} for address ${normalizedAddress}`);
+				} else {
+					console.log(`✅ BSCScan parser (AlwaysUseBSCscanParser): found ${blocks.length} blocks${result.blockNumbers.length !== blocks.length ? ` (${result.blockNumbers.length} in cache)` : ''}${result.transactions ? ` and ${result.transactions.length} transactions` : ''} for address ${normalizedAddress}`);
+				}
 				return blocks;
 			} else {
 				throw new Error(`BSCScan parser failed: ${result.error || 'unknown error'}`);

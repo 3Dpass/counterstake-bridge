@@ -1774,9 +1774,10 @@ async function restartNetwork(network) {
 		if (import_assistant_aa && foreign_network === network)
 			networkApi[foreign_network].startWatchingImportAssistantAA(import_assistant_aa);
 	}
+	// Process bridges first, then assistants, to ensure bridges exist before assistant events are processed
 	await networkApi[network].startWatchingSymbolUpdates();
-	await networkApi[network].startWatchingFactories();
-	await networkApi[network].startWatchingAssistantFactories();
+	await networkApi[network].startWatchingFactories(); // Process bridge events first
+	await networkApi[network].startWatchingAssistantFactories(); // Then process assistant events
 	await networkApi[network].catchup();
 	console.log(`restart: catching up ${network} done`);
 }
@@ -2015,11 +2016,12 @@ async function start() {
 				// BSC might need more time due to etherscan API calls, so use longer timeout
 				const timeoutDuration = net === 'BSC' ? 120000 : 60000; // 2 minutes for BSC, 1 minute for others
 				console.log(`📊 ${net} startup timeout: ${timeoutDuration/1000}s`);
-				const startPromise = Promise.all([
-					networkApi[net].startWatchingSymbolUpdates(),
-					networkApi[net].startWatchingFactories(),
-					networkApi[net].startWatchingAssistantFactories()
-				]);
+				// Process bridges first, then assistants, to ensure bridges exist before assistant events are processed
+				const startPromise = (async () => {
+					await networkApi[net].startWatchingSymbolUpdates();
+					await networkApi[net].startWatchingFactories(); // Process bridge events first
+					await networkApi[net].startWatchingAssistantFactories(); // Then process assistant events
+				})();
 				
 				// Wait with a configurable timeout
 				await Promise.race([
