@@ -180,45 +180,31 @@ class EvmChain {
 
 	/**
 	 * Check if we have imported data for this network
-	 * @returns {Promise<boolean>} True if we have imported transfers/claims
+	 * @returns {Promise<boolean>} True if we have imported transfers/claims from JSON export
 	 */
 	async hasImportedDataForNetwork() {
 		try {
 			const db = require('ocore/db.js');
-			const bridges = await db.query(`
-				SELECT bridge_id 
-				FROM bridges 
-				WHERE home_network = ? OR foreign_network = ?
-			`, [this.network, this.network]);
 			
-			if (bridges.length === 0) {
-				return false;
-			}
+			// Check if there's an entry in import_metadata for this network
+			// This table is only populated when data is actually imported via import_db_for_seeding.js
+			const importMetadata = await db.query(`
+				SELECT network, last_block 
+				FROM import_metadata 
+				WHERE network = ?
+			`, [this.network]);
 			
-			const bridgeIds = bridges.map(b => b.bridge_id);
-			const placeholders = bridgeIds.map(() => '?').join(',');
-			
-			const [transferCount] = await db.query(`
-				SELECT COUNT(*) as count 
-				FROM transfers 
-				WHERE bridge_id IN (${placeholders})
-			`, bridgeIds);
-			
-			const [claimCount] = await db.query(`
-				SELECT COUNT(*) as count 
-				FROM claims 
-				WHERE bridge_id IN (${placeholders})
-			`, bridgeIds);
-			
-			return (transferCount.count > 0 || claimCount.count > 0);
+			// If import_metadata exists for this network, data was imported
+			return importMetadata.length > 0;
 		} catch (e) {
+			// If import_metadata table doesn't exist yet, return false
 			return false;
 		}
 	}
 
 	/**
 	 * Check if we have imported data and should skip explorer/parser API calls
-	 * If we have transfers/claims in the database, we should use the last_blocks from JSON export
+	 * If we have imported data from JSON export, we should use the last_blocks from import_metadata
 	 * instead of querying explorers/parsers until we've processed all imported data
 	 * @returns {Promise<number|null>} Maximum block number from imported data, or null if no imported data
 	 */
@@ -226,60 +212,29 @@ class EvmChain {
 		try {
 			const db = require('ocore/db.js');
 			
-			// Check if we have imported data by counting transfers/claims for this network
-			const bridges = await db.query(`
-				SELECT bridge_id 
-				FROM bridges 
-				WHERE home_network = ? OR foreign_network = ?
-			`, [this.network, this.network]);
+			// Check if we have imported data by looking at import_metadata table
+			// This table is only populated when data is actually imported via import_db_for_seeding.js
+			const importMetadata = await db.query(`
+				SELECT network, last_block 
+				FROM import_metadata 
+				WHERE network = ?
+			`, [this.network]);
 			
-			if (bridges.length === 0) {
+			if (importMetadata.length === 0) {
+				// No imported data for this network
 				return null;
 			}
 			
-			const bridgeIds = bridges.map(b => b.bridge_id);
-			const placeholders = bridgeIds.map(() => '?').join(',');
+			// We have imported data - use the last_block from import_metadata
+			const importedLastBlock = importMetadata[0].last_block;
 			
-			// Count transfers and claims for these bridges
-			const [transferCount] = await db.query(`
-				SELECT COUNT(*) as count 
-				FROM transfers 
-				WHERE bridge_id IN (${placeholders})
-			`, bridgeIds);
-			
-			const [claimCount] = await db.query(`
-				SELECT COUNT(*) as count 
-				FROM claims 
-				WHERE bridge_id IN (${placeholders})
-			`, bridgeIds);
-			
-			// If we have imported data, check if last_blocks was imported from JSON
-			// The import script uses INSERT OR IGNORE, so if last_blocks exists, it might be old
-			// We'll use the current last_block value, but the catch-up logic will skip getAddressBlocks
-			// if we're still within the imported data range (determined by having data but low last_block)
-			const hasImportedData = (transferCount.count > 0 || claimCount.count > 0);
-			
-			if (hasImportedData) {
-				// If we have imported data, we should use the last_block from the database
-				// which should have been imported from JSON (if it was in the export)
-				// But since INSERT OR IGNORE might have skipped it, we'll check the current value
-				const currentLastBlock = await this.getLastBlock();
-				
-				// If last_block is very low (0 or default) but we have data, it means
-				// the import didn't update last_blocks. In this case, we should still
-				// trust the imported data and skip explorer calls until we catch up
-				// The actual max block will be determined by processing the imported data
-				if (currentLastBlock === 0 || currentLastBlock < 1000) {
-					// We have imported data but last_block wasn't updated
-					// Return a high number to skip explorer calls (they'll be skipped anyway
-					// because we'll process imported data first)
-					return null; // Return null to use normal logic, but we'll skip getAddressBlocks
-				}
-				
-				return currentLastBlock;
+			// If last_block is very low (0 or default), it means the import didn't set it properly
+			// In this case, return null to use normal logic
+			if (importedLastBlock === 0 || importedLastBlock < 1000) {
+				return null;
 			}
 			
-			return null;
+			return importedLastBlock;
 		} catch (e) {
 			console.error(`${this.network} catchup: error checking imported data:`, e.message);
 			return null;
@@ -2240,11 +2195,12 @@ class EvmChain {
 						// BUT: 3DPass always needs to call getAddressBlocks (3dpscan) to discover blocks,
 						// even if we have imported data, because 3DPass doesn't use standard explorer APIs
 						const hasImportedData = await this.hasImportedDataForNetwork();
-						const currentLastBlock = await this.getLastBlock();
 						const is3DPass = this.network === '3DPass';
 						// For 3DPass, always allow getAddressBlocks (it uses 3dpscan, not standard explorer)
 						// For other networks, skip if we have imported data and are within its range
-						const shouldSkipExplorer = !is3DPass && hasImportedData && last_block <= currentLastBlock;
+						// Use getMaxBlockFromImportedData() to get the correct imported last_block from import_metadata
+						const importedLastBlock = hasImportedData ? await this.getMaxBlockFromImportedData() : null;
+						const shouldSkipExplorer = !is3DPass && hasImportedData && importedLastBlock !== null && last_block <= importedLastBlock;
 						
 						if ((!blocks || blocks.length === 0) && !conf.bPeerSeedingOnly && !shouldSkipExplorer) {
 							// Normalize address before calling getAddressBlocks for consistent cache keys and lookups
@@ -2563,12 +2519,16 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 	if (thisArg && network) {
 		const hasImportedData = await thisArg.hasImportedDataForNetwork();
 		if (hasImportedData) {
-			const currentLastBlock = await thisArg.getLastBlock();
-			// If we're querying blocks that are within the imported data range, skip provider query
-			// The events are already in the database from the import
-			if (since_block <= currentLastBlock && actual_to_block <= currentLastBlock) {
-				console.log(`processPastEvents ${network}: skipping provider query - using imported data (since_block=${since_block}, to_block=${actual_to_block}, imported_data_up_to=${currentLastBlock})`);
-				return 0; // Return 0 events since they're already in the database
+			// Use getMaxBlockFromImportedData() to get the last_block from import_metadata
+			// This ensures we use the correct block number from the import, not from last_blocks table
+			const importedLastBlock = await thisArg.getMaxBlockFromImportedData();
+			if (importedLastBlock !== null) {
+				// If we're querying blocks that are within the imported data range, skip provider query
+				// The events are already in the database from the import
+				if (since_block <= importedLastBlock && actual_to_block <= importedLastBlock) {
+					console.log(`processPastEvents ${network}: skipping provider query - using imported data (since_block=${since_block}, to_block=${actual_to_block}, imported_data_up_to=${importedLastBlock})`);
+					return 0; // Return 0 events since they're already in the database
+				}
 			}
 		}
 	}
