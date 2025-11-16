@@ -797,12 +797,62 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 		}
 		const bTooYoung = txts >= stable_ts;
 		
-		// If we've exceeded max retries, give up and log the claim without transfer
+		// If we've exceeded max retries, try one last time to find the transfer from the other network
 		if (retryCount >= maxRetriesTotal) {
-			console.log(`⚠️  Claim ${claim_num} (txid ${txid}) has been retried ${retryCount} times without finding transfer. Giving up - will log as invalid claim.`);
-			// Clear retry count and proceed to log the claim as invalid (no transfer_id)
-			delete claimRetryCounts[claimKey];
-			// Continue to the end of the function where it will be logged as invalid claim
+			console.log(`⚠️  Claim ${claim_num} (txid ${txid}) has been retried ${retryCount} times without finding transfer.`);
+			console.log(`🔍 Attempting to fetch transfer event from blockchain before giving up...`);
+			
+			try {
+				// First, try to fetch and save the transfer event directly from the blockchain
+				// This will call the provider from the opposite network and fetch the event
+				const fetchedTransfer = await fetchAndSaveTransferFromBlockchain(txid, bridge, type);
+				
+				if (fetchedTransfer) {
+					console.log(`✅ Successfully fetched and saved transfer ${fetchedTransfer.transfer_id} from blockchain!`);
+					transfers = [fetchedTransfer];
+					// Clear retry count since we found it
+					delete claimRetryCounts[claimKey];
+					// Continue with normal processing below
+				} else {
+					// If fetching from blockchain failed, try to find existing transfer in database
+					console.log(`⚠️  Failed to fetch transfer from blockchain. Trying database search...`);
+					const claimObject = {
+						bridge_id,
+						type,
+						txid,
+						txts,
+						sender_address,
+						dest_address,
+						amount,
+						reward,
+						data,
+						claim_num
+					};
+					
+					// Try to find transfer with blockchain verification
+					const foundTransfer = await findTransferForClaim(claimObject, bridge, true);
+					
+					if (foundTransfer) {
+						console.log(`✅ Found matching transfer ${foundTransfer.transfer_id} in database!`);
+						transfers = [foundTransfer];
+						// Clear retry count since we found it
+						delete claimRetryCounts[claimKey];
+						// Continue with normal processing below
+					} else {
+						console.log(`⚠️  Final search did not find a matching transfer. Giving up - will log as invalid claim.`);
+						// Clear retry count and proceed to log the claim as invalid (no transfer_id)
+						delete claimRetryCounts[claimKey];
+						// Continue to the end of the function where it will be logged as invalid claim
+					}
+				}
+			} catch (finalSearchError) {
+				console.error(`❌ Error during final transfer search: ${finalSearchError.message}`);
+				console.error(`   Stack: ${finalSearchError.stack}`);
+				console.log(`⚠️  Giving up - will log as invalid claim.`);
+				// Clear retry count and proceed to log the claim as invalid (no transfer_id)
+				delete claimRetryCounts[claimKey];
+				// Continue to the end of the function where it will be logged as invalid claim
+			}
 		}
 		// If we've retried several times, try refresh() to expand search range even during catch-up
 		else if (retryCount >= maxRetriesBeforeRefresh && bCatchingUp && !bTooYoung) {
@@ -1785,7 +1835,7 @@ async function restartNetwork(network) {
 // Import the 3DPass registry setup functionality
 const setup3DPassBridges = require('./setup_3dpass_bridges_from_registry.js');
 // Import the orphaned claims linking functionality
-const { linkOrphanedClaims } = require('./link_orphaned_claims.js');
+const { linkOrphanedClaims, findTransferForClaim, fetchAndSaveTransferFromBlockchain } = require('./link_orphaned_claims.js');
 
 async function start() {
 	networkApi.Obyte = new Obyte();
