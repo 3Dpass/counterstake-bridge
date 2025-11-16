@@ -337,12 +337,15 @@ async function handleTransfer(transfer) {
 			// Check if bot is the manager of the assistant
 			try {
 				const assistantContract = dst_api.getContractReference(assistant_aa);
-				if (assistantContract) {
-					const managerAddress = await assistantContract.managerAddress();
-					const botAddress = await dst_api.getMyAddress();
-					bClaimFromPooledAssistant = (botAddress.toLowerCase() === managerAddress.toLowerCase());
-					console.log(`Assistant ${assistant_aa} manager: ${managerAddress}, bot: ${botAddress}, isManager: ${bClaimFromPooledAssistant}`);
-				}
+			if (assistantContract) {
+				const managerAddress = await assistantContract.managerAddress();
+				const botAddress = await dst_api.getMyAddress();
+				// Normalize both addresses before comparison (addresses should be checksummed)
+				const normalizedBotAddress = normalizeAddress(botAddress, dst_api);
+				const normalizedManagerAddress = normalizeAddress(managerAddress, dst_api);
+				bClaimFromPooledAssistant = (normalizedBotAddress === normalizedManagerAddress);
+				console.log(`Assistant ${assistant_aa} manager: ${normalizedManagerAddress}, bot: ${normalizedBotAddress}, isManager: ${bClaimFromPooledAssistant}`);
+			}
 			} catch (err) {
 				console.log(`Could not check assistant manager for ${assistant_aa}: ${err.message}`);
 			}
@@ -1513,7 +1516,10 @@ async function handleNewManager(assistant_aa, previousManager, newManager, netwo
 	// Check if the bot is the new manager
 	
 	const botAddress = networkApiInstance.getMyAddress();
-	const meIsNewManager = botAddress.toLowerCase() === newManager.toLowerCase();
+	// Normalize both addresses before comparison (addresses should be checksummed)
+	const normalizedBotAddress = normalizeAddress(botAddress, networkApiInstance);
+	const normalizedNewManager = normalizeAddress(newManager, networkApiInstance);
+	const meIsNewManager = normalizedBotAddress === normalizedNewManager;
 	
 	if (meIsNewManager) {
 		console.log(`🤖 Bot became the manager of assistant ${checksummed_assistant_aa}, updating bridges table`);
@@ -1523,10 +1529,12 @@ async function handleNewManager(assistant_aa, previousManager, newManager, netwo
 			[checksummed_assistant_aa, assistant.version, bridge_id]);
 		console.log(`✅ Updated bridges table: ${side}_assistant_aa = ${checksummed_assistant_aa}`);
 	} else {
-		console.log(`ℹ️  Bot is not the new manager of assistant ${checksummed_assistant_aa} (new manager: ${newManager}, bot: ${botAddress})`);
+		console.log(`ℹ️  Bot is not the new manager of assistant ${checksummed_assistant_aa} (new manager: ${normalizedNewManager}, bot: ${normalizedBotAddress})`);
 		
 		// If the bot was previously the manager, clear the assistant from bridges table
-		const meWasPreviousManager = botAddress.toLowerCase() === previousManager.toLowerCase();
+		// Normalize previousManager before comparison (addresses should be checksummed)
+		const normalizedPreviousManager = normalizeAddress(previousManager, networkApiInstance);
+		const meWasPreviousManager = normalizedBotAddress === normalizedPreviousManager;
 		if (meWasPreviousManager) {
 			console.log(`🔄 Bot is no longer the manager of assistant ${checksummed_assistant_aa}, clearing from bridges table`);
 			await db.query(`UPDATE bridges SET ${side}_assistant_aa=NULL, ${side === 'export' ? 'ea_v' : 'ia_v'}=NULL WHERE bridge_id=?`, [bridge_id]);
