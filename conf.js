@@ -194,7 +194,7 @@ exports.AlwaysUseBSCscanParser = true; // When true, use BSCScan HTML parser as 
 // exports.bsc_listener_use_infura = false; // When true, use Infura for BSC listener provider instead of drpc.org (requires infura_project_id in conf.json)
 
 // Etherscan parser configuration
-exports.AlwaysUseEtherscanParser = false; // When true, use Etherscan HTML parser as the only source for blocks and event logs (skips provider calls during the catch up)
+exports.AlwaysUseEtherscanParser = true; // When true, use Etherscan HTML parser as the only source for blocks and event logs (skips provider calls during the catch up)
 
 // Sync statistics logging during catchup
 exports.statsLogPeriod = 10 * 1000; // 10 seconds: how often to log sync stats during catchup

@@ -6,7 +6,7 @@ const { getAddressBlocks, getAddressTransactionBlocks } = require("./3dpscan.js"
 const { ethers, BigNumber, constants: { AddressZero } } = require("ethers");
 const { wait } = require('./utils.js');
 const mutex = require('ocore/mutex.js');
-const { normalizeAddress } = require('./address_normalizer.js');
+const { normalizeAddress, isEVMAddress } = require('./address_normalizer.js');
 
 // 3DPass-specific ABI imports from evm_substrate
 const exportJson = require('./evm_substrate/build/contracts/Export.json');
@@ -890,6 +890,11 @@ function is3DPassERC20PrecompileStatic(tokenAddr) {
 	if (tokenAddr === null || tokenAddr === undefined) {
 		return false;
 	}
+	// 3DPass ERC20 precompiles are EVM addresses, so return false for non-EVM addresses
+	// (e.g., Obyte base64 asset identifiers)
+	if (!isEVMAddress(tokenAddr)) {
+		return false;
+	}
 	// 3DPass ERC20 precompiles have prefix 0xFBFBFBFA
 	// Check using BigNumber shift right by 128 bits
 	return BigNumber.from(tokenAddr).shr(128).eq(0xFBFBFBFA);
@@ -903,6 +908,11 @@ function is3DPassERC20PrecompileStatic(tokenAddr) {
  */
 function isP3DStatic(address) {
 	if (!address) {
+		return false;
+	}
+	// P3D precompile is an EVM address, so return false for non-EVM addresses
+	// (e.g., Obyte base64 asset identifiers)
+	if (!isEVMAddress(address)) {
 		return false;
 	}
 	// Check if it's P3D precompile
