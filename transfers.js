@@ -633,18 +633,20 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 					const bridgeContractLower = bridgeContractAddress ? bridgeContractAddress.toLowerCase() : null;
 					
 					console.log(`🔍 Looking for NewExpatriation/NewRepatriation events in transaction ${txid}`);
-					console.log(`🔍 Event logs found: ${eventLogs.map(e => `${e.name || 'unknown'}@${e.address || 'unknown'}`).join(', ')}`);
-					console.log(`🔍 Expected bridge contract: ${bridgeContractAddress} (${bridgeContractLower})`);
+					console.log(`🔍 Event logs found: ${eventLogs.map(e => `${e.name || 'unknown'} (sender: ${e.from || 'unknown'})`).join(', ')}`);
+					console.log(`🔍 Expected bridge contract (emitter): ${bridgeContractAddress} (${bridgeContractLower})`);
 					
 					for (const eventLog of eventLogs) {
-						console.log(`🔍 Checking event: name=${eventLog.name}, address=${eventLog.address}`);
+						console.log(`🔍 Checking event: name=${eventLog.name}, sender=${eventLog.from || 'unknown'}`);
 						
 						// Process any NewExpatriation or NewRepatriation event from this transaction
 						// Since txid is unique, we know it belongs to this bridge
-						// The event.address from parser might be wrong (could be sender or token contract)
+						// Note: eventLog.from is the transaction sender, NOT the contract that emitted the event
+						// The contract that emitted the event is the bridge contract (bridgeContractAddress)
 						if (eventLog.name === 'NewExpatriation' || eventLog.name === 'NewRepatriation') {
-							console.log(`📋 Found ${eventLog.name} event in transaction ${txid} (event address: ${eventLog.address || 'unknown'})`);
-							console.log(`📋 Using bridge contract address from claim: ${bridgeContractAddress}`);
+							console.log(`📋 Found ${eventLog.name} event in transaction ${txid}`);
+							console.log(`   Sender (from): ${eventLog.from || 'unknown'}`);
+							console.log(`   Emitter (bridge contract): ${bridgeContractAddress}`);
 							
 							// Try to process this event through the BSC network handler
 							// We'll need to get the block number and timestamp from the transaction

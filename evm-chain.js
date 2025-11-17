@@ -1565,9 +1565,16 @@ class EvmChain {
 				
 				args.push(paramValue);
 			} else {
-				// Parameter not found in data, push undefined (handler should handle this)
-				console.log(`mapEventDataToArgs: parameter ${paramName} not found in data for event ${eventName}`);
-				args.push(undefined);
+				// Parameter not found in data
+				// For optional string parameters like 'data', default to empty string
+				// For other parameters, push undefined (handler should handle this)
+				if (paramName === 'data' && (eventName === 'NewExpatriation' || eventName === 'NewRepatriation' || eventName === 'NewClaim')) {
+					// data parameter is optional and can be empty, default to empty string
+					args.push('');
+				} else {
+					console.log(`mapEventDataToArgs: parameter ${paramName} not found in data for event ${eventName}`);
+					args.push(undefined);
+				}
 			}
 		}
 		
