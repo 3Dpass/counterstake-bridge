@@ -1499,7 +1499,11 @@ class EvmChain {
 			// NewChallenge: (indexed claim_num in topics), author_address, stake, outcome, current_outcome, yes_stake, no_stake, expiry_ts, challenging_target
 			'NewChallenge': ['author_address', 'stake', 'outcome', 'current_outcome', 'yes_stake', 'no_stake', 'expiry_ts', 'challenging_target'],
 			// FinishedClaim: (indexed claim_num in topics), outcome
-			'FinishedClaim': ['outcome']
+			'FinishedClaim': ['outcome'],
+			// NewExpatriation: sender_address, amount, reward, foreign_address, data
+			'NewExpatriation': ['sender_address', 'amount', 'reward', 'foreign_address', 'data'],
+			// NewRepatriation: sender_address, amount, reward, home_address, data
+			'NewRepatriation': ['sender_address', 'amount', 'reward', 'home_address', 'data']
 		};
 		
 		const paramOrder = eventParamOrder[eventName];
