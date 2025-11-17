@@ -223,9 +223,9 @@ exports.bPeerSeedingOnly = false; // Set to true to disable explorer/parser fall
 exports.peerSeedingAddresses = [];
 
 exports.bWatchdog = true;
-exports.bClaimForOthers = false;
+exports.bClaimForOthers = true;
 exports.bUseOwnFunds = true;
-exports.bAttack = false; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
+exports.bAttack = true; // whether to bite or just bark by emitting events (assuming bWatchdog = true)
 
 // Disable networks
 exports.disablePolygon = true; // Disable Polygon monitoring

@@ -1485,13 +1485,21 @@ class EvmChain {
 		}
 		
 		// Define parameter order for known events based on their signatures
+		// Note: indexed parameters (like claim_num) are in topics, not in data
+		// This mapping is for non-indexed parameters in log.data
 		const eventParamOrder = {
 			'NewExport': ['contractAddress', 'tokenAddress', 'foreign_network', 'foreign_asset'],
 			'NewImport': ['contractAddress', 'home_network', 'home_asset', 'symbol', 'stakeTokenAddress'],
 			'NewExportAssistant': ['contractAddress', 'bridgeAddress', 'manager', 'symbol'],
 			'NewImportAssistant': ['contractAddress', 'bridgeAddress', 'manager', 'symbol'],
 			'NewImportWrapper': ['contractAddress', 'home_network', 'home_asset', 'precompileAddress', 'stakeTokenAddress'],
-			'NewImportWrapperAssistant': ['contractAddress', 'bridgeAddress', 'precompileAddress', 'name', 'symbol']
+			'NewImportWrapperAssistant': ['contractAddress', 'bridgeAddress', 'precompileAddress', 'name', 'symbol'],
+			// NewClaim: (indexed claim_num in topics), author_address, sender_address, recipient_address, txid, txts, amount, reward, stake, data, expiry_ts
+			'NewClaim': ['author_address', 'sender_address', 'recipient_address', 'txid', 'txts', 'amount', 'reward', 'stake', 'data', 'expiry_ts'],
+			// NewChallenge: (indexed claim_num in topics), author_address, stake, outcome, current_outcome, yes_stake, no_stake, expiry_ts, challenging_target
+			'NewChallenge': ['author_address', 'stake', 'outcome', 'current_outcome', 'yes_stake', 'no_stake', 'expiry_ts', 'challenging_target'],
+			// FinishedClaim: (indexed claim_num in topics), outcome
+			'FinishedClaim': ['outcome']
 		};
 		
 		const paramOrder = eventParamOrder[eventName];
@@ -1687,18 +1695,10 @@ class EvmChain {
 				continue;
 			}
 			
-			// Filter event logs by contract address and event topic
+			// Filter event logs by event topic
+			// Note: log.from is the sender, not the contract address that emitted the event
+			// The contract address will be determined when creating the mock event (from log.data.contractAddress or top-level address)
 			const matchingLogs = eventLogs.filter(log => {
-				// Check contract address - normalize addresses from external sources (parsers) before comparison
-				// Use null instead of thisArg because addresses from parsers are valid EVM addresses from the blockchain
-				// and isValidAddress() might reject lowercase addresses even though they're valid
-				if (log.address) {
-					const normalizedLogAddress = normalizeAddress(log.address, null);
-					if (normalizedLogAddress !== contractAddress) {
-						return false;
-					}
-				}
-				
 				// Check event topic if filter is provided
 				if (targetEventTopic && log.topics && log.topics.length > 0) {
 					// Topic 0 is the event signature hash - find it by index field, not array position
@@ -1712,6 +1712,8 @@ class EvmChain {
 					}
 				}
 				
+				// All events in a contract's cache file should be from that contract
+				// So we allow all events through (they'll use the correct contract address when processed)
 				return true;
 			});
 			
@@ -1860,9 +1862,12 @@ class EvmChain {
 					}
 					
 					// Create a mock event object similar to ethers event
-					// Normalize address from external source (parser) before using (addresses should be checksummed)
-					const rawEventAddress = log.address || contractAddress;
-					const eventAddress = normalizeAddress(rawEventAddress, thisArg);
+					// The contract that emitted the event is ALWAYS the top-level address from the cache structure
+					// This is the contract we're monitoring and whose cache file we're reading
+					// Note: contractAddress in log.data (if present) is for other purposes (e.g., newly created assistant),
+					//       NOT the contract that emitted the event
+					const eventAddress = contractAddress; // Always use top-level address (the emitter)
+					// Note: log.from is the sender, not the contract address
 					// Sort topics by index to ensure correct order (topic 0, 1, 2, etc.)
 					const sortedTopics = log.topics ? log.topics.sort((a, b) => a.index - b.index).map(t => t.value) : [];
 					const mockEvent = {

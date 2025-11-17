@@ -83,7 +83,7 @@ function saveParserState(address, state) {
     const normalizedAddress = normalizeAddress(address, null);
     const cacheFile = getCacheFilePath(normalizedAddress);
     const stateToSave = {
-      address: normalizedAddress.toLowerCase(), // Store lowercase for consistency
+      address: normalizedAddress, // Store checksummed address
       timestamp: Date.now(),
       ...state
     };
@@ -787,17 +787,18 @@ function extractEventLogs(html) {
 function parseEventLogEntry(logContent, logId, index) {
   const eventLog = {
     logIndex: parseInt(logId, 10),
-    address: null,
+    from: null,
     name: null,
     topics: [],
     data: {}
   };
   
-  // Extract contract address - look for address links (handle both quote styles)
+  // Extract "from" address (sender) - look for address links (handle both quote styles)
+  // Note: This is the sender/from address, not the contract address that emitted the event
   const addressMatch = logContent.match(/<a[^>]*href=["']\/address\/(0x[a-fA-F0-9]{40})["'][^>]*>([^<]*)<\/a>/i);
   if (addressMatch) {
     // Normalize address to checksummed format before storing
-    eventLog.address = normalizeAddress(addressMatch[1], null);
+    eventLog.from = normalizeAddress(addressMatch[1], null);
   }
   
   // Extract event name - look for funcname_0 or similar (handle both quote styles)
@@ -878,8 +879,8 @@ function parseEventLogEntry(logContent, logId, index) {
     eventLog.rawData = rawDataMatch[2].trim();
   }
   
-  // Only return if we have at least an address or name
-  if (eventLog.address || eventLog.name) {
+  // Only return if we have at least a from address or name
+  if (eventLog.from || eventLog.name) {
     return eventLog;
   }
   
