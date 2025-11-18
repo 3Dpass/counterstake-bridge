@@ -159,9 +159,11 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
     const allBlockNumbers = new Set();
     // Start with cached transactions
     const allTransactions = [...cachedTransactions];
-    let page = lastProcessedPage + 1; // Resume from next page after last processed
     let hasMorePages = true;
     let pagesFetched = 0;
+    
+    // Track which pages we've already checked to avoid duplicates
+    const pagesChecked = new Set();
     
     // Add block numbers from cached state (if available)
     cachedBlockNumbers.forEach(block => {
@@ -177,13 +179,24 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       }
     });
     
+    // If cache exists, always check page 1 first for new transactions
+    // (Etherscan sorts newest first, so new transactions appear on page 1)
+    let page = 1;
+    const hasCache = cachedState && cachedTransactions.length > 0;
+    
     while (hasMorePages && (maxPages === 0 || page <= maxPages)) {
+      // Skip if we've already checked this page
+      if (pagesChecked.has(page)) {
+        break;
+      }
+      
+      pagesChecked.add(page);
       // Etherscan pagination: p parameter (1-indexed)
       // Use normalized address in URL (Etherscan accepts both formats, but normalizing ensures consistency)
       const targetUrl = `${baseUrl}txs?a=${normalizedAddress}&p=${page}`;
-      const isCheckingForNewPages = cachedTransactions.length > 0 && page > lastProcessedPage;
+      const isCheckingForNewPages = hasCache && page === 1;
       if (isCheckingForNewPages) {
-        console.log(`📄 Checking page ${page} for new data (${cachedTransactions.length} transactions already cached)...`);
+        console.log(`📄 Checking page 1 for new transactions (${cachedTransactions.length} transactions already cached)...`);
       } else {
         console.log(`📄 Fetching page ${page}...`);
       }
@@ -224,10 +237,54 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       }
       
       pagesFetched++;
-      if (isCheckingForNewPages && result.blockNumbers.length === 0 && newTransactionsCount === 0) {
-        console.log(`  ℹ️  Page ${page}: No new data (using ${cachedTransactions.length} cached transactions)`);
+      
+      // Count new blocks (blocks not in cached blockNumbers)
+      let newBlocksCount = 0;
+      if (result.blockNumbers) {
+        result.blockNumbers.forEach(block => {
+          if (!cachedBlockNumbers.includes(block)) {
+            newBlocksCount++;
+          }
+        });
+      }
+      
+      // If checking page 1 and no new data found, stop (pages 2+ are older and won't have new data)
+      // Also stop on any subsequent page if no new data found (subsequent pages are older)
+      if (isCheckingForNewPages && page === 1) {
+        if (newBlocksCount === 0 && newTransactionsCount === 0) {
+          console.log(`  ℹ️  Page 1: No new data found (using ${cachedTransactions.length} cached transactions), stopping`);
+          hasMorePages = false;
+          // Save state before stopping
+          saveParserState(normalizedAddress, {
+            pagesFetched: lastProcessedPage + pagesFetched,
+            lastProcessedPage: lastProcessedPage, // Keep the last processed page
+            lastProcessedTxIndex: lastProcessedTxIndex,
+            blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
+            transactions: allTransactions
+          });
+          break;
+        } else {
+          console.log(`  ✅ Page 1: Found ${newBlocksCount} new blocks, ${newTransactionsCount} new transactions - continuing to next pages...`);
+        }
+      } else if (hasCache && (newBlocksCount === 0 && newTransactionsCount === 0)) {
+        // If we have cache and this page has no new data, stop (subsequent pages are older)
+        console.log(`  ℹ️  Page ${page}: No new data found, stopping (subsequent pages are older)`);
+        hasMorePages = false;
+        // Save state before stopping
+        saveParserState(normalizedAddress, {
+          pagesFetched: lastProcessedPage + pagesFetched,
+          lastProcessedPage: page - 1, // Last page with data
+          lastProcessedTxIndex: lastProcessedTxIndex,
+          blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
+          transactions: allTransactions
+        });
+        break;
       } else {
-        console.log(`  ✅ Page ${page}: Found ${result.blockNumbers.length} blocks, ${result.transactions?.length || 0} transactions${newTransactionsCount > 0 ? ` (${newTransactionsCount} new)` : ''}`);
+        if (newTransactionsCount > 0 || newBlocksCount > 0) {
+          console.log(`  ✅ Page ${page}: Found ${result.blockNumbers.length} blocks, ${result.transactions?.length || 0} transactions${newTransactionsCount > 0 ? ` (${newTransactionsCount} new)` : ''}`);
+        } else {
+          console.log(`  ℹ️  Page ${page}: No new data`);
+        }
       }
       
       // Save state after each page
@@ -247,10 +304,11 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
         hasMorePages = false;
       }
       
+      // Move to next page
       page++;
       
       // Add random delay between pages to avoid rate limiting and detection
-      if (hasMorePages && (maxPages === 0 || page <= maxPages)) {
+      if (hasMorePages && (maxPages === 0 || page <= maxPages) && !pagesChecked.has(page)) {
         const pageDelay = getRandomDelay(delay, 30); // 30% jitter
         await wait(pageDelay);
       }
@@ -776,12 +834,73 @@ function extractEventLogs(html) {
 }
 
 /**
+ * Map normalized parameter name to ABI parameter name
+ * Maps HTML parameter names to their ABI equivalents
+ * @param {string} normalizedName - Normalized parameter name (lowercase with underscores)
+ * @param {string} eventName - Event name (optional, for context)
+ * @returns {string} ABI parameter name
+ */
+function mapParameterNameToABI(normalizedName, eventName) {
+  if (!normalizedName || typeof normalizedName !== 'string') {
+    return normalizedName;
+  }
+  
+  // Mapping of normalized names to ABI names
+  // For camelCase ABI parameters, convert to camelCase
+  // For snake_case ABI parameters, keep as snake_case
+  const paramMap = {
+    // Factory events - camelCase
+    'contract_address': 'contractAddress',
+    'contractaddress': 'contractAddress',
+    'token_address': 'tokenAddress',
+    'tokenaddress': 'tokenAddress',
+    'stake_token_address': 'stakeTokenAddress',
+    'staketokenaddress': 'stakeTokenAddress',
+    'bridge_address': 'bridgeAddress',
+    'bridgeaddress': 'bridgeAddress',
+    'precompile_address': 'precompileAddress',
+    'precompileaddress': 'precompileAddress',
+    // Bridge events - snake_case (keep as is)
+    'author_address': 'author_address',
+    'authoraddress': 'author_address',
+    'sender_address': 'sender_address',
+    'senderaddress': 'sender_address',
+    'recipient_address': 'recipient_address',
+    'recipientaddress': 'recipient_address',
+    'foreign_address': 'foreign_address',
+    'foreignaddress': 'foreign_address',
+    'home_address': 'home_address',
+    'homeaddress': 'home_address',
+    // Other common parameters
+    'foreign_network': 'foreign_network',
+    'foreignnetwork': 'foreign_network',
+    'home_network': 'home_network',
+    'homenetwork': 'home_network',
+    'home_asset': 'home_asset',
+    'homeasset': 'home_asset',
+    'foreign_asset': 'foreign_asset',
+    'foreignasset': 'foreign_asset'
+  };
+  
+  // Check if we have a direct mapping
+  if (paramMap.hasOwnProperty(normalizedName)) {
+    return paramMap[normalizedName];
+  }
+  
+  // If no mapping found, return normalized name as-is
+  // (for parameters that are already in the correct format)
+  return normalizedName;
+}
+
+/**
  * Normalize parameter name to match expected format
  * Converts "author address" -> "author_address", handles spaces, case, etc.
+ * Then maps to ABI parameter name
  * @param {string} paramName - Raw parameter name from HTML
- * @returns {string} Normalized parameter name
+ * @param {string} eventName - Event name (optional, for context)
+ * @returns {string} ABI parameter name
  */
-function normalizeParameterName(paramName) {
+function normalizeParameterName(paramName, eventName) {
   if (!paramName || typeof paramName !== 'string') {
     return paramName;
   }
@@ -798,7 +917,8 @@ function normalizeParameterName(paramName) {
   // Remove any leading/trailing underscores
   normalized = normalized.replace(/^_+|_+$/g, '');
   
-  return normalized;
+  // Map to ABI parameter name
+  return mapParameterNameToABI(normalizedName, eventName);
 }
 
 /**
@@ -878,8 +998,8 @@ function parseEventLogEntry(logContent, logId, index) {
       const rawParamName = paramMatch[1].trim();
       const paramContent = paramMatch[2];
       
-      // Normalize parameter name to match expected format (e.g., "author address" -> "author_address")
-      const paramName = normalizeParameterName(rawParamName);
+      // Normalize parameter name and map to ABI format (e.g., "contract address" -> "contractAddress")
+      const paramName = normalizeParameterName(rawParamName, eventLog.name);
       
       // Check if it's an address link (handle both quote styles)
       const addressLinkMatch = paramContent.match(/<a[^>]*href=["']\/address\/(0x[a-fA-F0-9]{40})["'][^>]*>([^<]+)<\/a>/i);

@@ -12,10 +12,69 @@ const fs = require('fs');
 const path = require('path');
 
 /**
+ * Map normalized parameter name to ABI parameter name
+ * Maps HTML parameter names to their ABI equivalents
+ * @param {string} normalizedName - Normalized parameter name (lowercase with underscores)
+ * @returns {string} ABI parameter name
+ */
+function mapParameterNameToABI(normalizedName) {
+  if (!normalizedName || typeof normalizedName !== 'string') {
+    return normalizedName;
+  }
+  
+  // Mapping of normalized names to ABI names
+  // For camelCase ABI parameters, convert to camelCase
+  // For snake_case ABI parameters, keep as snake_case
+  const paramMap = {
+    // Factory events - camelCase
+    'contract_address': 'contractAddress',
+    'contractaddress': 'contractAddress',
+    'token_address': 'tokenAddress',
+    'tokenaddress': 'tokenAddress',
+    'stake_token_address': 'stakeTokenAddress',
+    'staketokenaddress': 'stakeTokenAddress',
+    'bridge_address': 'bridgeAddress',
+    'bridgeaddress': 'bridgeAddress',
+    'precompile_address': 'precompileAddress',
+    'precompileaddress': 'precompileAddress',
+    // Bridge events - snake_case (keep as is)
+    'author_address': 'author_address',
+    'authoraddress': 'author_address',
+    'sender_address': 'sender_address',
+    'senderaddress': 'sender_address',
+    'recipient_address': 'recipient_address',
+    'recipientaddress': 'recipient_address',
+    'foreign_address': 'foreign_address',
+    'foreignaddress': 'foreign_address',
+    'home_address': 'home_address',
+    'homeaddress': 'home_address',
+    // Other common parameters
+    'foreign_network': 'foreign_network',
+    'foreignnetwork': 'foreign_network',
+    'home_network': 'home_network',
+    'homenetwork': 'home_network',
+    'home_asset': 'home_asset',
+    'homeasset': 'home_asset',
+    'foreign_asset': 'foreign_asset',
+    'foreignasset': 'foreign_asset'
+  };
+  
+  // Check if we have a direct mapping
+  if (paramMap.hasOwnProperty(normalizedName)) {
+    return paramMap[normalizedName];
+  }
+  
+  // If no mapping found, return normalized name as-is
+  // (for parameters that are already in the correct format)
+  return normalizedName;
+}
+
+/**
  * Normalize parameter name to match expected format
  * Converts "author address" -> "author_address", handles spaces, case, etc.
+ * Then maps to ABI parameter name
  * @param {string} paramName - Raw parameter name
- * @returns {string} Normalized parameter name
+ * @returns {string} ABI parameter name
  */
 function normalizeParameterName(paramName) {
   if (!paramName || typeof paramName !== 'string') {
@@ -34,7 +93,8 @@ function normalizeParameterName(paramName) {
   // Remove any leading/trailing underscores
   normalized = normalized.replace(/^_+|_+$/g, '');
   
-  return normalized;
+  // Map to ABI parameter name
+  return mapParameterNameToABI(normalized);
 }
 
 /**
@@ -218,5 +278,5 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { normalizeParameterName, normalizeCacheFile };
+module.exports = { normalizeParameterName, mapParameterNameToABI, normalizeCacheFile };
 
