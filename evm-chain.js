@@ -922,7 +922,7 @@ class EvmChain {
 				if (existing) {
 					console.log(`duplicate transfer during catchup, skipping: txid=${txid}, bridge_id=${bridge_id}`);
 					await this.updateLastBlock(event.blockNumber);
-					return unlock();
+					return; // finally block will handle unlock()
 				}
 			}
 			
