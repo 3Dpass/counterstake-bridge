@@ -1806,9 +1806,17 @@ class EvmChain {
 										paramValue = normalizeAddress(paramValue, thisArg);
 									}
 								} else {
-									// Parameter not found in log.data by name - this shouldn't happen if parser extracted correctly
-									// but if it does, we'll fall back to using the mapped order from mapEventDataToArgs
-									console.log(`processPastEventsFromParserCache ${network}: parameter ${input.name} not found in log.data for event ${eventName}, will use fallback mapping`);
+									// Parameter not found in log.data by name
+									// For optional string parameters like 'data', default to empty string (matches Ethereum API behavior)
+									// This handles cases where parser doesn't store empty parameters
+									if (input.name === 'data' && (eventName === 'NewExpatriation' || eventName === 'NewRepatriation' || eventName === 'NewClaim')) {
+										// data parameter is optional and can be empty, default to empty string (same as Ethereum API)
+										paramValue = '';
+									} else {
+										// Parameter not found - this shouldn't happen if parser extracted correctly
+										// but if it does, we'll fall back to using the mapped order from mapEventDataToArgs
+										console.log(`processPastEventsFromParserCache ${network}: parameter ${input.name} not found in log.data for event ${eventName}, will use fallback mapping`);
+									}
 								}
 							}
 							
