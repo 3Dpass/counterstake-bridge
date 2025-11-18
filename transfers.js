@@ -554,8 +554,13 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 	// Use centralized normalizeAddress function
 	const network = type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
 	const opposite_network = type === 'expatriation' ? bridge.home_network : bridge.foreign_network;
-	sender_address = normalizeAddress(sender_address, networkApi[network]);
-	dest_address = normalizeAddress(dest_address, networkApi[opposite_network]);
+	// sender_address is from the source network (opposite_network for the claim)
+	// dest_address is from the destination network (network for the claim)
+	// This matches how addresses are normalized in addTransfer
+	const src_network = type === 'expatriation' ? bridge.home_network : bridge.foreign_network;
+	const dst_network = type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
+	sender_address = normalizeAddress(sender_address, networkApi[src_network]);
+	dest_address = normalizeAddress(dest_address, networkApi[dst_network]);
 	claimant_address = normalizeAddress(claimant_address, networkApi[network]);
 
 	const unlock = await mutex.lock(network);
