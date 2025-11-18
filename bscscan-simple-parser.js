@@ -778,6 +778,32 @@ function extractEventLogs(html) {
 }
 
 /**
+ * Normalize parameter name to match expected format
+ * Converts "author address" -> "author_address", handles spaces, case, etc.
+ * @param {string} paramName - Raw parameter name from HTML
+ * @returns {string} Normalized parameter name
+ */
+function normalizeParameterName(paramName) {
+  if (!paramName || typeof paramName !== 'string') {
+    return paramName;
+  }
+  
+  // Trim whitespace
+  let normalized = paramName.trim();
+  
+  // Replace spaces and multiple spaces with single underscore
+  normalized = normalized.replace(/\s+/g, '_');
+  
+  // Convert to lowercase
+  normalized = normalized.toLowerCase();
+  
+  // Remove any leading/trailing underscores
+  normalized = normalized.replace(/^_+|_+$/g, '');
+  
+  return normalized;
+}
+
+/**
  * Parse a single event log entry from HTML
  * @param {string} logContent - HTML content of the event log entry
  * @param {string} logId - Log ID (e.g., "458")
@@ -851,8 +877,11 @@ function parseEventLogEntry(logContent, logId, index) {
     const paramMatches = [...dataContent.matchAll(paramPattern)];
     
     paramMatches.forEach(paramMatch => {
-      const paramName = paramMatch[1].trim();
+      const rawParamName = paramMatch[1].trim();
       const paramContent = paramMatch[2];
+      
+      // Normalize parameter name to match expected format (e.g., "author address" -> "author_address")
+      const paramName = normalizeParameterName(rawParamName);
       
       // Check if it's an address link (handle both quote styles)
       const addressLinkMatch = paramContent.match(/<a[^>]*href=["']\/address\/(0x[a-fA-F0-9]{40})["'][^>]*>([^<]+)<\/a>/i);
