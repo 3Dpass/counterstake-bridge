@@ -139,10 +139,10 @@ CREATE TABLE IF NOT EXISTS last_blocks (
 -- INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('Ethereum', 12013400);
 INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('Ethereum', 8600000);
 -- query separator
-INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('BSC', 0);
+INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('BSC', 8664900);
 -- query separator
 INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('Polygon', 0);
 -- query separator
 INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('Kava', 0);
 -- query separator
-INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('3DPass', 0);
+INSERT OR IGNORE INTO last_blocks (network, last_block) VALUES ('3DPass', 1400000);
