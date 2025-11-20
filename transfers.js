@@ -26,6 +26,7 @@ let bCatchingUpOrHandlingPostponedEvents = true;
 let unconfirmedClaims = {}; // transfer_id => {claim_txid, ts}
 let unconfirmeWithdrawals = {};
 let claimRetryCounts = {}; // claim key => retry count for tracking missing transfers during catch-up
+let orphanedClaimsInterval = null; // Interval for periodic orphaned claims linking during catchup
 
 /**
  * Get current bridge and transfer statistics for sync logging
@@ -2268,6 +2269,37 @@ async function start() {
 
 //	await populatePooledAssistantsTable();
 
+	// Set up periodic orphaned claims linking during catchup
+	// This will run periodically while catchup is in progress to link any new orphaned claims
+	// that are discovered as transfers are processed during catchup
+	const linkOrphanedClaimsPeriodically = async () => {
+		if (!bCatchingUp) {
+			// Catchup completed, stop the interval
+			if (orphanedClaimsInterval) {
+				clearInterval(orphanedClaimsInterval);
+				orphanedClaimsInterval = null;
+				console.log('🛑 Stopped periodic orphaned claims linking (catchup completed)');
+			}
+			return;
+		}
+		
+		try {
+			console.log('\n🔗 Periodically linking orphaned claims during catchup...');
+			const result = await linkOrphanedClaims();
+			if (result.total > 0) {
+				console.log(`✅ Periodic orphaned claims linking: ${result.linked} linked, ${result.notFound} not found, ${result.errors} errors`);
+			}
+		} catch (err) {
+			console.error('❌ Error in periodic orphaned claims linking:', err.message);
+			// Don't fail catchup if periodic linking fails, but log the error
+		}
+	};
+	
+	// Start the periodic interval
+	const intervalMs = conf.linkOrphanedClaimsInterval || 5 * 60 * 1000; // Default to 5 minutes
+	orphanedClaimsInterval = setInterval(linkOrphanedClaimsPeriodically, intervalMs);
+	console.log(`🔄 Started periodic orphaned claims linking during catchup (every ${intervalMs / 1000 / 60} minutes)`);
+
 	// must be called after the bridges are loaded, contractsByAddress are populated by then
 	let catchups = [];
 	for (let net in networkApi) {
@@ -2301,6 +2333,14 @@ async function start() {
 	await Promise.all(catchups);
 	console.log('catching up done');
 	bCatchingUp = false;
+	
+	// Stop periodic orphaned claims linking now that catchup is complete
+	if (orphanedClaimsInterval) {
+		clearInterval(orphanedClaimsInterval);
+		orphanedClaimsInterval = null;
+		console.log('🛑 Stopped periodic orphaned claims linking (catchup completed)');
+	}
+	
 	// Clear retry counts after catch-up completes (any remaining are likely invalid claims)
 	console.log(`Clearing ${Object.keys(claimRetryCounts).length} pending claim retry counts after catch-up completion`);
 	claimRetryCounts = {};

@@ -199,6 +199,9 @@ exports.AlwaysUseEtherscanParser = false; // When true, use Etherscan HTML parse
 // Sync statistics logging during catchup
 exports.statsLogPeriod = 10 * 1000; // 10 seconds: how often to log sync stats during catchup
 
+// Orphaned claims linking during catchup
+exports.linkOrphanedClaimsInterval = 5 * 60 * 1000; // 5 minutes: how often to link orphaned claims during catchup
+
 // Top priority bridges - these addresses will be queried for transactions/events first during catchup, bypassing the queue
 // Format: array of addresses (lowercase or checksummed)
 // Example: ['0x078e7a2037b63846836e9d721cf2dabc08b94281'] // Bridge #20 import_aa

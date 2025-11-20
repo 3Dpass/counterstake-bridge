@@ -146,20 +146,31 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
   const cachedTxHashes = new Set(cachedTransactions.map(tx => tx.txHash.toLowerCase()));
   const lastProcessedTxIndex = cachedState?.lastProcessedTxIndex !== undefined ? cachedState.lastProcessedTxIndex : -1;
   const lastProcessedPage = cachedState?.lastProcessedPage || 0;
+  const cachedHasMorePages = cachedState?.hasMorePages;
   
   // Create a session for this parsing run if not provided
   const browserSession = session || new BrowserSession();
 
   const baseUrl = 'https://etherscan.io/';
   
-  const resumeMsg = cachedState ? ` (resuming from page ${lastProcessedPage + 1}, ${cachedTransactions.length} cached transactions)` : '';
+  // Determine starting page based on cache state:
+  // - If no cache or hasMorePages = false: start from page 1 (check for new data)
+  // - If hasMorePages = true: continue from lastProcessedPage + 1 (continue parsing)
+  const hasCache = cachedState && cachedTransactions.length > 0;
+  const shouldResumeFromLastPage = hasCache && cachedHasMorePages === true;
+  const startPage = shouldResumeFromLastPage ? lastProcessedPage + 1 : 1;
+  
+  const resumeMsg = cachedState ? (shouldResumeFromLastPage 
+    ? ` (resuming from page ${startPage}, ${cachedTransactions.length} cached transactions, hasMorePages=true)`
+    : ` (checking from page 1, ${cachedTransactions.length} cached transactions, hasMorePages=false)`) : '';
   console.log(`🔍 Parsing Etherscan for address ${normalizedAddress} - block numbers${includeTransactions ? ' and transactions' : ''}${includeEventLogs ? ' with event logs' : ''} (max ${maxPages === 0 ? 'all' : maxPages} pages)${resumeMsg}`);
   
   try {
     const allBlockNumbers = new Set();
     // Start with cached transactions
     const allTransactions = [...cachedTransactions];
-    let hasMorePages = true;
+    // Initialize hasMorePages: if resuming from last page, start with true; otherwise start with true for initial parse
+    let hasMorePages = shouldResumeFromLastPage ? true : (cachedHasMorePages !== false);
     let pagesFetched = 0;
     
     // Track which pages we've already checked to avoid duplicates
@@ -179,10 +190,8 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       }
     });
     
-    // If cache exists, always check page 1 first for new transactions
-    // (Etherscan sorts newest first, so new transactions appear on page 1)
-    let page = 1;
-    const hasCache = cachedState && cachedTransactions.length > 0;
+    // Start from determined page
+    let page = startPage;
     
     while (hasMorePages && (maxPages === 0 || page <= maxPages)) {
       // Skip if we've already checked this page
@@ -194,9 +203,13 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       // Etherscan pagination: p parameter (1-indexed)
       // Use normalized address in URL (Etherscan accepts both formats, but normalizing ensures consistency)
       const targetUrl = `${baseUrl}txs?a=${normalizedAddress}&p=${page}`;
-      const isCheckingForNewPages = hasCache && page === 1;
+      // isCheckingForNewPages: true if we have cache, hasMorePages was false (completed), and we're on page 1
+      // This means we're just checking for new data, not continuing a previous parse
+      const isCheckingForNewPages = hasCache && page === 1 && cachedHasMorePages === false;
       if (isCheckingForNewPages) {
         console.log(`📄 Checking page 1 for new transactions (${cachedTransactions.length} transactions already cached)...`);
+      } else if (shouldResumeFromLastPage && page === startPage) {
+        console.log(`📄 Resuming from page ${page} (continuing previous parse)...`);
       } else {
         console.log(`📄 Fetching page ${page}...`);
       }
@@ -209,13 +222,14 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
         } else {
           console.log(`⚠️  Failed to fetch page ${page}, stopping pagination`);
         }
-        // Save state before stopping
+        // Save state before stopping (hasMorePages = true because we were interrupted)
         saveParserState(normalizedAddress, {
           pagesFetched: lastProcessedPage + pagesFetched,
           lastProcessedPage: page - 1,
           lastProcessedTxIndex: lastProcessedTxIndex,
           blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
-          transactions: allTransactions
+          transactions: allTransactions,
+          hasMorePages: true
         });
         break;
       }
@@ -249,34 +263,38 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       }
       
       // If checking page 1 and no new data found, stop (pages 2+ are older and won't have new data)
-      // Also stop on any subsequent page if no new data found (subsequent pages are older)
-      if (isCheckingForNewPages && page === 1) {
+      // This only applies when hasMorePages was false (completed parse) - we're just checking for new data
+      if (isCheckingForNewPages && page === 1 && cachedHasMorePages === false) {
         if (newBlocksCount === 0 && newTransactionsCount === 0) {
           console.log(`  ℹ️  Page 1: No new data found (using ${cachedTransactions.length} cached transactions), stopping`);
           hasMorePages = false;
-          // Save state before stopping
+          // Save state before stopping (hasMorePages remains false)
           saveParserState(normalizedAddress, {
             pagesFetched: lastProcessedPage + pagesFetched,
             lastProcessedPage: lastProcessedPage, // Keep the last processed page
             lastProcessedTxIndex: lastProcessedTxIndex,
             blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
-            transactions: allTransactions
+            transactions: allTransactions,
+            hasMorePages: false
           });
           break;
         } else {
           console.log(`  ✅ Page 1: Found ${newBlocksCount} new blocks, ${newTransactionsCount} new transactions - continuing to next pages...`);
+          // Found new data, so we need to continue parsing - set hasMorePages to true
+          hasMorePages = true;
         }
-      } else if (hasCache && (newBlocksCount === 0 && newTransactionsCount === 0)) {
-        // If we have cache and this page has no new data, stop (subsequent pages are older)
+      } else if (hasCache && !shouldResumeFromLastPage && (newBlocksCount === 0 && newTransactionsCount === 0)) {
+        // If we have cache, hasMorePages was false, and this page has no new data, stop (subsequent pages are older)
         console.log(`  ℹ️  Page ${page}: No new data found, stopping (subsequent pages are older)`);
         hasMorePages = false;
-        // Save state before stopping
+        // Save state before stopping (hasMorePages remains false)
         saveParserState(normalizedAddress, {
           pagesFetched: lastProcessedPage + pagesFetched,
           lastProcessedPage: page - 1, // Last page with data
           lastProcessedTxIndex: lastProcessedTxIndex,
           blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
-          transactions: allTransactions
+          transactions: allTransactions,
+          hasMorePages: false
         });
         break;
       } else {
@@ -287,15 +305,6 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
         }
       }
       
-      // Save state after each page
-      saveParserState(normalizedAddress, {
-        pagesFetched: lastProcessedPage + pagesFetched,
-        lastProcessedPage: page,
-        lastProcessedTxIndex: lastProcessedTxIndex,
-        blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
-        transactions: allTransactions
-      });
-      
       // Check if there are more pages using the detection from fetchEtherscanPage
       hasMorePages = result.hasMorePages;
       
@@ -303,6 +312,16 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       if (result.blockNumbers.length === 0 && (!result.transactions || result.transactions.length === 0)) {
         hasMorePages = false;
       }
+      
+      // Save state after each page (include hasMorePages)
+      saveParserState(normalizedAddress, {
+        pagesFetched: lastProcessedPage + pagesFetched,
+        lastProcessedPage: page,
+        lastProcessedTxIndex: lastProcessedTxIndex,
+        blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
+        transactions: allTransactions,
+        hasMorePages: hasMorePages
+      });
       
       // Move to next page
       page++;
@@ -431,13 +450,14 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
       }
     }
     
-    // Final state save
+    // Final state save (hasMorePages = false because we completed parsing)
     saveParserState(normalizedAddress, {
       pagesFetched: totalPagesFetched,
       lastProcessedPage: page - 1,
       lastProcessedTxIndex: includeEventLogs ? sortedTransactions.length - 1 : -1,
       blockNumbers: uniqueBlocks,
-      transactions: sortedTransactions
+      transactions: sortedTransactions,
+      hasMorePages: false
     });
     
     return {
@@ -450,13 +470,14 @@ async function parseEtherscanBlockNumbers(bridgeAddress, options = {}) {
     
   } catch (error) {
     console.error('❌ Error parsing Etherscan:', error);
-    // Save state even on error to preserve progress
+    // Save state even on error to preserve progress (hasMorePages = true because we were interrupted)
     saveParserState(normalizedAddress, {
       pagesFetched: lastProcessedPage + pagesFetched,
       lastProcessedPage: page - 1,
       lastProcessedTxIndex: lastProcessedTxIndex,
       blockNumbers: Array.from(allBlockNumbers).sort((a, b) => b - a),
       transactions: allTransactions,
+      hasMorePages: true,
       error: error.message
     });
     return {
