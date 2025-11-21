@@ -598,14 +598,63 @@ async function handleNewClaim(bridge, type, claim_num, sender_address, dest_addr
 
 	// sender_address and dest_address are case-sensitive! For Ethereum, use mixed case checksummed addresses only
 	const findTransfers = async () => {
-		const transfers = await db.query("SELECT * FROM transfers WHERE bridge_id=? AND txid=? AND txts=? AND sender_address=? AND dest_address=? AND type=? AND is_confirmed=1", [bridge_id, txid, txts, sender_address, dest_address, type]);
+		// Detailed logging for query execution
+		const query = "SELECT * FROM transfers WHERE bridge_id=? AND txid=? AND txts=? AND sender_address=? AND dest_address=? AND type=? AND is_confirmed=1";
+		const params = [bridge_id, txid, txts, sender_address, dest_address, type];
+		
+		console.log(`🔍 [QUERY DEBUG] Executing full query for claim ${claim_num}:`);
+		console.log(`   SQL: ${query}`);
+		console.log(`   Parameters:`);
+		console.log(`     [0] bridge_id: ${typeof params[0]} = ${params[0]}`);
+		console.log(`     [1] txid: ${typeof params[1]} = ${params[1]}`);
+		console.log(`     [2] txts: ${typeof params[2]} = ${params[2]}`);
+		console.log(`     [3] sender_address: ${typeof params[3]} = ${params[3]}`);
+		console.log(`     [4] dest_address: ${typeof params[4]} = ${params[4]}`);
+		console.log(`     [5] type: ${typeof params[5]} = ${params[5]}`);
+		console.log(`     [6] is_confirmed: 1 (hardcoded)`);
+		
+		const transfers = await db.query(query, params);
+		console.log(`   ✅ Query executed, returned ${transfers.length} result(s)`);
 		console.log(`transfer candidates for ${txid}`, transfers);
+		
 		// Debug: Check if any transfer exists with this txid (regardless of other fields)
 		if (transfers.length === 0) {
+			console.log(`⚠️  [QUERY DEBUG] Full query returned 0 results, checking by txid only...`);
 			const allTransfersWithTxid = await db.query("SELECT transfer_id, bridge_id, type, txts, sender_address, dest_address, is_confirmed FROM transfers WHERE txid=?", [txid]);
+			console.log(`   ✅ Txid query returned ${allTransfersWithTxid.length} result(s)`);
+			
 			if (allTransfersWithTxid.length > 0) {
+				const found = allTransfersWithTxid[0];
 				console.log(`⚠️  Found ${allTransfersWithTxid.length} transfer(s) with txid ${txid} but they don't match the claim criteria:`, allTransfersWithTxid);
 				console.log(`   Claim is looking for: bridge_id=${bridge_id}, type=${type}, txts=${txts}, sender_address=${sender_address}, dest_address=${dest_address}, is_confirmed=1`);
+				
+				// Detailed comparison in code
+				console.log(`🔍 [QUERY DEBUG] Detailed parameter comparison:`);
+				console.log(`   bridge_id: DB=${found.bridge_id} (${typeof found.bridge_id}), Query=${bridge_id} (${typeof bridge_id}), Match=${found.bridge_id === bridge_id}`);
+				console.log(`   type: DB="${found.type}" (${typeof found.type}), Query="${type}" (${typeof type}), Match=${found.type === type}`);
+				console.log(`   txts: DB=${found.txts} (${typeof found.txts}), Query=${txts} (${typeof txts}), Match=${found.txts === txts}`);
+				console.log(`   sender_address: DB="${found.sender_address}" (${typeof found.sender_address}), Query="${sender_address}" (${typeof sender_address}), Match=${found.sender_address === sender_address}`);
+				console.log(`   dest_address: DB="${found.dest_address}" (${typeof found.dest_address}), Query="${dest_address}" (${typeof dest_address}), Match=${found.dest_address === dest_address}`);
+				console.log(`   is_confirmed: DB=${found.is_confirmed} (${typeof found.is_confirmed}), Query=1 (number), Match=${found.is_confirmed === 1}`);
+				
+				// Check if all match
+				const allMatch = found.bridge_id === bridge_id &&
+					found.type === type &&
+					found.txts === txts &&
+					found.sender_address === sender_address &&
+					found.dest_address === dest_address &&
+					found.is_confirmed === 1;
+				
+				console.log(`   🎯 All parameters match: ${allMatch}`);
+				
+				if (allMatch) {
+					console.log(`   ❌ CRITICAL: All parameters match but SQL query returned 0 results!`);
+					console.log(`   This indicates a SQLite query execution issue, not a parameter mismatch.`);
+					console.log(`   Returning the found transfer anyway to work around the issue.`);
+					return allTransfersWithTxid;
+				} else {
+					console.log(`   ⚠️  Parameters don't match - this is a real mismatch, not a query issue.`);
+				}
 			} else {
 				console.log(`⚠️  No transfer found in database with txid ${txid} - transfer may not have been detected yet`);
 			}

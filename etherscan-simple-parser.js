@@ -1035,7 +1035,20 @@ function parseEventLogEntry(logContent, logId, index) {
       }
       
       if (paramValue) {
-        eventLog.data[paramName] = paramValue;
+        // Normalize txts to number for consistency with database format
+        // txts is uint32 in the contract, but parser extracts it as string from HTML
+        if (paramName === 'txts') {
+          const numValue = parseInt(paramValue, 10);
+          if (!isNaN(numValue) && numValue.toString() === paramValue.trim()) {
+            eventLog.data[paramName] = numValue;
+          } else {
+            // If parsing fails, keep as string (shouldn't happen, but be safe)
+            console.log(`⚠️  Failed to parse txts as number: ${paramValue}, keeping as string`);
+            eventLog.data[paramName] = paramValue;
+          }
+        } else {
+          eventLog.data[paramName] = paramValue;
+        }
       }
     });
   }

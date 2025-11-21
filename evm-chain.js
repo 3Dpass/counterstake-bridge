@@ -961,6 +961,7 @@ class EvmChain {
 	async onNewClaim(claim_num, author_address, sender_address, recipient_address, txid, txts, amount, reward, stake, data, expiry_ts, event) {
 		const unlock = await mutex.lock(this.network + 'Event');
 		claim_num = claim_num.toNumber();
+		
 		console.log('NewClaim event', this.network, claim_num, author_address, sender_address, recipient_address, txid, txts, amount.toString(), reward.toString(), stake.toString(), data, expiry_ts, event);
 		if (event.removed)
 			return unlock(`the claim event was removed, ignoring`);
@@ -1806,8 +1807,29 @@ class EvmChain {
 								if (log.data && log.data[input.name] !== undefined) {
 									paramValue = log.data[input.name];
 									
-									// Convert to appropriate type if needed
-									if (input.type === 'uint256' || input.type === 'uint128' || input.type === 'uint64' || input.type === 'uint32' || input.type === 'uint8') {
+									// Special handling for txts: keep as number (not BigNumber) for database compatibility
+									// txts is uint32 in ABI, but database expects INT (number)
+									if (input.name === 'txts') {
+										if (typeof paramValue === 'number') {
+											// Already a number (from parser cache), keep as is
+										} else if (typeof paramValue === 'string') {
+											// String (from old cache or fallback), convert to number
+											paramValue = parseInt(paramValue, 10);
+											if (isNaN(paramValue)) {
+												console.log(`processPastEventsFromParserCache ${network}: invalid txts value: ${log.data[input.name]}, keeping as string`);
+												paramValue = log.data[input.name];
+											}
+										} else if (paramValue && typeof paramValue.toNumber === 'function') {
+											// BigNumber object, convert to number
+											paramValue = paramValue.toNumber();
+										} else {
+											// Try to convert to number
+											const numValue = Number(paramValue);
+											if (!isNaN(numValue)) {
+												paramValue = numValue;
+											}
+										}
+									} else if (input.type === 'uint256' || input.type === 'uint128' || input.type === 'uint64' || input.type === 'uint32' || input.type === 'uint8') {
 										try {
 											const { BigNumber } = require('ethers');
 											paramValue = BigNumber.from(paramValue);
