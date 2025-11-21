@@ -546,24 +546,45 @@ class EvmChain {
 		}
 	}
 
-	async getClaim(bridge_aa, claim_num, bFinished, bThrowIfNotFound) {
+	async getClaim(bridge_aa, claim_num, bFinished, bThrowIfNotFound, retryCount = 0) {
+		const maxRetries = 5;
 		const contract = this.#contractsByAddress[bridge_aa];
-		let claim = await contract['getClaim(uint256)'](claim_num);
-		if (!claim || !claim.amount) {
-			if (bThrowIfNotFound)
-				throw Error(`claim ${claim_num} not found in ${this.network}, bFinished=${bFinished}`);
-			return null;
+		
+		try {
+			let claim = await contract['getClaim(uint256)'](claim_num);
+			if (!claim || !claim.amount) {
+				if (bThrowIfNotFound)
+					throw Error(`claim ${claim_num} not found in ${this.network}, bFinished=${bFinished}`);
+				return null;
+			}
+			claim = Object.assign({}, claim);
+			claim.current_outcome = claim.current_outcome ? 'yes' : 'no';
+			claim.stakes = { yes: claim.yes_stake, no: claim.no_stake };
+
+			// challenging_target was removed to save gas, recalculate it
+			const winning_stake = claim.current_outcome === 'yes' ? claim.yes_stake : claim.no_stake;
+			const settings = await contract.settings();
+			claim.challenging_target = winning_stake.mul(settings.counterstake_coef100).div(100);
+
+			return claim;
+		} catch (e) {
+			const errMsg = e.message || String(e);
+			
+			// Handle rate limit errors with exponential backoff
+			if (isRateLimitError(errMsg) || (e.error && e.error.code === -32005)) {
+				if (retryCount >= maxRetries) {
+					console.error(`getClaim ${this.network} failed after ${maxRetries} retries (rate limit), throwing error`);
+					throw e;
+				}
+				console.log(`getClaim ${this.network} rate limit error (attempt ${retryCount + 1}/${maxRetries}), will retry with backoff`);
+				const delay = Math.min(300 * Math.pow(2, retryCount), 5000); // Exponential backoff: 300ms, 600ms, 1.2s, 2.4s, 4.8s, 5s max
+				await wait(delay);
+				return this.getClaim(bridge_aa, claim_num, bFinished, bThrowIfNotFound, retryCount + 1);
+			}
+			
+			// For other errors, rethrow immediately
+			throw e;
 		}
-		claim = Object.assign({}, claim);
-		claim.current_outcome = claim.current_outcome ? 'yes' : 'no';
-		claim.stakes = { yes: claim.yes_stake, no: claim.no_stake };
-
-		// challenging_target was removed to save gas, recalculate it
-		const winning_stake = claim.current_outcome === 'yes' ? claim.yes_stake : claim.no_stake;
-		const settings = await contract.settings();
-		claim.challenging_target = winning_stake.mul(settings.counterstake_coef100).div(100);
-
-		return claim;
 	}
 
 	async getMyStake(bridge_aa, claim_num, outcome, assistant_aa) {
@@ -2701,7 +2722,7 @@ async function processPastEvents(contract, filter, since_block, to_block, thisAr
 				throw e;
 			}
 			console.log(`will retry later (rate limit, attempt ${retryCount + 1}/${maxRetries})`);
-			const delay = Math.min(100 * Math.pow(2, retryCount), 5000); // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1.6s, 3.2s, 5s max
+			const delay = Math.min(300 * Math.pow(2, retryCount), 5000); // Exponential backoff: 300ms, 600ms, 1.2s, 2.4s, 4.8s, 5s max
 			await wait(delay);
 			return processPastEvents(contract, filter, since_block, to_block, thisArg, handler, retryCount + 1);
 		}
