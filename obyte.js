@@ -16,7 +16,7 @@ const dag = require('aabot/dag.js');
 const operator = require('aabot/operator.js');
 const notifications = require('./notifications.js');
 const transfers = require('./transfers.js');
-const { watchForDeadlock, getVersion } = require('./utils.js');
+const { watchForDeadlock, getVersion, setCatchupInProgress } = require('./utils.js');
 
 let bCreated = false;
 
@@ -567,6 +567,11 @@ class Obyte {
 
 	// called on start-up to handle missed transfers
 	async catchup() {
+		// Mark catchup as in progress to avoid false deadlock detection
+		// Both 'Obyte' and 'onAAResponse' are used during catchup, so mark both
+		setCatchupInProgress(this.network, true);
+		setCatchupInProgress('onAAResponse', true);
+		
 		// Log initial sync stats
 		const transfers = require('./transfers.js');
 		const stats = await transfers.getSyncStats();
@@ -586,6 +591,9 @@ class Obyte {
 		} finally {
 			// Clear the stat logging interval
 			clearInterval(statInterval);
+			// Mark catchup as complete
+			setCatchupInProgress(this.network, false);
+			setCatchupInProgress('onAAResponse', false);
 		}
 		console.log(`catching up ${this.network} done`);
 	}

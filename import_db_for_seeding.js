@@ -80,8 +80,18 @@ async function importDatabase(exportFile) {
 				pooled_assistants: ['assistant_aa', 'bridge_aa', 'manager', 'shares_asset']
 			};
 			
+			// Define numeric columns that should be stored as integer strings (no decimals)
+			// These are VARCHAR fields that store large integers (amounts, rewards, stakes)
+			const numericColumns = {
+				transfers: ['amount', 'reward'],
+				claims: ['amount', 'reward', 'my_stake'],
+				challenges: ['stake', 'yes_stake', 'no_stake', 'my_stake']
+			};
+			
 			// Get address columns for this table (if any)
 			const tableAddressColumns = addressColumns[tableName] || [];
+			// Get numeric columns for this table (if any)
+			const tableNumericColumns = numericColumns[tableName] || [];
 			
 			// Use INSERT OR IGNORE to avoid duplicates
 			const sql = `INSERT OR IGNORE INTO ${tableName} (${columnNames}) VALUES (${placeholders})`;
@@ -94,6 +104,27 @@ async function importDatabase(exportFile) {
 					if (normalizedRow[addressCol] && typeof normalizedRow[addressCol] === 'string') {
 						// Normalize address (checksums EVM addresses, leaves Obyte as-is)
 						normalizedRow[addressCol] = normalizeAddress(normalizedRow[addressCol], null);
+					}
+				}
+				
+				// Normalize numeric columns to integer strings (no decimals)
+				// This prevents JavaScript number precision issues with large integers
+				for (const numericCol of tableNumericColumns) {
+					if (normalizedRow[numericCol] !== null && normalizedRow[numericCol] !== undefined) {
+						const value = normalizedRow[numericCol];
+						if (typeof value === 'number') {
+							// Convert number to string, removing any decimal point
+							// Use Math.floor to ensure integer, then convert to string
+							normalizedRow[numericCol] = Math.floor(value).toString();
+						} else if (typeof value === 'string') {
+							// If it's already a string, remove decimal point and trailing zeros
+							// Handle cases like "50000000000.0" -> "50000000000"
+							if (value.includes('.')) {
+								normalizedRow[numericCol] = value.split('.')[0];
+							} else {
+								normalizedRow[numericCol] = value;
+							}
+						}
 					}
 				}
 				

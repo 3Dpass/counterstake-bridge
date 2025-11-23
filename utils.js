@@ -4,6 +4,7 @@ const db = require('ocore/db.js');
 const { normalizeAddress } = require('./address_normalizer.js');
 
 let watchedKeys = {};
+let catchupInProgress = {}; // Track catchup state per key to avoid false deadlock detection
 
 function wait(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -13,11 +14,29 @@ function die(msg) {
 	throw Error(msg);
 }
 
+function setCatchupInProgress(key, inProgress) {
+	catchupInProgress[key] = inProgress;
+}
+
 async function checkForDeadlock(key) {
-	const t = setTimeout(die, 10 * 60 * 1000, `possible deadlock on ${key}`);
-	const unlock = await mutex.lock(key);
-	unlock();
-	clearTimeout(t);
+	// During catchup, legitimate operations can hold locks for extended periods
+	// Skip deadlock check if catchup is in progress, or use a much longer timeout
+	if (catchupInProgress[key]) {
+		// During catchup, use a much longer timeout (6 hours) for Obyte and onAAResponse
+		// Obyte catchup can process many AA responses and take a very long time
+		// onAAResponse is used by Obyte to process AA responses sequentially
+		const timeout = (key === 'Obyte' || key === 'onAAResponse') ? 6 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000; // 6 hours for Obyte/onAAResponse, 6 hours for others
+		const t = setTimeout(die, timeout, `possible deadlock on ${key} (during catchup)`);
+		const unlock = await mutex.lock(key);
+		unlock();
+		clearTimeout(t);
+	} else {
+		// Normal operation: use standard 10 minute timeout
+		const t = setTimeout(die, 10 * 60 * 1000, `possible deadlock on ${key}`);
+		const unlock = await mutex.lock(key);
+		unlock();
+		clearTimeout(t);
+	}
 }
 
 function watchForDeadlock(key) {
@@ -98,6 +117,7 @@ function h160ToH256(h160Address) {
 exports.asyncCallWithTimeout = asyncCallWithTimeout;
 exports.wait = wait;
 exports.watchForDeadlock = watchForDeadlock;
+exports.setCatchupInProgress = setCatchupInProgress;
 exports.getVersion = getVersion;
 exports.isRateLimitError = isRateLimitError;
 exports.getObyteAssistantsForEthAddress = getObyteAssistantsForEthAddress;

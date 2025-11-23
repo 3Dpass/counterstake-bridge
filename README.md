@@ -67,10 +67,10 @@ node realtime_monitoring.js
 pkill -f "node run.js"
 ```
 
-## Start from bootstrap DB to bypass using explorers during the first catch-up
-Import the db bootstrap, then restart the app.  
+## Start from bootstrap for the first catch-up
+Import the db snapshot and restart.
 ```bash
-node node import_db_for_seeding.js db_export_YYYY-MM-DD.json
+node node import_db_for_seeding.js db_export_2025-11-23.json
 ```
 
 ## Setup Keys
