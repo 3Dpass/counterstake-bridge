@@ -69,25 +69,72 @@ async function testAllClaimsAgainstTransfers() {
 			continue;
 		}
 
-		// If already linked, verify the link is correct
+		// If already linked, verify the link is correct using normalized addresses
 		if (claim.transfer_id) {
-			alreadyLinkedCount++;
-			// Verify the link is correct
+			// Verify the link is correct using the same normalization logic as findTransfers
+			const src_network = claim.type === 'expatriation' ? bridge.home_network : bridge.foreign_network;
+			const dst_network = claim.type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
+
+			const normalized_claim_sender = normalizeAddress(claim.sender_address, mockNetworkApi[src_network]);
+			const normalized_claim_dest = normalizeAddress(claim.dest_address, mockNetworkApi[dst_network]);
+
 			const transfer = await db.query(`
-				SELECT transfer_id, bridge_id, type, txid, txts, sender_address, dest_address
+				SELECT transfer_id, bridge_id, type, txid, txts, sender_address, dest_address, is_confirmed
 				FROM transfers
 				WHERE transfer_id=?
 			`, [claim.transfer_id]);
 
-			if (transfer.length > 0 && transfer[0].txid === claim.txid) {
-				// Link is correct
+			if (transfer.length > 0) {
+				const t = transfer[0];
+				const normalized_transfer_sender = normalizeAddress(t.sender_address, mockNetworkApi[src_network]);
+				const normalized_transfer_dest = normalizeAddress(t.dest_address, mockNetworkApi[dst_network]);
+
+				// Check full normalized match (same as findTransfers query)
+				const normalizedMatch = (
+					t.bridge_id === claim.bridge_id &&
+					t.txid === claim.txid &&
+					t.txts === claim.txts &&
+					normalized_transfer_sender === normalized_claim_sender &&
+					normalized_transfer_dest === normalized_claim_dest &&
+					t.type === claim.type &&
+					t.is_confirmed === 1
+				);
+
+				if (normalizedMatch) {
+					alreadyLinkedCount++;
+				} else {
+					alreadyLinkedButWrongCount++;
+					// Determine the reason for mismatch
+					let reason = `Has transfer_id=${claim.transfer_id} but doesn't match with normalized addresses`;
+					if (t.txid !== claim.txid) {
+						reason += ` (txid mismatch)`;
+					} else if (t.txts !== claim.txts) {
+						reason += ` (txts mismatch: claim=${claim.txts}, transfer=${t.txts})`;
+					} else if (normalized_transfer_sender !== normalized_claim_sender) {
+						reason += ` (sender address mismatch after normalization)`;
+					} else if (normalized_transfer_dest !== normalized_claim_dest) {
+						reason += ` (dest address mismatch after normalization)`;
+					} else if (t.bridge_id !== claim.bridge_id) {
+						reason += ` (bridge_id mismatch)`;
+					} else if (t.type !== claim.type) {
+						reason += ` (type mismatch)`;
+					} else if (t.is_confirmed !== 1) {
+						reason += ` (transfer not confirmed)`;
+					}
+					unmatchedDetails.push({
+						claim_num: claim.claim_num,
+						bridge_id: claim.bridge_id,
+						type: claim.type,
+						reason
+					});
+				}
 			} else {
 				alreadyLinkedButWrongCount++;
 				unmatchedDetails.push({
 					claim_num: claim.claim_num,
 					bridge_id: claim.bridge_id,
 					type: claim.type,
-					reason: `Has transfer_id=${claim.transfer_id} but transfer doesn't match`
+					reason: `Has transfer_id=${claim.transfer_id} but transfer not found`
 				});
 			}
 			continue;
