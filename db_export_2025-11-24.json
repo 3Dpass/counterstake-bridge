@@ -1,5 +1,5 @@
 {
-  "exportDate": "2025-11-23T16:52:39.683Z",
+  "exportDate": "2025-11-24T20:31:29.445Z",
   "tables": {
     "bridges": [
       {
@@ -53777,7 +53777,7 @@
         "amount": 1000000,
         "reward": 30000,
         "sender_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
-        "dest_address": "0x067fac51f31dc80263d55f9980df1358357dc10d",
+        "dest_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
         "data": "0x",
         "txid": "0xb999a65fe27528c88c7d5f9acd223bc9ffe915d4f03fb3f71c2556c76188368d",
         "txts": 1758635253,
@@ -53807,7 +53807,7 @@
         "amount": 2010000,
         "reward": 60300,
         "sender_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
-        "dest_address": "0x4fbc0bf972d9d719969c0ec661d497b5b5c18744",
+        "dest_address": "0x4Fbc0bF972D9D719969C0Ec661D497B5B5C18744",
         "data": "0x",
         "txid": "0x02fc2ce8f3328235f82dd310c2f0221b1226e9c24076a62da7dc8c5834e34d0b",
         "txts": 1759182674,
@@ -54464,7 +54464,7 @@
         "transfer_id": 3703,
         "bridge_id": 12,
         "type": "expatriation",
-        "amount": 1e+21,
+        "amount": "1e+21",
         "reward": 10000000000000000000,
         "sender_address": "0xbd2C1400eA794D837669d3A83Ef8B3534579b5BF",
         "dest_address": "KUNNTFAD3G55IWXSNKTDRKH222E4DF7R",
@@ -54939,6 +54939,21 @@
         "is_confirmed": 1,
         "is_bad": 0,
         "creation_date": "2025-11-23 16:47:21"
+      },
+      {
+        "transfer_id": 4643,
+        "bridge_id": 9,
+        "type": "expatriation",
+        "amount": 1000000000000000,
+        "reward": 0,
+        "sender_address": "0xbEd0D0aa68ED0E3F32eda01B803e72F04e778393",
+        "dest_address": "0xbEd0D0aa68ED0E3F32eda01B803e72F04e778393",
+        "data": "0x",
+        "txid": "0x8bb5b89677ac2c819b352ea54c141751a58239c01a881f5f226f0a7c567ca1f3",
+        "txts": 1761990941,
+        "is_confirmed": 1,
+        "is_bad": 0,
+        "creation_date": "2025-11-24 20:13:46"
       }
     ],
     "claims": [
@@ -68529,7 +68544,7 @@
         "transfer_id": 1212,
         "claim_txid": "qV/qIAliaRYOyKQdttkbuyKYcO7e0d95RCCbC0MCjKo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:42"
       },
       {
@@ -68547,7 +68562,7 @@
         "transfer_id": 1213,
         "claim_txid": "UoG1hXaNmlNtQdbjBlQvu+CuG0/xh2lmEOmY2u9dagY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:42"
       },
       {
@@ -68565,7 +68580,7 @@
         "transfer_id": 1214,
         "claim_txid": "BjO6BDclTOY7e5NwanuaU2QVp1//xhglR8l+8qlWQHs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:42"
       },
       {
@@ -68583,7 +68598,7 @@
         "transfer_id": 1215,
         "claim_txid": "bs66kuhHHg/TkWJi6Hx2KWwz8gL1LXGQHxSgB2u0lZk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:42"
       },
       {
@@ -68601,7 +68616,7 @@
         "transfer_id": 1216,
         "claim_txid": "ubRCHXM5Gy6G6vcotpvq1j8TNJ74z1TXDuIFPjG8Ovw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:43"
       },
       {
@@ -68619,7 +68634,7 @@
         "transfer_id": 1217,
         "claim_txid": "Zx6UlynVxGYe/Bn8jH9mp0vQAbs/b0xRAGeTfEgeGDM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:43"
       },
       {
@@ -68637,7 +68652,7 @@
         "transfer_id": 1218,
         "claim_txid": "pDDITXiXwM+x9Xd/UCoB/nZqLP/7M+yxAwzDYMz0CR8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:43"
       },
       {
@@ -68655,7 +68670,7 @@
         "transfer_id": 1219,
         "claim_txid": "cw7IfEd1yeVNueYMi1QASJGWL/eXFaUACEL2AdYC7Ms=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:43"
       },
       {
@@ -68673,7 +68688,7 @@
         "transfer_id": 1220,
         "claim_txid": "XgBTdFskUig6cNSeqdhbEigOId6hWNQy/Cwbrutw490=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:43"
       },
       {
@@ -68691,7 +68706,7 @@
         "transfer_id": 1221,
         "claim_txid": "7hgWa3aYd6qDAXXgIwlSb9Rcm30DXSjhtY9ac12+6LI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:43"
       },
       {
@@ -68709,7 +68724,7 @@
         "transfer_id": 1222,
         "claim_txid": "ZvxsLWIx6FXhmHny5HHghwLXupybXZdASVasCPnZQIo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:43"
       },
       {
@@ -68727,7 +68742,7 @@
         "transfer_id": 1223,
         "claim_txid": "U1+OLhbCpkpl4aJv8H1ZUBgkPh4LuJpxVfw2nypvAjw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68745,7 +68760,7 @@
         "transfer_id": 1224,
         "claim_txid": "UXHFWT3bTZ0xMAEM/cLgthAj1FwTx3bLsP8YTkySzBg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68763,7 +68778,7 @@
         "transfer_id": 1225,
         "claim_txid": "UyFqxaV81EuwGVTzEvTHQOPcQw4qfSoAzXy0TCidY7E=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68781,7 +68796,7 @@
         "transfer_id": 1226,
         "claim_txid": "T1LFffaZ4HvPaLo4B54/J+GQvnkij2trf3+dq8wWm9g=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68799,7 +68814,7 @@
         "transfer_id": 1227,
         "claim_txid": "iGgBNm0cYi7If2yYXvgE+gMBx/CjlSmVPT4g2J38+lY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68817,7 +68832,7 @@
         "transfer_id": 1228,
         "claim_txid": "6wXtr0qdRb49CgetLRAGNSRtEijUsxDT7q9pz4waMdw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68835,7 +68850,7 @@
         "transfer_id": 1229,
         "claim_txid": "HA7oSxthQn+HVHOPS8WHVE3Y4D/d1F95WB4zLfkKTE8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68853,7 +68868,7 @@
         "transfer_id": 1230,
         "claim_txid": "410Yo0YLpy/UknTL3n55jNHH8qitPHxdMr0gQYdXccQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68871,7 +68886,7 @@
         "transfer_id": 1231,
         "claim_txid": "AYtq7f9qR53sBf02ffzU6ddL/ap0knZiiZOZWo2fjmI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68889,7 +68904,7 @@
         "transfer_id": 1232,
         "claim_txid": "zPtD1P0BGHCeC7JcS7osCrix7U4Ygsc4ZnVl+/8/Mbo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68907,7 +68922,7 @@
         "transfer_id": 1233,
         "claim_txid": "DO4e5o0mO8p5LEcRMf7cQO/Tu+fok+LrsiaWb7b7AjY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68925,7 +68940,7 @@
         "transfer_id": 1234,
         "claim_txid": "DioRKCA13jq6zUMiChWrcIoESV++venRxeAHDO6biV8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68943,7 +68958,7 @@
         "transfer_id": 1235,
         "claim_txid": "8Uwnx26TEm9B4C5b+TWLIGTpjkVmFaBOcAZXbSr6JVk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68961,7 +68976,7 @@
         "transfer_id": 1236,
         "claim_txid": "CQ4Fz73Xvgh2stc+vK23j3avOwX6Fidz2+jGF+Izr4A=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:44"
       },
       {
@@ -68979,7 +68994,7 @@
         "transfer_id": 1237,
         "claim_txid": "Es+IWjGWqstD3IQbvYnzbUz3XXuWvAl2cvzMMQT8fSw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:45"
       },
       {
@@ -68997,7 +69012,7 @@
         "transfer_id": 1238,
         "claim_txid": "+I4/ZG9ohCpw8B4TLuVZxbNW/fsYmSi9XmN0BQGcSBo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:45"
       },
       {
@@ -69015,7 +69030,7 @@
         "transfer_id": 1239,
         "claim_txid": "G8Fc2dUafd4iWmC2sbvMUvSW61qe9Tu5XHE2tMZOxvs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:45"
       },
       {
@@ -69033,7 +69048,7 @@
         "transfer_id": 1240,
         "claim_txid": "nWb0WsRgIV8qy3oATTjz8nxwQ4EYIFgBfInAqlYeozk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:45"
       },
       {
@@ -69051,7 +69066,7 @@
         "transfer_id": 1241,
         "claim_txid": "k/jWQaYsRd2Llgk//oruWJna+sDiEvRFJr9E79C9JFM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:45"
       },
       {
@@ -69069,7 +69084,7 @@
         "transfer_id": 1242,
         "claim_txid": "y84CgQAGMX/jFQtLBIo8D7QW+xKjgGfes/djbuVAHyg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:45"
       },
       {
@@ -69087,7 +69102,7 @@
         "transfer_id": 1243,
         "claim_txid": "OAwZ/9f1VF2hKyWCFlJPQFxQPHm+FixpGvFJjnbuY4c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:45"
       },
       {
@@ -69141,7 +69156,7 @@
         "transfer_id": 1244,
         "claim_txid": "by5ywuVirax9c3ojLXuDFXJ0wlbI0fZ79J+M8duYJIo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:46"
       },
       {
@@ -69159,7 +69174,7 @@
         "transfer_id": 1245,
         "claim_txid": "D4wFwgNMakseZ1NVz2KXU2QHnmCas+4PHaW3+vOUjGM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:48"
       },
       {
@@ -69177,7 +69192,7 @@
         "transfer_id": 1246,
         "claim_txid": "fKAXl1IHVfRzXOHmJ4Q9jDWhb+x802z+6NshSEWL5go=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:48"
       },
       {
@@ -69213,7 +69228,7 @@
         "transfer_id": 1247,
         "claim_txid": "Wh6W/pX/D6/2nMh8AvuaVdZuKFOUa5+ExIDyakpn0sc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:49"
       },
       {
@@ -69267,7 +69282,7 @@
         "transfer_id": 1248,
         "claim_txid": "zWRzD3QuyrbtcB8I8ytCH1/PutytmDztr4x4nyF4Rf4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:51"
       },
       {
@@ -69303,7 +69318,7 @@
         "transfer_id": 1249,
         "claim_txid": "dq5VzjYiCee7JNwdtAK5PSClmvLIJNmfwt5kj5waxSU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:53"
       },
       {
@@ -69321,7 +69336,7 @@
         "transfer_id": 1250,
         "claim_txid": "ZzIvjDYPpuGz6Culgh91/LoIuoC6RILN8jOEvivYrO8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:54"
       },
       {
@@ -69357,7 +69372,7 @@
         "transfer_id": 1251,
         "claim_txid": "g7HtYZZbXR/NFkh7HBtOtRtHYYuS5QsiYU520WO0L58=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:56"
       },
       {
@@ -69411,7 +69426,7 @@
         "transfer_id": 1252,
         "claim_txid": "E9buT5vEFcvQ6p16fqCPDBVWke9jkeg6WMvm9u/Ex8o=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:57"
       },
       {
@@ -69429,7 +69444,7 @@
         "transfer_id": 1253,
         "claim_txid": "nGizOv8eqczrTVLlkAzw2HEKOsoU2Bl3ApvsgXtRdJA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:10:59"
       },
       {
@@ -69465,7 +69480,7 @@
         "transfer_id": 1254,
         "claim_txid": "+qBd2bLFT7+TP3R/rYyWAFdgWsY1iaW3l7oPor6D0nA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:00"
       },
       {
@@ -69501,7 +69516,7 @@
         "transfer_id": 1255,
         "claim_txid": "vdO3d9oLL2qKUyiuQ1P3bhT1gQiRqsWZRZeEh8fVC+k=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:02"
       },
       {
@@ -69519,7 +69534,7 @@
         "transfer_id": 1256,
         "claim_txid": "BtcmRq71eezSpgjK3WmzhtnXVH39LN5SPUiP1YlzKjQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:02"
       },
       {
@@ -69537,7 +69552,7 @@
         "transfer_id": 1257,
         "claim_txid": "6aXv976TzTc/WbqG2dEdu+weO8sLZvALRlO3/5Ff6+E=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:04"
       },
       {
@@ -69573,7 +69588,7 @@
         "transfer_id": 1258,
         "claim_txid": "lFGDsw4TcJWVtHmNA2uJJbneVWY/uusjx7vm/gVyXlE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:05"
       },
       {
@@ -69627,7 +69642,7 @@
         "transfer_id": 1259,
         "claim_txid": "2QOZAJ3kMWfp8GAdFs2sY9jsZjR7TxIY/bGzk41JCNo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:07"
       },
       {
@@ -69663,7 +69678,7 @@
         "transfer_id": 1260,
         "claim_txid": "fYXulxewJJvmZyRid48Db2y0QDyMP4xoz1jyvH9Vviw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:09"
       },
       {
@@ -69681,7 +69696,7 @@
         "transfer_id": 1261,
         "claim_txid": "9ZTuLkp/HqaaBxmT6foQyc2ZZmfPZIy1/RZO8My332w=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:11"
       },
       {
@@ -69699,7 +69714,7 @@
         "transfer_id": 1262,
         "claim_txid": "2fEAzwknu+iZeHQMuErqJ20bau4UIn22EWOaLPskaK4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:12"
       },
       {
@@ -69735,7 +69750,7 @@
         "transfer_id": 1263,
         "claim_txid": "Y5nASFg2FNmmiGIS16vLsLqeyUBlN/9UuntWEhUEBXU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:14"
       },
       {
@@ -69753,7 +69768,7 @@
         "transfer_id": 1264,
         "claim_txid": "4k3/05fLp5t5b4J9FcHgyR9SE2XOrjALwse0sAClv+g=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:16"
       },
       {
@@ -69807,7 +69822,7 @@
         "transfer_id": 1265,
         "claim_txid": "QrtQ8SllK2m4AsBEhIV1Ggv7ajmOF66lMS/zlDW5o2o=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:17"
       },
       {
@@ -69861,7 +69876,7 @@
         "transfer_id": 1266,
         "claim_txid": "dG0lU8utPG7udm0a2EYNdRoLyB6HAN9m8TW3otRfc1c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:20"
       },
       {
@@ -69879,7 +69894,7 @@
         "transfer_id": 1267,
         "claim_txid": "ZNoHWRTsdJUDpyUTFhMRRQJrzbi1/cy3qk+67keRxr8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:21"
       },
       {
@@ -69915,7 +69930,7 @@
         "transfer_id": 1268,
         "claim_txid": "805UiHSRqXoQAoiIHyogVyolb1EWNb1CkqV2PwgycDI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:23"
       },
       {
@@ -69951,7 +69966,7 @@
         "transfer_id": 1269,
         "claim_txid": "Eiaanz28jkea55EJj5HwebczcpW6Sk7a35IggHYWJUM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:24"
       },
       {
@@ -70005,7 +70020,7 @@
         "transfer_id": 1270,
         "claim_txid": "IT4sRRLnJMnA3/04/vhS4+8NtodfgZ/B+zZZL2f5NCQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:26"
       },
       {
@@ -70041,7 +70056,7 @@
         "transfer_id": 1271,
         "claim_txid": "TcMHdbuF9Gdan4CkXDQpy0ZQmAyt4FF3r5aIIdYz+tw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:27"
       },
       {
@@ -70095,7 +70110,7 @@
         "transfer_id": 1272,
         "claim_txid": "zQ81xKkXXHv3tDOhRE3BhDvEr3+DOoUcAi5pGpc/hZI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:29"
       },
       {
@@ -70131,7 +70146,7 @@
         "transfer_id": 1273,
         "claim_txid": "hwNBCVuVaqEqLAOqk5DeSeCpK0rDoRI2ll4vCVv4smk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:30"
       },
       {
@@ -70149,7 +70164,7 @@
         "transfer_id": 1274,
         "claim_txid": "UMiJhW0oXzY65rLWIuVA3RxSldjv2vLrejOXYCZmfac=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:32"
       },
       {
@@ -70185,7 +70200,7 @@
         "transfer_id": 1275,
         "claim_txid": "aZ7QoAWO/12wEX7r9boR4kplAFd0z3A5YgbDmmirqg0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:33"
       },
       {
@@ -70221,7 +70236,7 @@
         "transfer_id": 1277,
         "claim_txid": "wKsvUIkZpCkHvZUPcCZz9u35te6n0JxlQ5NSb+dnKiI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:35"
       },
       {
@@ -70257,7 +70272,7 @@
         "transfer_id": 1278,
         "claim_txid": "U25bNzYmVq4WGPgbgMj3u2jPLn0LJYqn1Vi8NuA/H0A=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:36"
       },
       {
@@ -70311,7 +70326,7 @@
         "transfer_id": 1279,
         "claim_txid": "M/dbau1fouX4BeztbOJnMPmnNiJQt87SbyB3U+ClTxE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:41"
       },
       {
@@ -70347,7 +70362,7 @@
         "transfer_id": 1280,
         "claim_txid": "mMfo6xFCgDa9mKL6K6QewQuJEY/+JPe1FFhtOGt1rHQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:42"
       },
       {
@@ -70383,7 +70398,7 @@
         "transfer_id": 1281,
         "claim_txid": "kuTFTpUm95+U78O8r7hBwcBhCBVmbg1LYkPHoZItr+g=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:44"
       },
       {
@@ -70455,7 +70470,7 @@
         "transfer_id": 1283,
         "claim_txid": "aqU4RVAdvw6yMu1z8EHwctPiHQRRzkff8/oLh0MtbkM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:48"
       },
       {
@@ -70473,7 +70488,7 @@
         "transfer_id": 1284,
         "claim_txid": "mregYGe6LemxghpgYH+pKjM7BFYb2HOvA8HbB+QOSiA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:48"
       },
       {
@@ -70527,7 +70542,7 @@
         "transfer_id": 1285,
         "claim_txid": "oHvSDSrOCELs4KmLAH19r4gO9ZhKBtrSpGhdwg5Q32k=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:50"
       },
       {
@@ -70563,7 +70578,7 @@
         "transfer_id": 1286,
         "claim_txid": "CIyJCh1tqZ+QWnO1rxl0rntH25K+XE2KK3jrMzp+70E=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:51"
       },
       {
@@ -70599,7 +70614,7 @@
         "transfer_id": 1288,
         "claim_txid": "E1q47XHrkad1bnObh8os5oT7vzQb3nYp65d8WFs7ljM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:53"
       },
       {
@@ -70617,7 +70632,7 @@
         "transfer_id": 1289,
         "claim_txid": "30NKdya7gvU9GQXFLyWwSELnoYAZm+9Z1ijr2aDw0YY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:55"
       },
       {
@@ -70635,7 +70650,7 @@
         "transfer_id": 1290,
         "claim_txid": "FErEkhSIcEL3OBi1R7dswer2PM9ct0jLLDiZVYowQ8o=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:55"
       },
       {
@@ -70671,7 +70686,7 @@
         "transfer_id": 1291,
         "claim_txid": "6U3CTYVC91/82XFn91TvN+wwQg7aiweiRvZv3kbf5DE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:56"
       },
       {
@@ -70689,7 +70704,7 @@
         "transfer_id": 1292,
         "claim_txid": "4Q2kNxI8IvXniYfRB2i/avrFl84WIbj7Y1/3RrgUomM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:11:58"
       },
       {
@@ -70725,7 +70740,7 @@
         "transfer_id": 1293,
         "claim_txid": "Tfpabw/VwNaZPJ4DOxGXcHKQ3hMA+tULaJp0r5Lpkt8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:00"
       },
       {
@@ -70779,7 +70794,7 @@
         "transfer_id": 1294,
         "claim_txid": "bszGla3jAcuLyef4vSbWwjZtCV5l7vGKJQ2DsUeDM3E=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:01"
       },
       {
@@ -70797,7 +70812,7 @@
         "transfer_id": 1295,
         "claim_txid": "NqKfE6Z9SsGvZLrhENjkPDon8186A42p+f+8cBlFv1E=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:03"
       },
       {
@@ -70869,7 +70884,7 @@
         "transfer_id": 1296,
         "claim_txid": "2eQz3HJMFpZZVUSl9GtlOFnab244JxeAlvIIvDvrtg4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:06"
       },
       {
@@ -70887,7 +70902,7 @@
         "transfer_id": 1297,
         "claim_txid": "JR3eS3LssPDmsjy6wt2rUZfFZCm6UunFpOlmGTObGhc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:06"
       },
       {
@@ -70905,7 +70920,7 @@
         "transfer_id": 1298,
         "claim_txid": "AgspbIbtG2U5vh6iiRHAxyCFEXN38dVIx71IR5sbllY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:07"
       },
       {
@@ -70959,7 +70974,7 @@
         "transfer_id": 1300,
         "claim_txid": "lTAinr5zCfM+b8yN5NwLvNEF3MJsSXO5IW/eeeoimi0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:09"
       },
       {
@@ -70995,7 +71010,7 @@
         "transfer_id": 1301,
         "claim_txid": "8rS/yxajNJ7C+t18xE0tit9FN5DrJt8rFXqPHOZ3OPY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:11"
       },
       {
@@ -71049,7 +71064,7 @@
         "transfer_id": 1302,
         "claim_txid": "M5j6ZZ6Qbl33wixMIBq2NdDUCwVxl4aE8/QSgAcdKVU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:13"
       },
       {
@@ -71067,7 +71082,7 @@
         "transfer_id": 1303,
         "claim_txid": "eZSTxXKPD9bgUvjiaf+/i6ZbKVTqYrceEXzpovmL+78=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:15"
       },
       {
@@ -71103,7 +71118,7 @@
         "transfer_id": 1304,
         "claim_txid": "kvz3Jhf+hYmduomdx47q8QEbhHciqhQOUI1iBlzQxYI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:17"
       },
       {
@@ -71139,7 +71154,7 @@
         "transfer_id": 1305,
         "claim_txid": "jvFFBrtraKJkxjaa1PBlDheoE1nt80+mgisJQimVNd0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:18"
       },
       {
@@ -71193,7 +71208,7 @@
         "transfer_id": 1306,
         "claim_txid": "9jUBlyMwY5oxyLLZpfdBb9xqeqtuy7tgDJP+o0CwSDk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:20"
       },
       {
@@ -71211,7 +71226,7 @@
         "transfer_id": 1307,
         "claim_txid": "g0KEJGPjVSAhf+fmX1H/N8pvRR9wcaktFK8TqlZ7cn4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:21"
       },
       {
@@ -71265,7 +71280,7 @@
         "transfer_id": 1308,
         "claim_txid": "55ezLODf8ky3PjWs8SuLt02k2o3xdQT2uk7FUBoKL70=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:23"
       },
       {
@@ -71301,7 +71316,7 @@
         "transfer_id": 1309,
         "claim_txid": "3t+J9FXXY6JQK7atH5LxrsnCzf1rBkLjyAmS7BWXZnI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:25"
       },
       {
@@ -71319,7 +71334,7 @@
         "transfer_id": 1310,
         "claim_txid": "zODW7D/efFZ5np06/0F5VkFxeY0u+iGLR4VhPemF4wU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:25"
       },
       {
@@ -71337,7 +71352,7 @@
         "transfer_id": 1311,
         "claim_txid": "5FKjPI+DbaeojmqxJJgSTBe96AJqAMIuvg9h4mft29c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:25"
       },
       {
@@ -71607,7 +71622,7 @@
         "transfer_id": 1312,
         "claim_txid": "JWQppxlT+G+yLyILEF/rKvWXmJiUA6dXE/+U5kEodDg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:57"
       },
       {
@@ -71625,7 +71640,7 @@
         "transfer_id": 1313,
         "claim_txid": "xM3NSfJ1WR5kP03iRms0oQ6VotmPyzKIP2oc1jqC/8I=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:12:59"
       },
       {
@@ -71661,7 +71676,7 @@
         "transfer_id": 1314,
         "claim_txid": "wfxpUhxfKXn4DTric+sFwh+FpIyGnlGghMMBKNgPYyQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:01"
       },
       {
@@ -71697,7 +71712,7 @@
         "transfer_id": 1315,
         "claim_txid": "zUvG1q6fDm0eGGIiqWgj+Q/brqkag8OOvvgbWHP38vk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:02"
       },
       {
@@ -71733,7 +71748,7 @@
         "transfer_id": 1316,
         "claim_txid": "gqaPIPghNIPhtTp+T6YzH2BurOXt9a9LKdQ8t50GkEs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:04"
       },
       {
@@ -71787,7 +71802,7 @@
         "transfer_id": 1317,
         "claim_txid": "Lhyno3Ab4IU5edtoFw1vxwwnBnrXLOJFrdKY+Ew+jds=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:06"
       },
       {
@@ -71823,7 +71838,7 @@
         "transfer_id": 1318,
         "claim_txid": "WS2AsMN4hX19mRo15e8eG1EFDHB2pEPcZNwalGfTCVA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:08"
       },
       {
@@ -71841,7 +71856,7 @@
         "transfer_id": 1319,
         "claim_txid": "TO6aUlmiCfVE7R0R78iaDKnbtyscni1RGAf4qn/aUJ4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:08"
       },
       {
@@ -71859,7 +71874,7 @@
         "transfer_id": 1320,
         "claim_txid": "9Xxr4L6FiHyxdY0CZZDXNZShDF37TTDFhpEvpHI+qL8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:09"
       },
       {
@@ -71877,7 +71892,7 @@
         "transfer_id": 1321,
         "claim_txid": "sP7L3q2U79Oxzsue1Nuz+2yyLGBZr2b4io9yY+N2Gqs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:11"
       },
       {
@@ -71931,7 +71946,7 @@
         "transfer_id": 1322,
         "claim_txid": "BIgcjOPh+sfMMh39GD+977OET1OTtVULtmjc7skyVso=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:13"
       },
       {
@@ -71949,7 +71964,7 @@
         "transfer_id": 1323,
         "claim_txid": "LR1gVvHxjWEZHTmX0tHikK5COrn8+eQbtl/l65pkllE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:14"
       },
       {
@@ -72003,7 +72018,7 @@
         "transfer_id": 1324,
         "claim_txid": "lA+t2p2g8sB8cmBBY79iKDoMSQ2gIQNdudjpTaB5FRg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:16"
       },
       {
@@ -72039,7 +72054,7 @@
         "transfer_id": 1325,
         "claim_txid": "NXCcq/OVomNx2leqaX+SCTyDk1r6i7wJiV/u9U13rbY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:18"
       },
       {
@@ -72057,7 +72072,7 @@
         "transfer_id": 1326,
         "claim_txid": "N108SnRKqIWMXl6XtYfDXVRAscgjOZVbW4K6Ud8XExE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:19"
       },
       {
@@ -72093,7 +72108,7 @@
         "transfer_id": 1327,
         "claim_txid": "4HPn4Eb3FsXj8kneXzlnVYD8B8blVMy8+qFjoVlybrU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:21"
       },
       {
@@ -72111,7 +72126,7 @@
         "transfer_id": 1328,
         "claim_txid": "GRBiUNrmRG0BN5lCjdcE5hvC2DzG3rdkg1SXrwzM8iY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:21"
       },
       {
@@ -72147,7 +72162,7 @@
         "transfer_id": 1329,
         "claim_txid": "1ZQg/N1zXc0EGdy6Q9MH27P1MqMbmSnDEc8nZW6dm9c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:22"
       },
       {
@@ -72471,7 +72486,7 @@
         "transfer_id": 1330,
         "claim_txid": "I609T9DT+suUaqM8Z4S01WNbD7OKQ9dW3l3Jjhr6mlc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:55"
       },
       {
@@ -72489,7 +72504,7 @@
         "transfer_id": 1331,
         "claim_txid": "fkfg6eqxHyFk9FdlnZy9gasTYTSijsJJUfxfgM3wv1Y=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:57"
       },
       {
@@ -72507,7 +72522,7 @@
         "transfer_id": 1332,
         "claim_txid": "yuVCHVsM01XC80w/6QryYhRU5347MStGv9p/tkqdgZY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:57"
       },
       {
@@ -72525,7 +72540,7 @@
         "transfer_id": 1333,
         "claim_txid": "iirWvC1+faFuncjJ2XaFznQvPf/KD2Mam487b/kHwaI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:13:59"
       },
       {
@@ -72561,7 +72576,7 @@
         "transfer_id": 1334,
         "claim_txid": "FfC3TPLNFRNq6ZwfxY9tMlEM8ey2p9btfBfeqqy+3Uo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:00"
       },
       {
@@ -72579,7 +72594,7 @@
         "transfer_id": 1335,
         "claim_txid": "XIb7TVK80ZsvBq9vd09d8BtvOoPXIx0SSeWBq1sjbRo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:02"
       },
       {
@@ -72597,7 +72612,7 @@
         "transfer_id": 1336,
         "claim_txid": "zcWiFcr8KMUO5T8Yv/MYsd+Zjue6iDCweZPTxHr3EdA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:03"
       },
       {
@@ -72633,7 +72648,7 @@
         "transfer_id": 1337,
         "claim_txid": "12xQaY6eCwWYMFY9/qKouUEOMZgmJOvZwE7zrbPH7fo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:05"
       },
       {
@@ -72669,7 +72684,7 @@
         "transfer_id": 1338,
         "claim_txid": "QaSdKtIGoMOZqATIGbagkJk6hDuHMjmNYNfCPfDKK44=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:06"
       },
       {
@@ -72705,7 +72720,7 @@
         "transfer_id": 1339,
         "claim_txid": "5/pumkBdvVlnjctOYL6dEaeMFn4WFFc7UP9F8dWmzb0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:08"
       },
       {
@@ -72723,7 +72738,7 @@
         "transfer_id": 1340,
         "claim_txid": "RJ5pNnFoXixQblRsSok33hpVN4E2B1eQQJHeLpLdabE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:09"
       },
       {
@@ -72777,7 +72792,7 @@
         "transfer_id": 1341,
         "claim_txid": "nFxBhrGn77j8/KBXKTVA61O7THGJq004PpWcP0GO9aE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:11"
       },
       {
@@ -72813,7 +72828,7 @@
         "transfer_id": 1342,
         "claim_txid": "3SYBC+nYMUGV9/oiCpFwPoW+8EtloMHr8G5O/17wWN0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:13"
       },
       {
@@ -72867,7 +72882,7 @@
         "transfer_id": 1343,
         "claim_txid": "35QQundAU5FbQYRgJNZjBAQH4kt1jnEbrEuMsY6o5g4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:16"
       },
       {
@@ -72885,7 +72900,7 @@
         "transfer_id": 1344,
         "claim_txid": "8SYQvdLkkzlQOtAgyNKPTTv70LbOm021Ey8J8SOwbnE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:18"
       },
       {
@@ -72939,7 +72954,7 @@
         "transfer_id": 1345,
         "claim_txid": "WKTowL1KzpNh9iZNmD70vKHW2GgcHlezwRWTixEgG5E=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:19"
       },
       {
@@ -72957,7 +72972,7 @@
         "transfer_id": 1346,
         "claim_txid": "uxUVHU3emPsOjzhGv/QGVJ1kvxFlpD3mFoDDQs2Jl1Q=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:21"
       },
       {
@@ -73011,7 +73026,7 @@
         "transfer_id": 1347,
         "claim_txid": "CSJDqXNzQKXzrtQYjYGRqZefrnsc6Z6GdkxPyi1/jlg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:24"
       },
       {
@@ -73047,7 +73062,7 @@
         "transfer_id": 1348,
         "claim_txid": "g7kVQwkhMPEQYQLryTzCvefIM7nWbHJ45AXA+/FyCPw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:14:25"
       },
       {
@@ -78483,7 +78498,7 @@
         "transfer_id": 1349,
         "claim_txid": "nlmyrsenlmZH8XyAInWao3cc8BUhnu52zAytE0rvKrk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78501,7 +78516,7 @@
         "transfer_id": 1350,
         "claim_txid": "VOOFy055JJideIMvf25DCK8j8JhihxoH4hy4l3/0Ta0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78519,7 +78534,7 @@
         "transfer_id": 1351,
         "claim_txid": "tM8AzTz2A3W2v/JTQLOdSKNTCOFUbG1IqH4Yt1EEUcw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78537,7 +78552,7 @@
         "transfer_id": 1352,
         "claim_txid": "AqrP1AFF60r1GhvWu9do+cWqJyHXkUTd9e4R4BjlVSk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78555,7 +78570,7 @@
         "transfer_id": 1353,
         "claim_txid": "DsFWtr5nd2ZlqhstWCD1OWbZNLYJzt1p62IvhWcMpR4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78573,7 +78588,7 @@
         "transfer_id": 1354,
         "claim_txid": "p9d5G7KkSaBj3b9Ccio5Zflpgoe8qrq3emMKi82V9Fg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78591,7 +78606,7 @@
         "transfer_id": 1355,
         "claim_txid": "NBjRYT1QudQFW+4ijPmL3G4+wkw5aXgAdLOnQytohc4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78609,7 +78624,7 @@
         "transfer_id": 1356,
         "claim_txid": "VhKFxwXIdkRfWoTVK2cR2Ub8/SCzPTTqVBrJ7ND6b7w=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78627,7 +78642,7 @@
         "transfer_id": 1357,
         "claim_txid": "jYjOpdfSnY5gi1+7EzPUPmuq2tn2m0bhP185yLulD5U=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78645,7 +78660,7 @@
         "transfer_id": 1358,
         "claim_txid": "guY5Rkv4AqWzXez2muhFivNLrrTA+RjsksYmy23EuEM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78663,7 +78678,7 @@
         "transfer_id": 1359,
         "claim_txid": "XufRbCdYASxgUtHbiv7bzcu2Py/l4BUyxqEQC/MgIQQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78681,7 +78696,7 @@
         "transfer_id": 1360,
         "claim_txid": "2doyswgjHZ6gkRYkLjLtzs4D7X74CD1eXFxBnzFW/gM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78699,7 +78714,7 @@
         "transfer_id": 1361,
         "claim_txid": "hkRc++XzVI4rrrbo6fsDjvlS0PSSxVcs2lAtzHtRCAM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78717,7 +78732,7 @@
         "transfer_id": 1362,
         "claim_txid": "KXvVeRK7QdQPwjUhOPwnwhSelqUp11VVweYBKnUmkcw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78735,7 +78750,7 @@
         "transfer_id": 1363,
         "claim_txid": "fvtLOD0ErJ/6BG4R9ojxEdxwmY6IvlJdu4AIB3kp+F4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78753,7 +78768,7 @@
         "transfer_id": 1364,
         "claim_txid": "/Vu5MJFNP83ICa/EqhaM98pH+IVM0LbNpXxq1vCyaIM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78771,7 +78786,7 @@
         "transfer_id": 1365,
         "claim_txid": "Yp9xIhHJnpreeFPNGwu4Q4E/cLAUSCOLbXOZNqEOF1w=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78789,7 +78804,7 @@
         "transfer_id": 1366,
         "claim_txid": "XX51FVJsvkXsndZyI5fUK3m576O1ItF2G5Mxcd+4AsA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78807,7 +78822,7 @@
         "transfer_id": 1367,
         "claim_txid": "HrKjhZmuscBb0uGLgLjKM/p70R+6QqqGzQr3dnOINzM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78825,7 +78840,7 @@
         "transfer_id": 1368,
         "claim_txid": "Py/hA/hKY9rWjBElroUtBQzaqVYBrmUUcbgFuwkAXds=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78843,7 +78858,7 @@
         "transfer_id": 1369,
         "claim_txid": "zr8BQ6pANDt9BOGKigshZg408ATEc48/4hb1Wqp7WDk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78861,7 +78876,7 @@
         "transfer_id": 1370,
         "claim_txid": "qO+nD8y9JHwO9V/6ny7P1Soq6RNKE9QW9Ti9IREvu5w=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78879,7 +78894,7 @@
         "transfer_id": 1371,
         "claim_txid": "CtDz5CqMoXDvDX2adNG4SatiDpCpB0OLr5Ww7E5/YqA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78897,7 +78912,7 @@
         "transfer_id": 1372,
         "claim_txid": "A0SaBeh8q+hZd/waMTTnJNcjetnIZeylHd+4j1g4C2k=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78915,7 +78930,7 @@
         "transfer_id": 1373,
         "claim_txid": "NgCTV2fBbEIo6Mzbvw7PtGHv8ipnQ4Ayou46KqsEYJ8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78933,7 +78948,7 @@
         "transfer_id": 1374,
         "claim_txid": "oIi3Snxtsjj4b+jwNWUxxU8W56Av2YDvqO7Zt0+BhLg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78951,7 +78966,7 @@
         "transfer_id": 1375,
         "claim_txid": "oZbbWm3kCXgah3lexU0AcQxXto5vh9fe/TuvEIXPNZA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78969,7 +78984,7 @@
         "transfer_id": 1376,
         "claim_txid": "G6J0c1Cn/3dxpHAYglBivfjGabL+eBvH2eSxK5M3C88=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -78987,7 +79002,7 @@
         "transfer_id": 1377,
         "claim_txid": "/0sklMPot7rNL5DmtZ55usWZUyu9YW6i8DTKHfsmohQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79005,7 +79020,7 @@
         "transfer_id": 1378,
         "claim_txid": "BwG/6aWFxjgRHUwLo9XTCGZz4OLB6c48hazj51UBaXE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79023,7 +79038,7 @@
         "transfer_id": 1379,
         "claim_txid": "EnZrXMSW/KEiJMKfGIX126S62k3bm6nww51kKy6s7PM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79041,7 +79056,7 @@
         "transfer_id": 1380,
         "claim_txid": "ZBOKhvK7CUwJ/Qg/u2Ov/0fojCX/6iXzHZRR6olnUfY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79059,7 +79074,7 @@
         "transfer_id": 1381,
         "claim_txid": "KkY+zEMTsuSITK/Lz4E0eEPkCk9mBqo4Y61cxQT29ZU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79077,7 +79092,7 @@
         "transfer_id": 1382,
         "claim_txid": "rcsSxVKtScb4a8u9EOdWvZ1rJ6YSj7P0WogpTDZz7Is=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79095,7 +79110,7 @@
         "transfer_id": 1383,
         "claim_txid": "ToiPj7D5DKs60h5wLj34zCXabCzN3Uig67AgJSTfX6c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79113,7 +79128,7 @@
         "transfer_id": 1384,
         "claim_txid": "bsP9z6NWwbdnrtdFz4sE2/Fi3hzXu8ckaVriQeRi7wk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79131,7 +79146,7 @@
         "transfer_id": 1385,
         "claim_txid": "uj4GWo6cRl6Tppo8Ycht/9N0LxJAQt+hrFM7K6goKik=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79149,7 +79164,7 @@
         "transfer_id": 1386,
         "claim_txid": "RPVJ0Nfu7vybhNmbd0FwoTFWz5AhK6QOj6GU9zuF3dQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79167,7 +79182,7 @@
         "transfer_id": 1387,
         "claim_txid": "L7SaXzIjVDHHNarpp1TVEln0c85JTQufdMAMBskkWqo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79185,7 +79200,7 @@
         "transfer_id": 1388,
         "claim_txid": "W4c9zYwC/R0lC/HlOl7MmuQfI2Lqkp6vu2Tvx3BUUUg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79203,7 +79218,7 @@
         "transfer_id": 1389,
         "claim_txid": "PT2AdDqhpL1a8JlgPlo0JMqXpfaC6J2Pb/FXmLtkvMQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79221,7 +79236,7 @@
         "transfer_id": 1390,
         "claim_txid": "HJfGhQbC+csZCfJ7Hp+hnjqDnLFVNmWdnJRxvHCy4ls=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79239,7 +79254,7 @@
         "transfer_id": 1391,
         "claim_txid": "LAPyIiyxOVyc63yDI69VB6hTp1kVvRLutcRgyZW2zg4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79257,7 +79272,7 @@
         "transfer_id": 1392,
         "claim_txid": "KTfgrDy6xqEyj7G9mdDZDTXrFaskNmmzDSCKvxp4ylk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79275,7 +79290,7 @@
         "transfer_id": 1393,
         "claim_txid": "IP5bUbSoKFPqOTrcHPkbgTbp/CjrQn57QJZe0Uwsg1Y=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79293,7 +79308,7 @@
         "transfer_id": 1394,
         "claim_txid": "d1F4Q/in1h4zH8gYUcUZ7kGF6woD7vx+qzCwXpYZOwE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79311,7 +79326,7 @@
         "transfer_id": 1395,
         "claim_txid": "01QJpj98M6ZAhM6V3qXe9PKlGov9IA9UOT4E66+JNyk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79329,7 +79344,7 @@
         "transfer_id": 1396,
         "claim_txid": "G9W16VGtbfmoE3rfMF+SDinimKz95RLcByjAOue2L9I=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79347,7 +79362,7 @@
         "transfer_id": 1397,
         "claim_txid": "ncBMAqnfEKIRFw+vSNoWKhsz/WyVPp0ty6h/ghs3S8c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79365,7 +79380,7 @@
         "transfer_id": 1398,
         "claim_txid": "FXbdJXcuaSMVvwxAcxMXUGlps49XoCe/VY2MJA0eIUk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79383,7 +79398,7 @@
         "transfer_id": 1399,
         "claim_txid": "wl+LFYdm4j8XcTzC69CiU3Z6dnwvNgRfJ51yEJXAYP8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79401,7 +79416,7 @@
         "transfer_id": 1400,
         "claim_txid": "1xDRbT8xnr0kjKh2NE325wHTAVOZdZoxnC/JUwFhf0s=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79419,7 +79434,7 @@
         "transfer_id": 1401,
         "claim_txid": "IGq1ZGhhWsLKDMCwwps/BkuAa1PULYoz+HZ6qwfZMRE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79437,7 +79452,7 @@
         "transfer_id": 1402,
         "claim_txid": "aYzGbaR4tHa9xP/VqgySbfvrhR5u537DFrfo+WPCDV8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79455,7 +79470,7 @@
         "transfer_id": 1403,
         "claim_txid": "qTZ672Ksaf+Lgylb6Vpzm9mV+fUK+KrD+4X7SCvR8BU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79473,7 +79488,7 @@
         "transfer_id": 1404,
         "claim_txid": "va8T0/e8YENTSDJpJJnb0hNf5G94jl0GbPwVZl/heJQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79491,7 +79506,7 @@
         "transfer_id": 1405,
         "claim_txid": "+wZnJaN/bJZF88zWwnqla1iBlA4kE4Wb9ga+auS6C9c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79509,7 +79524,7 @@
         "transfer_id": 1406,
         "claim_txid": "6HDSQo8zFL6OqkpNx4ep74DeQkslsil+bBnFT6D1tIE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79527,7 +79542,7 @@
         "transfer_id": 1407,
         "claim_txid": "rcuGo5QVCj8vjpsWd7rvW4Pyk4g3Dydc6PCHgpIHmwY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79545,7 +79560,7 @@
         "transfer_id": 1408,
         "claim_txid": "kaql0QwVYHZUcKNtYYa59VUl0I1JvHLIEkdtWpd0M8s=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79563,7 +79578,7 @@
         "transfer_id": 1409,
         "claim_txid": "5NOX1fOS4wKm8Vxw3EAVSzxfOEcMI+JPPkHtGnJoQPo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79581,7 +79596,7 @@
         "transfer_id": 1410,
         "claim_txid": "II+DcQnFJFK8Wvhcrnwp4khY6qp2sE0vsD0BZrXowOA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79599,7 +79614,7 @@
         "transfer_id": 1411,
         "claim_txid": "w2cMI7e4oOjUSH85+38hPQtcVJL/ZhkKWaxGQlnpl/U=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79617,7 +79632,7 @@
         "transfer_id": 1412,
         "claim_txid": "aa2G1wbkqapXRuhxTj++nUmK52gYX5fwY8YApreBvTY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79635,7 +79650,7 @@
         "transfer_id": 1413,
         "claim_txid": "QphA+t2QzB/lmUHAbplnCakeCkBYzv2PVzDcrUaLvvs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79653,7 +79668,7 @@
         "transfer_id": 1414,
         "claim_txid": "bYZNPnjtpVe88RGPgeYD+RtRoIf3YxBFTrSPvMIQ19Q=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79671,7 +79686,7 @@
         "transfer_id": 1415,
         "claim_txid": "52aKfrKJBmeI2DBCJjMbj8Pl0akM/gVudpZsQxPCY6o=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79689,7 +79704,7 @@
         "transfer_id": 1416,
         "claim_txid": "0SjZGSwTBiTJKXrSot7Zntjjz7T0v9t2cYceUtIrgUg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79707,7 +79722,7 @@
         "transfer_id": 1417,
         "claim_txid": "xYG0JCRBIJgA8EONI7jw3uQdvtJPxpon//T3da6u5cU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79725,7 +79740,7 @@
         "transfer_id": 1418,
         "claim_txid": "pEjcW2auBvMDkkZMt9zB8bCWluIHmlkrNKivDM19/Q0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79743,7 +79758,7 @@
         "transfer_id": 1419,
         "claim_txid": "GW1t3imtHPZKIVJ42lEbnnizK5VW1dy8EddB7b6AtxY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79761,7 +79776,7 @@
         "transfer_id": 1420,
         "claim_txid": "pWPmw0FqLhRHgMu9AOqtllAXdPwdfyj78GehM4s8Tpg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79779,7 +79794,7 @@
         "transfer_id": 1421,
         "claim_txid": "dBwIk8BTA8ESCn/d8Nob4d8OU6bkHrIeBwshxnV3ItY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79797,7 +79812,7 @@
         "transfer_id": 1422,
         "claim_txid": "3BxvEUjr77saiipmhhBAneNK97BdgMxkdv9NRjEEX28=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79815,7 +79830,7 @@
         "transfer_id": 1423,
         "claim_txid": "C3oalSSZii7J7+PpCAaSZ16+fHIAVA3SR0BNTxogXVM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79833,7 +79848,7 @@
         "transfer_id": 1424,
         "claim_txid": "Qqqrid+0mCtRJtiD/PwtyyoGClV+WtJUP08J6vx9jao=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79851,7 +79866,7 @@
         "transfer_id": 1425,
         "claim_txid": "6Fudi46iWEikzKZNnQrw5L0SxoMG183FJ/ZEojfhTVQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79869,7 +79884,7 @@
         "transfer_id": 1287,
         "claim_txid": "nkvObxWI1yUwQHsIIKMXwNWson0mSMSuLWlo6a7Rqi0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79887,7 +79902,7 @@
         "transfer_id": 1426,
         "claim_txid": "1kL4CtmG2xx/garlc2p8rE/q61fXQlP6LZ0Z23VwW+A=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79905,7 +79920,7 @@
         "transfer_id": 1427,
         "claim_txid": "/rup5fskV6NiXn1zSEvq46isVHTfW+d63SXtuKV/Fcc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79923,7 +79938,7 @@
         "transfer_id": 1428,
         "claim_txid": "8iusFEH0thlLlaDO0BuPMnnktsXRSQBRi0fPdZVyJM8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79941,7 +79956,7 @@
         "transfer_id": 1429,
         "claim_txid": "JElhGy5evZ9SfnhUsXYkeZYTne4xcHWR4SWeD5xk2bw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79959,7 +79974,7 @@
         "transfer_id": 1430,
         "claim_txid": "jeh92SIPA3ia4IBb93YvAEyyaIU6ylXWpSfAlS3xR+4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79977,7 +79992,7 @@
         "transfer_id": 1431,
         "claim_txid": "YgsLlnb69CsbbFoaIAz0SThOvWWknczEJ2li/yRiLUs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -79995,7 +80010,7 @@
         "transfer_id": 1432,
         "claim_txid": "dSw461VkQA0a/ed2AOcJjc4p4r58hvAbZkzGTtWliyg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80013,7 +80028,7 @@
         "transfer_id": 1433,
         "claim_txid": "ywufZoStIIhMG6bnY61KpJtd4s8T0vzICUJyly0OomI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80031,7 +80046,7 @@
         "transfer_id": 1434,
         "claim_txid": "f1a5IyZKfub026GaJtd1Ts3AVky9fwY2vcaFgWDY/NQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80049,7 +80064,7 @@
         "transfer_id": 1435,
         "claim_txid": "QX5pESv1qOiGwr3y0KKTyIXVZ+PJEcq7nhv8c5Odlqw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80067,7 +80082,7 @@
         "transfer_id": 1299,
         "claim_txid": "LXPuj0IAjRFz5QFOQcj2GoKF/IoDxhYp8vvJphxcoIg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80085,7 +80100,7 @@
         "transfer_id": 1436,
         "claim_txid": "B8rrfXWuPo0xZiUTPLwcuQ05cdp6+XNrHTB2kjq0Kvg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80103,7 +80118,7 @@
         "transfer_id": 1437,
         "claim_txid": "Ic6epcV1Wfvq8oS9EZvjwIznoNpwZ8FO12y8iLvEOhE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80121,7 +80136,7 @@
         "transfer_id": 1438,
         "claim_txid": "589YSajSDZNPgk1iKsq6l7ULVpHgZMJ8UzgJMtSSMU8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80139,7 +80154,7 @@
         "transfer_id": 1439,
         "claim_txid": "+9Rphf6XK+frslqqHLhBXddBh/9dyJdNLxU+NiAHVK4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80157,7 +80172,7 @@
         "transfer_id": 1440,
         "claim_txid": "GkQ30C0h8WFPWX42A5AZuS6wiXvSQqUdyx7ZbOoripw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80175,7 +80190,7 @@
         "transfer_id": 1441,
         "claim_txid": "gLam4BuvQGhOaOpeHOaTVV7GaGehq3Plf1H/FC8KTD8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80193,7 +80208,7 @@
         "transfer_id": 1442,
         "claim_txid": "HfVtX3JQynPGi98/60jd8jFbPK2WzhUttvkacg1a9OY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80211,7 +80226,7 @@
         "transfer_id": 1443,
         "claim_txid": "PpCTeBRTGN0X1lza0/MlB4CvzdZGZt0z8PNmnz9tg6I=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80229,7 +80244,7 @@
         "transfer_id": 1444,
         "claim_txid": "fuIKinb9Pl3JYi6xttZC4sZMdz5MPmZnvSol2HMOAZ4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80247,7 +80262,7 @@
         "transfer_id": 1445,
         "claim_txid": "hjNZBu1Z2OWLOF8b3xAP7Ld876n+1YMMgsMr0gIlvL8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80265,7 +80280,7 @@
         "transfer_id": 1446,
         "claim_txid": "oLjLYASSaXyJjgw4UzFAujiwOAm0gqOJXzLfspwmvo4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80283,7 +80298,7 @@
         "transfer_id": 1447,
         "claim_txid": "WBEpHqlWguGZLQ9RptblAAe3DhkCdVII5dZvGgbx1W4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80301,7 +80316,7 @@
         "transfer_id": 1448,
         "claim_txid": "rD+Tuqx20qYqfS0lnxdoKzn51RjAROrqaM6XQ2KdAkc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80319,7 +80334,7 @@
         "transfer_id": 1449,
         "claim_txid": "eGIdx4Gw8GWV2dgal5/6tPsxHtZlswJ2u5Ufri08mvA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80337,7 +80352,7 @@
         "transfer_id": 1450,
         "claim_txid": "XIqgxtwfVHu1UW8LnEUojwb+Zm3UiCZh8Lg82O78UiI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80355,7 +80370,7 @@
         "transfer_id": 1451,
         "claim_txid": "CUnh8sPRwqHI2IEl8KcWvfpqJqkMv+c3P0m629kCJl4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80373,7 +80388,7 @@
         "transfer_id": 1452,
         "claim_txid": "Q9xEPgEXVMn6Cc66cI5/THN7VRApUJnBuHDj0NTtlBg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80391,7 +80406,7 @@
         "transfer_id": 1453,
         "claim_txid": "5KBE4aB5T2htJMogbIsmgzAasndkTTt/JwtR9/uSf5A=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80409,7 +80424,7 @@
         "transfer_id": 1454,
         "claim_txid": "lOevE8+bCoUvjik3ZXWVfMHf+IqANaOEiBE+prkXCgs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80427,7 +80442,7 @@
         "transfer_id": 1455,
         "claim_txid": "+PSVrmM44O2zIN40icW6/OujxGqSIFOcYPj6hhDDGwM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80445,7 +80460,7 @@
         "transfer_id": 1456,
         "claim_txid": "ix5IFZSpyt+fb6bsRUFyNc4WXgRU/yrxm/Dwe8iRoe0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80463,7 +80478,7 @@
         "transfer_id": 1457,
         "claim_txid": "IFOtfwdRl4uUOheTz3BN7r3+VebruHTgHy1WHzs1kg4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80481,7 +80496,7 @@
         "transfer_id": 1458,
         "claim_txid": "SI9UCd55QCbGOkLJcTTMvZNJFGK1n3VkKrdX45QpI3w=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80499,7 +80514,7 @@
         "transfer_id": 1459,
         "claim_txid": "KkCiO31zMiOtIXDxePv++EGTpgx4Fk2KH4pPEZsFCVY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80517,7 +80532,7 @@
         "transfer_id": 1460,
         "claim_txid": "fyEYGeycF/vT1znaJEgZRCb2CDfyEmJGWG5bUINZI38=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80535,7 +80550,7 @@
         "transfer_id": 1461,
         "claim_txid": "RKWS3zOCMZLI3g20fbrJa35kQWnnZlZXLms12t/fimg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80553,7 +80568,7 @@
         "transfer_id": 1462,
         "claim_txid": "xIzl2G0AJq5Vww53g8mJs3BvvUxkN0xTbfEn0IQdRos=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80571,7 +80586,7 @@
         "transfer_id": 1463,
         "claim_txid": "Lu5o/0tpb4mJNmP6Pxwisj/VzrWL3tX+PtC4NAZMwz8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80589,7 +80604,7 @@
         "transfer_id": 1464,
         "claim_txid": "9tAK+Bau3UNEvlRgOSu7CT+kr6lqcHwh7xBlZZUCFqg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80607,7 +80622,7 @@
         "transfer_id": 1465,
         "claim_txid": "RfNjelTYT1IfgE2f+c4X0edWEB3rYDol6n1dpbP+nNM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80625,7 +80640,7 @@
         "transfer_id": 1466,
         "claim_txid": "0M+nSYjbFVptjmp6l0r+3J8wh4Oscd4BiJVxjB1wQg4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80643,7 +80658,7 @@
         "transfer_id": 1467,
         "claim_txid": "9UXrL39wtmtstaraCZBefCazFd08xNBWiMGh1PBIBE8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80661,7 +80676,7 @@
         "transfer_id": 1468,
         "claim_txid": "4p7UoUi156Zys303NNJfSFZaWBqu0kFg2alhZUXVy5w=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80679,7 +80694,7 @@
         "transfer_id": 1469,
         "claim_txid": "Lrzx9OBcUdhrd2gyAo0blWPen6CjQOflA9o41bHwF8Q=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80697,7 +80712,7 @@
         "transfer_id": 1470,
         "claim_txid": "AxwoknVnKKSV98o7sWwrk1MSjUqZezT6Gt2zB0i9d1c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80715,7 +80730,7 @@
         "transfer_id": 1471,
         "claim_txid": "+quvQ7c2VNyfb3MacIOLHZPS4ONb/Ch3Gi9pGQ8/elY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80733,7 +80748,7 @@
         "transfer_id": 1472,
         "claim_txid": "CH1MT0/A347HM5hdjqgYj8TjkguVQcB4D386Xl40Q/g=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80751,7 +80766,7 @@
         "transfer_id": 1473,
         "claim_txid": "UpwtvNtrxXgyWFc31hNxi+iYmWeR9PYNXWHVDcUu1Kg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80769,7 +80784,7 @@
         "transfer_id": 1474,
         "claim_txid": "ha+BrRB+Qhe0/odrB4ABSpfFCcNTiRphOKsP3gkjboE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80787,7 +80802,7 @@
         "transfer_id": 1475,
         "claim_txid": "mn35CvdQ+V00fUDJe7kA2Z9ZQGgGBY5VWKe9LmCFSes=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80805,7 +80820,7 @@
         "transfer_id": 1476,
         "claim_txid": "3rd/WYyObqCElTD1RaYA3Nd+oZ5807YQOlZTot2ffJg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80823,7 +80838,7 @@
         "transfer_id": 1477,
         "claim_txid": "6Di4coZCeC0NdgWoEmbiZSaRmM9q63AL2jGy+LqtPTU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80841,7 +80856,7 @@
         "transfer_id": 1478,
         "claim_txid": "1P53f6nFLUoE2EpJSacA/aL3+gXtt9Clr+qEbXbWkCQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80859,7 +80874,7 @@
         "transfer_id": 1479,
         "claim_txid": "08X33gzMb1NuP6OcsMMKSn0f8nDf8969xlZ2+/SQQzE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80877,7 +80892,7 @@
         "transfer_id": 1480,
         "claim_txid": "zO6XnfqXEuO6i1P7VTXk4LhXJvM8uG9+QYWUsnilqXU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80895,7 +80910,7 @@
         "transfer_id": 1481,
         "claim_txid": "G2qkJw50bqjI5v21Uq+eV6idWWAXpk8jcbr/543L/28=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80913,7 +80928,7 @@
         "transfer_id": 1482,
         "claim_txid": "lLwZRAOAkJfDzinnFj2XZafEKgQkLtSfWT/BbMSAFh0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80931,7 +80946,7 @@
         "transfer_id": 1483,
         "claim_txid": "VhSiz1dELEKv55sxU9h/PhamAc4Zq64HaJ6yRQAU/Xk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80949,7 +80964,7 @@
         "transfer_id": 1484,
         "claim_txid": "kEypce8Bc98YCRqcw3KfLsFXBJtl/dY6otz29iPWpsk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80967,7 +80982,7 @@
         "transfer_id": 1485,
         "claim_txid": "wl+v0T7J6qq2jiH/A7z0HjYG3IhmdwgP3WG7peF1YH0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -80985,7 +81000,7 @@
         "transfer_id": 1486,
         "claim_txid": "1Fh55rgKzm024xROEMrGTBs6vRFgXPbqO75RNuObUQE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81003,7 +81018,7 @@
         "transfer_id": 1487,
         "claim_txid": "UoMVFR0VYro/qhZFQrqYc+R0zDIQz/9iCdgq+bolbhc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81021,7 +81036,7 @@
         "transfer_id": 1488,
         "claim_txid": "IOhrCSuEfE7BaNdXIJiYSJO078sZ/AjTFfRU9qMQ96k=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81039,7 +81054,7 @@
         "transfer_id": 1489,
         "claim_txid": "CnMHn9s0XQbezzGNLv+aNg+IpF574DUq9kNn3IauzaI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81057,7 +81072,7 @@
         "transfer_id": 1490,
         "claim_txid": "VUkxNz4ouKL+yntUSfPJ5ifkM89SI1cnlc/6psxsWRc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81075,7 +81090,7 @@
         "transfer_id": 1491,
         "claim_txid": "UNXvkB+jtNrXd2frcJokeUIJGJOk8urn3SG9nnl1QuY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81093,7 +81108,7 @@
         "transfer_id": 1492,
         "claim_txid": "0L8XBj5LSZA29jLdftRme8EyufJ2iBzmvvMOGZZhtwE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81111,7 +81126,7 @@
         "transfer_id": 1493,
         "claim_txid": "Mq8RTxq6q/fU7Gpa62lpHtE9D1b6qM46n8Al8IcEKio=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81129,7 +81144,7 @@
         "transfer_id": 1494,
         "claim_txid": "4PtCfAoAekSVYS9ukNi1ZhJT/3+qG/jeMepdwAhFOuU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81147,7 +81162,7 @@
         "transfer_id": 1276,
         "claim_txid": "UqQmBTN7u5Hyv/ZDs33V8BnJHzh/LpI1aCQBJEECU3Q=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81165,7 +81180,7 @@
         "transfer_id": 1495,
         "claim_txid": "sxO+iWbSLSnH3r9Zu9LJk0BoVNY70hzZfy/88h2pz+E=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81183,7 +81198,7 @@
         "transfer_id": 1496,
         "claim_txid": "3UiWV3u7mRglhqdK6qR17M9KLmNLmPz5cS28oY3zyJQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81201,7 +81216,7 @@
         "transfer_id": 1497,
         "claim_txid": "qgWfLvnyTtoQnO4+xbBPNUg04YPh+K4iqUiQa0UkrZk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81219,7 +81234,7 @@
         "transfer_id": 1498,
         "claim_txid": "PP7udOYb5Sxks4ye9E7GFJ99EV2ZWn1fL+ffg6LxQUE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81237,7 +81252,7 @@
         "transfer_id": 1499,
         "claim_txid": "/o7hsd4X6rvVQLXfyKcV3qgcA4Vl45ggbMNwy0qM2H4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:04"
       },
       {
@@ -81273,7 +81288,7 @@
         "transfer_id": 1211,
         "claim_txid": "EsmS6/O/786YhRc/VHeES4qyoRX57D/xdDaAvbbNSz0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:29:25"
       },
       {
@@ -81291,7 +81306,7 @@
         "transfer_id": 3478,
         "claim_txid": "41m/5P2phPRs6CY5jL82AnEs4ZKNpo6Pmal0YV/7LQc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 16:33:08"
       },
       {
@@ -81316,7 +81331,7 @@
         "claim_num": 1,
         "bridge_id": 4,
         "type": "expatriation",
-        "amount": 1e+21,
+        "amount": "1e+21",
         "reward": 28761200000000000000,
         "sender_address": "3Y24IXW57546PQAPQ2SXYEPEDNX4KC6Y",
         "dest_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
@@ -81705,7 +81720,7 @@
         "transfer_id": 3565,
         "claim_txid": "sjyZ6efBvjXXaeNK/1vRYoWbKwG5HhVexkb5TP/8Jkg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81723,7 +81738,7 @@
         "transfer_id": 3566,
         "claim_txid": "gRqOjx5+Lkpa/3VVAjGshBHnvyYb/H92RTUt1ReBkz4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81741,7 +81756,7 @@
         "transfer_id": 3567,
         "claim_txid": "hBVXBxeRSpcvpW56wpcFf/HDnn2H8BD316miJCiqtHs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81759,7 +81774,7 @@
         "transfer_id": 3568,
         "claim_txid": "x4tx4BaVejizYISR2lzcSTDmgmhFqZua7LjKudfXqQI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81777,7 +81792,7 @@
         "transfer_id": 3569,
         "claim_txid": "UXIGcNMOteT0JL2lKoMsG/KB9nwv/UsxQcPfmezyp6w=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81795,7 +81810,7 @@
         "transfer_id": 3570,
         "claim_txid": "vlTMgbqAZ/kGzermZw3yFo9kUfJAHPbEEqe7ojMxLVM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81813,7 +81828,7 @@
         "transfer_id": 3572,
         "claim_txid": "9ZBMvnIPvmRc9lhQtZ1/m3C6tWV9wwrHwduQ30GdizI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81831,7 +81846,7 @@
         "transfer_id": 3573,
         "claim_txid": "3bOMYhNJzEtFP/fv1S33Cspespjr3We49L04527gQa0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81849,7 +81864,7 @@
         "transfer_id": 3574,
         "claim_txid": "pyKNdYp+v2ZxqJgK6G87tiKr0FAYDA4JqljNelbZHs0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81867,7 +81882,7 @@
         "transfer_id": 3575,
         "claim_txid": "hzQJ2MB1rH7BbbyxnC+jzE+NGEitcnqi5BYdH6rZHso=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81885,7 +81900,7 @@
         "transfer_id": 3571,
         "claim_txid": "9c7kgM7VJ/1ISscWb+Q1Oq2ojrVbZEMY1B4okMEV3AY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81903,7 +81918,7 @@
         "transfer_id": 3576,
         "claim_txid": "V7F2GV1w9K/lLGF1GfBxn4314F4liLLCG6P4SaAf2EI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81921,7 +81936,7 @@
         "transfer_id": 3577,
         "claim_txid": "BcWEMozy6pk0C1sv37ZG74Fgcmeu/NxEcTfRjn8pAgo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81939,7 +81954,7 @@
         "transfer_id": 3578,
         "claim_txid": "B0K8upafH+2pFOOt9ZT1rcpPJZ2VNXAke+6EXTr2JeU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81957,7 +81972,7 @@
         "transfer_id": 3579,
         "claim_txid": "9UmL3LkvzTcan1hHH4BPQ2cUHrGGX9VupV52RLay7KY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81975,7 +81990,7 @@
         "transfer_id": 3580,
         "claim_txid": "+3jfPLG2VWx1SRikSch+8C9KSyUUsSMvhxnM/y65AKQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -81993,7 +82008,7 @@
         "transfer_id": 3581,
         "claim_txid": "5CeC4IGXTu2XS05GEifJkQEbrdL7mgr3Lagbo+di4Nk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82011,7 +82026,7 @@
         "transfer_id": 3582,
         "claim_txid": "6phezta/AwVALaBSXShYOYgmL9xavVO+DsoM0de/r1c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82029,7 +82044,7 @@
         "transfer_id": 3583,
         "claim_txid": "PVenCBcQ9YQKOyTkfA9Up1idp7W2fTcpB1U/v8IYLPc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82047,7 +82062,7 @@
         "transfer_id": 3584,
         "claim_txid": "zlMtAwIKCeqKNqsYpImp/UQtrlydp2Zdvonh7fGcruk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82065,7 +82080,7 @@
         "transfer_id": 3585,
         "claim_txid": "FKuGDnLzR46s1ZK6LS47A/XJAj0YHcGpYan+gZ8cqeo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82083,7 +82098,7 @@
         "transfer_id": 3586,
         "claim_txid": "dZhFQWJslVRA450xfInhuPFwq7kOyX53IhxgxaDoY7Q=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82101,7 +82116,7 @@
         "transfer_id": 3587,
         "claim_txid": "2JF3715BRNjyxsq4UqjvfTkhrjpGY1k0PqrrjHnCR8o=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82119,7 +82134,7 @@
         "transfer_id": 3588,
         "claim_txid": "ty519sm3nA938yrkMTD8NLBMpyFQ472fNxbvevfO0Iw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82137,7 +82152,7 @@
         "transfer_id": 3589,
         "claim_txid": "2VIJ54m19QGXjfAuT/gUNgGULpEnAd4F3daCR00nVlg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82155,7 +82170,7 @@
         "transfer_id": 3590,
         "claim_txid": "3qZeNmHn2tiOFkbcTYQzfJ8i63SkmyPr91E/WRIf2OE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82173,7 +82188,7 @@
         "transfer_id": 3591,
         "claim_txid": "1NYsG8z4xyL+TSYcitb/6jzrc084How7NFkijjsGPPc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82191,7 +82206,7 @@
         "transfer_id": 3592,
         "claim_txid": "RzyCs8SwuvsbpY/qnQn9QyTamp+jsq8+4j8KN3m9TTw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82209,7 +82224,7 @@
         "transfer_id": 3593,
         "claim_txid": "wKYUueQAi4qpZXa1mGjmOorSztX2OiLklH0GUKaHufs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82227,7 +82242,7 @@
         "transfer_id": 3594,
         "claim_txid": "Rp0aEEgpqbf5DyQ6ajXlFEpM+vWcRN5U8RowgoMPFTA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82245,7 +82260,7 @@
         "transfer_id": 3595,
         "claim_txid": "lhkWQf7TWWS52s7ZJFa3vzBlWc/6ml0F/MSdmpJN4Kc=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82263,7 +82278,7 @@
         "transfer_id": 3596,
         "claim_txid": "vsXrEVTPXrl4tBIr0vIcqJHQdguY0YFpsNCACkHhMQA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82281,7 +82296,7 @@
         "transfer_id": 3597,
         "claim_txid": "Jrbq3XpSH7X5/FuwziiEwE+pGyxniatp4Jzdjpnbhj0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82299,7 +82314,7 @@
         "transfer_id": 3598,
         "claim_txid": "TrPmHu/3CEoakwgh440eltFIrPYpwz0uH0ne8mql70g=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82317,7 +82332,7 @@
         "transfer_id": 3599,
         "claim_txid": "M73SXQU0pcCBwHhmg3T71tG4nNlaTrQ7+z2FI9sFFIY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82335,7 +82350,7 @@
         "transfer_id": 3600,
         "claim_txid": "r1FFWx0d9k+Twhb4KCCXwyTycr/aWy8zOepDiLk2hrI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82353,7 +82368,7 @@
         "transfer_id": 3601,
         "claim_txid": "yyokVzyfu4rGrhMNcgw0yZ+S7BfGA5636oNSu8I05Cs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82371,7 +82386,7 @@
         "transfer_id": 3602,
         "claim_txid": "PXAzZ2JjqSAILCgpOdo9XLTeyzByR80pCl7WpiBwXKs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82389,7 +82404,7 @@
         "transfer_id": 3603,
         "claim_txid": "pfKx1kzFfqt6Q01DvDd3Rl14ClKq90yzTrKNbEWzrOQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82407,7 +82422,7 @@
         "transfer_id": 3604,
         "claim_txid": "7jj0/BtBfMbObfsizzInCH198xbL246bos5M2nknnW4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82425,7 +82440,7 @@
         "transfer_id": 3605,
         "claim_txid": "G+EPBxz3pJpnVQzMHUDtzDgIp2/16oHxpJMSuilvEz0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82443,7 +82458,7 @@
         "transfer_id": 3606,
         "claim_txid": "9ZWa+gPfW3mZID+EZeHYuR6fOXoshG4OLsYqxX3PnLY=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82461,7 +82476,7 @@
         "transfer_id": 3607,
         "claim_txid": "PatOx6yHUVasNEzGiRQV9moszGrNPWiz94uHiUrpnVQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82479,7 +82494,7 @@
         "transfer_id": 3608,
         "claim_txid": "l1Ujx2zxYd7HG3zgpKDMrPkx/YEUxgvPtfAJ5RBuJ0U=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-22 18:07:18"
       },
       {
@@ -82800,10 +82815,10 @@
         "data": "",
         "txid": "0xa599e0b13f8912425ec04fac873f72e215d6705d8d34527fba8a9ce76ae929b1",
         "txts": 1662203827,
-        "transfer_id": null,
+        "transfer_id": 3696,
         "claim_txid": "VNIkWOyPognV1jWtMnV4OrFWOySQE+mR7Y+X+RY3nvo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:48:15"
       },
       {
@@ -82818,7 +82833,7 @@
         "data": "0x",
         "txid": "0x261fc4aa9c872307d72127e38a4f3160139c19b96dec50ba7488e9019bbafc44",
         "txts": 1762436107,
-        "transfer_id": 3660,
+        "transfer_id": null,
         "claim_txid": "0xb8ee539c44306c1bac70bf970dc8e64602c430fff6d7b77616b23bfbdea6366d",
         "my_stake": 0,
         "is_finished": 0,
@@ -82829,7 +82844,7 @@
         "bridge_id": 8,
         "type": "expatriation",
         "amount": 10000000000000000,
-        "reward": 3e+32,
+        "reward": "3e+32",
         "sender_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
         "dest_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
         "claimant_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
@@ -83304,10 +83319,10 @@
         "data": "",
         "txid": "0x5b2e1610933ea711264d333560546ba156b12522de6cbf04b70cd039288a9979",
         "txts": 1665287326,
-        "transfer_id": null,
+        "transfer_id": 3697,
         "claim_txid": "bRDVE9LS0m2R2jwJsfaw5lTmS7eS1GR48NhSeXrrdqU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:48:47"
       },
       {
@@ -83322,10 +83337,10 @@
         "data": "",
         "txid": "0x199d0168de763992ae163367ca27f06db6b7891d91479590a62f9222c9ecb13c",
         "txts": 1666854350,
-        "transfer_id": null,
+        "transfer_id": 3698,
         "claim_txid": "BWAIc5ZsMxk1HyTDzUTWGh/INXMBolRTFlQJV8FvXY8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:49:18"
       },
       {
@@ -83340,7 +83355,7 @@
         "data": "",
         "txid": "j/USA0+pOPlVIbCOobkjAPqBJTtcCfkbsF1ZnsYHJks=",
         "txts": 1681275257,
-        "transfer_id": 1518,
+        "transfer_id": null,
         "claim_txid": "0xd9b547b564513b49e7b3feb9f7e1842000f91fa04b911c5ac0294f3c832a478e",
         "my_stake": 0,
         "is_finished": 1,
@@ -83358,10 +83373,10 @@
         "data": "",
         "txid": "0x2eb89438344be0d6fff8fc77eeac84d25beb8ad5f6a9ebbbc6b54e25fc51e19b",
         "txts": 1669708045,
-        "transfer_id": null,
+        "transfer_id": 3699,
         "claim_txid": "aKalGhUK7hSySOQfdnqDGn1MxJuXjQ+SfMMq2m1wVQ4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:49:50"
       },
       {
@@ -83394,10 +83409,10 @@
         "data": "",
         "txid": "0x36cf71aa7e9615367d75042708b1e19ff05574de09acc2d351378758664f38e2",
         "txts": 1669741986,
-        "transfer_id": null,
+        "transfer_id": 3700,
         "claim_txid": "InnTh+UpJcd1q5q7HFXQn/GCiwMT9n8zWepDRwh2HxE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:50:21"
       },
       {
@@ -83412,7 +83427,7 @@
         "data": "0x",
         "txid": "0xb7a81fd9a58e5fbaf1fb3f9aa01a849e90b7ae6533a55a35ba00ea362743e356",
         "txts": 1759361079,
-        "transfer_id": 3642,
+        "transfer_id": null,
         "claim_txid": "0x6d22a84c08f4659707a4983f8740e281c5f7982b152b30ca2d7e223f9449a5b8",
         "my_stake": 0,
         "is_finished": 0,
@@ -83430,10 +83445,10 @@
         "data": "",
         "txid": "0x15826bfa5785f9f0b631abcec474ffcb0191b3c9400d2685c01d2e2d2119f1a4",
         "txts": 1669742133,
-        "transfer_id": null,
+        "transfer_id": 3701,
         "claim_txid": "ZULMLdVQAKAMEaSHcnDpBpYMtIzg/Z9crbp6C8ZHEl0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:50:53"
       },
       {
@@ -83448,7 +83463,7 @@
         "data": "",
         "txid": "W2U27X7Ak3iiF+zGkmDQLyRPjzYoj0ZvKgh75qrYQ1c=",
         "txts": 1699198713,
-        "transfer_id": 1529,
+        "transfer_id": null,
         "claim_txid": "0x4ef59298a46f4633451a7efd0c11ea0ab2252e492abd3f8f17d06a007b95505f",
         "my_stake": 0,
         "is_finished": 1,
@@ -83466,10 +83481,10 @@
         "data": "",
         "txid": "0xf42a3017ec3be290eb94cdb1bbc4d0ff26719d5da308ce4afef6bdd71b314053",
         "txts": 1758986859,
-        "transfer_id": null,
+        "transfer_id": 3702,
         "claim_txid": "0uyJGDeUXhZITqHttF9K9XcYqVO5vYiMhDKLXWEqyGs=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:51:25"
       },
       {
@@ -83484,7 +83499,7 @@
         "data": "0x",
         "txid": "0x02fc2ce8f3328235f82dd310c2f0221b1226e9c24076a62da7dc8c5834e34d0b",
         "txts": 1759528166,
-        "transfer_id": 3643,
+        "transfer_id": null,
         "claim_txid": "0x3aab8995854fb5b44aed0bbc630ff7927c4f8fbc3211ccf4ad9b4be931f33c93",
         "my_stake": 0,
         "is_finished": 0,
@@ -83505,7 +83520,7 @@
         "transfer_id": null,
         "claim_txid": "NShPfid2Vm3eOWhAQ0MfK8RiERxejL90vnyQ9d7jHe4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:54:48"
       },
       {
@@ -83520,10 +83535,10 @@
         "data": "",
         "txid": "0x2aff3aa3223efd387e2e8d3116ea3a47312c269643552f002c00a4b91deef28c",
         "txts": 1625424619,
-        "transfer_id": null,
+        "transfer_id": 3704,
         "claim_txid": "LiZPqbF58eRHHN16JJIQ3dae/eJQXjen96qU2jRX8vE=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:55:20"
       },
       {
@@ -83538,10 +83553,10 @@
         "data": "",
         "txid": "0x12a03dae94109bdadcafe7feaabff429c3be8234dec04a410f9d9576d85dd9d5",
         "txts": 1631810544,
-        "transfer_id": null,
+        "transfer_id": 3705,
         "claim_txid": "F7mKvNDfpycYgpxiGN0BzNgHmM5Kioqt8aLl/AaT83c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:55:51"
       },
       {
@@ -83556,10 +83571,10 @@
         "data": "",
         "txid": "0xfe05e8e0fca94045bfb2ab840ccad029f122e76c054e3c946a08ee278867ae69",
         "txts": 1632603804,
-        "transfer_id": null,
+        "transfer_id": 3706,
         "claim_txid": "UXn1xQCwM1zpLtucDcHDLfkJCeWbNFQwG3n6VKJReAk=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:56:23"
       },
       {
@@ -83574,10 +83589,10 @@
         "data": "",
         "txid": "0x3435b08528bdcd3ae62165cd4d3d7a413454826ab206d6535c76e922364f6dd9",
         "txts": 1634254962,
-        "transfer_id": null,
+        "transfer_id": 3707,
         "claim_txid": "Bu1JDjDvAyxPJJR5uepPXpBMjXqy8ob/T86aP/t/pjg=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:56:54"
       },
       {
@@ -83595,7 +83610,7 @@
         "transfer_id": 3708,
         "claim_txid": "1dpy4q8MWFioQXYLBnye1MXmUZGiogr8JMIYIAuP8ds=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:57:26"
       },
       {
@@ -83610,10 +83625,10 @@
         "data": "",
         "txid": "0x6450ccffbf4625095bf373da975f43888e59f7c6eeb7e79e9699a5d91b81041a",
         "txts": 1650303252,
-        "transfer_id": null,
+        "transfer_id": 3709,
         "claim_txid": "S8W7WzogCfAHB55H8+QQL9tjjAU2OqFVO4Lcq6nzi5Y=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:57:57"
       },
       {
@@ -83628,10 +83643,10 @@
         "data": "",
         "txid": "0xa8d590e175473ab6f22f9486cb7f9a8f6cb2b16ae52e0a01a27a3f2740bd5f01",
         "txts": 1650303423,
-        "transfer_id": null,
+        "transfer_id": 3710,
         "claim_txid": "KC7IfCnyNO/i551Pk/LX4R+GBsfgemJVZlBIRyCPgFo=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:58:28"
       },
       {
@@ -83646,10 +83661,10 @@
         "data": "",
         "txid": "0xbb4fc10e0370b16d04b38ce87904eccc592075ca1c0f54753b4f50af944d0408",
         "txts": 1681106946,
-        "transfer_id": null,
+        "transfer_id": 3711,
         "claim_txid": "KkfJtUB9i/cLuVYmu4/yaxmzi3XZNiNvbU2jwoDxSHw=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:59:00"
       },
       {
@@ -83664,10 +83679,10 @@
         "data": "",
         "txid": "0xbaded95e9348dafc9a08ecbb3b65a1e3634a1b779f451747b9f1c725cbd0705d",
         "txts": 1682487075,
-        "transfer_id": null,
+        "transfer_id": 3712,
         "claim_txid": "sEUmLWFVefRYxPtFdcl9wbCgIS9feDs0WxrImXcPAiM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 10:59:31"
       },
       {
@@ -83685,7 +83700,7 @@
         "transfer_id": null,
         "claim_txid": "qd4fVRAQNJ19PbLfPG/bjwS2Pgim+L2y11z+MAITx34=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:02:57"
       },
       {
@@ -83703,7 +83718,7 @@
         "transfer_id": null,
         "claim_txid": "Muuxrgc+e6C+ZZ44wZnGX312EidWXOfvgb46hGsTh9c=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:03:28"
       },
       {
@@ -83718,10 +83733,10 @@
         "data": "",
         "txid": "0x888f48a299ac740302da67b8ef390d1ff4bdede5346ca8c4ea174b1951610633",
         "txts": 1632058200,
-        "transfer_id": null,
+        "transfer_id": 3715,
         "claim_txid": "xNlA+mZfoZ/KOjXUVvak2I4Y6hXIFl+OgRl91m8Hk2U=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:03:59"
       },
       {
@@ -83736,10 +83751,10 @@
         "data": "",
         "txid": "0xbd69ecb52b211a9d3e3549b294aafda6842bed0454a8743c3f26e515e5725c78",
         "txts": 1633573836,
-        "transfer_id": null,
+        "transfer_id": 3716,
         "claim_txid": "N7PGDtfjyAmAbrFi2ge2e5ve7/WG9PIdiNpmaWY8Bis=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:04:30"
       },
       {
@@ -83754,10 +83769,10 @@
         "data": "",
         "txid": "0x57679770fcefd686024b904dc1b3e376cf368e79f2ba3284216680955380766a",
         "txts": 1635670942,
-        "transfer_id": null,
+        "transfer_id": 3717,
         "claim_txid": "nKwym1s5cpW7SjnwXniACcnicSLrg1fohbgGSsguB34=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:05:02"
       },
       {
@@ -83772,10 +83787,10 @@
         "data": "",
         "txid": "0xe797dc9219623efe6885af07d9d30292d7bb3c7367bef722567ee71cf8c83095",
         "txts": 1637344929,
-        "transfer_id": null,
+        "transfer_id": 3718,
         "claim_txid": "Oxfizt+6hGY0OWW5PUbyaWHdYF7vwQj1llVQLlrjTec=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:05:33"
       },
       {
@@ -83790,10 +83805,10 @@
         "data": "",
         "txid": "0x486c233dc3767a04d8bed6778077bb3d753528367b3059eee5ee5bffcefad879",
         "txts": 1640371474,
-        "transfer_id": null,
+        "transfer_id": 3719,
         "claim_txid": "WXEkn/Wp3s/b5+JTZVPx9jI8d+Dk52Duug5H0Az7Hj4=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:06:05"
       },
       {
@@ -83811,7 +83826,7 @@
         "transfer_id": 3720,
         "claim_txid": "VuvoxCN5YSKX0g4zvXagmGDUgdYFaghAW8K6obCu7ZQ=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:06:36"
       },
       {
@@ -83826,10 +83841,10 @@
         "data": "",
         "txid": "0x1379863389b4d96682738ee51d25bc2910da5cab55ed75b23ef68cf8d9278bf3",
         "txts": 1644139913,
-        "transfer_id": null,
+        "transfer_id": 3721,
         "claim_txid": "i23QY4kn78+5FpxriQEmx0ZLuH54ccTAsjbS49ePlYU=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:07:07"
       },
       {
@@ -83844,16 +83859,16 @@
         "data": "",
         "txid": "0x1a859262e85b159e3046467c1eea5035632e588228ac4e9ad15aa9c31b53f0ce",
         "txts": 1648492950,
-        "transfer_id": null,
+        "transfer_id": 3722,
         "claim_txid": "rcBwS1G8wHIgychEsZhPv/rNkNKc+aBA9N4R2ppyfvI=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:07:39"
       },
       {
         "claim_num": 9,
         "bridge_id": 11,
-        "type": "repatriation",
+        "type": "expatriation",
         "amount": 51550000,
         "reward": 515500,
         "sender_address": "0x6eC49d54362703a0E07149686b1c7f139F771b25",
@@ -83865,7 +83880,7 @@
         "transfer_id": null,
         "claim_txid": "Vgzxfji1tHX5RcIlRS13D0oo/4TBDkHw1qiYconMVDA=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:08:10"
       },
       {
@@ -83880,10 +83895,10 @@
         "data": "",
         "txid": "0xd0c54866c822ffd0db6026cb888fdbe9bbe6b14d475f5234dacb0545a253281c",
         "txts": 1760359862,
-        "transfer_id": null,
+        "transfer_id": 3724,
         "claim_txid": "ca51gonEW9q6Csf4W0Aejm2H7A8tHynFQmirQAdTEn0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:08:42"
       },
       {
@@ -83898,10 +83913,10 @@
         "data": "",
         "txid": "0x157e703da00bddf039168daa4bdbe0653234acaf918d66286c2fb7d5cf4d428e",
         "txts": 1685953792,
-        "transfer_id": null,
+        "transfer_id": 3725,
         "claim_txid": "TocFcAJZU13bubDAWpH6lMEDRMdCAjIqilmi8hLEmV8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:09:13"
       },
       {
@@ -83916,10 +83931,10 @@
         "data": "",
         "txid": "0xf36e175d4898453038eeab34f2b818022dbe3d85e0f2187eddfeec1c48d80d4a",
         "txts": 1690499306,
-        "transfer_id": null,
+        "transfer_id": 3726,
         "claim_txid": "J9vBdq2YT2Pt/99KIT4QdNPcCXDVp8jYbrhJPqXbWNM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:09:44"
       },
       {
@@ -83934,10 +83949,10 @@
         "data": "",
         "txid": "0x4560cb366b564e56d9b47623f48dd02699898050463a768740355b33e0eb48df",
         "txts": 1710961727,
-        "transfer_id": null,
+        "transfer_id": 3727,
         "claim_txid": "vjEpjcMsDMKMNXcn7244DRVymjrzDP/XuMyAkK3Uv8Y=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:10:16"
       },
       {
@@ -83952,10 +83967,10 @@
         "data": "",
         "txid": "0x5f746cef7f946848068941752d52a1722fc86cd2173c2a878a662bb4e1d3ab49",
         "txts": 1711513417,
-        "transfer_id": null,
+        "transfer_id": 3728,
         "claim_txid": "dlvFoir4MNrnGHHIU4emNGWNglSz+q+CioPSWMVEWjM=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:10:47"
       },
       {
@@ -83970,10 +83985,10 @@
         "data": "",
         "txid": "0xd3af6cb09d7186ef14b6361a94b4c2430df6146b68f89e8811dda9e062866c5a",
         "txts": 1702711055,
-        "transfer_id": null,
+        "transfer_id": 3713,
         "claim_txid": "J2Ww4b/3yGnmfwrgNxTMtriZ7Lfcx2klsx4VSxq2Vb8=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:11:18"
       },
       {
@@ -83988,10 +84003,10 @@
         "data": "",
         "txid": "0x7d2452105271291cfae5c4a28e93cd01c0a159872f7a31f586b8793d412c3f4a",
         "txts": 1703305523,
-        "transfer_id": null,
+        "transfer_id": 3714,
         "claim_txid": "YsxIvyq0GcpLWArsaxdIc/8qOA0JRxx9R9YYm2DZDl0=",
         "my_stake": 0,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 11:11:48"
       },
       {
@@ -84081,7 +84096,7 @@
         "transfer_id": 3735,
         "claim_txid": "0x56557b466c1608641ec7fb08089ff87d03ce695427604fe5f6495f181523ab87",
         "my_stake": 1107260000000,
-        "is_finished": 0,
+        "is_finished": 1,
         "creation_date": "2025-11-23 16:39:55"
       },
       {
@@ -84101,6 +84116,312 @@
         "my_stake": 0,
         "is_finished": 0,
         "creation_date": "2025-11-23 16:52:01"
+      },
+      {
+        "claim_num": 9,
+        "bridge_id": 9,
+        "type": "expatriation",
+        "amount": 200000000000000000,
+        "reward": 4000000000000000,
+        "sender_address": "0x59C574E047e75752ac0abe07c021840b1F63B2ED",
+        "dest_address": "0x59C574E047e75752ac0abe07c021840b1F63B2ED",
+        "claimant_address": "0x59C574E047e75752ac0abe07c021840b1F63B2ED",
+        "data": "",
+        "txid": "0x9bcdce6cf1de8093315e68d8781f025bed2a210eb12ccb21620ff9beb8a5f3c6",
+        "txts": 1762031322,
+        "transfer_id": null,
+        "claim_txid": "0x4f714338fc4940a40827377c0281ec8f1ea4c101636a5aba4a14c259441668d3",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:09:57"
+      },
+      {
+        "claim_num": 11,
+        "bridge_id": 9,
+        "type": "expatriation",
+        "amount": 1990000000000,
+        "reward": 39800000000,
+        "sender_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
+        "dest_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
+        "claimant_address": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
+        "data": "",
+        "txid": "0x694f8c8b8539c59559dc7e1871b6e0299730842dd63e0ae3e90b29789087f202",
+        "txts": 1762179517,
+        "transfer_id": 1194,
+        "claim_txid": "0x421332902c2651b865a9fa4b85c453e586337ac446ea067c8fe91d4814e03d4f",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:09:57"
+      },
+      {
+        "claim_num": 295,
+        "bridge_id": 11,
+        "type": "expatriation",
+        "amount": 34000000000000000000,
+        "reward": 668195792000000000,
+        "sender_address": "KRLNCRTRET3HAXWM5IHEOONT7GBKEQ7J",
+        "dest_address": "0xA39AF437a19078C07B92B0e2ec742baA8d6Dd2a0",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "gZP1oNvQA92HxXB4lUQi/yUBqNzZAS15QypYPBZTf90=",
+        "txts": 1751991250,
+        "transfer_id": 1165,
+        "claim_txid": "0x87dd7a411d462440ee47f9c91c8b5b87957a873839dad08130a7ef24d6285cac",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:11:00"
+      },
+      {
+        "claim_num": 296,
+        "bridge_id": 11,
+        "type": "expatriation",
+        "amount": 24500000000000000000,
+        "reward": 621047640000000000,
+        "sender_address": "ULUNWXXK5KLCTZL6GIFTDICQGOBIVSON",
+        "dest_address": "0x42537673b7e51c228892034b890Af19Fc357c7Db",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "HK43x1l6WonxmzBUvwLCSqoL8CTm8qhMGOJCxaDWFQc=",
+        "txts": 1752171516,
+        "transfer_id": 1166,
+        "claim_txid": "0x648d0b935b7ece14638dba53b065b5a234fb7b1f7a2812566d24045ce56ca179",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:11:00"
+      },
+      {
+        "claim_num": 297,
+        "bridge_id": 11,
+        "type": "expatriation",
+        "amount": 24300000000000000000,
+        "reward": 607382892000000000,
+        "sender_address": "YG25H63YUK426IYASKHM2FJ7PDBNNW2M",
+        "dest_address": "0x42537673b7e51c228892034b890Af19Fc357c7Db",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "NHoCgaxuy26L1eLG+kvnz6SlxYfXBtj6xhemJv+O9Ds=",
+        "txts": 1752601711,
+        "transfer_id": 1167,
+        "claim_txid": "0xab11ab0d520e56b5d7827b91b369802441662b089d0c40feafec1665e9e1643d",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:11:00"
+      },
+      {
+        "claim_num": 298,
+        "bridge_id": 11,
+        "type": "expatriation",
+        "amount": 37100000000000000000,
+        "reward": 766192368000000000,
+        "sender_address": "3YQYZT7HBDW5ZLDF3U4PUE5HOBVX6VYS",
+        "dest_address": "0x4521fd8c74047F863170F5F3f50479E792bD6560",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "Wzuwixvp4JRZIATZyxhHr5xVwDcYTQ+vnSPobafvwx4=",
+        "txts": 1752741257,
+        "transfer_id": 1168,
+        "claim_txid": "0x9db44b0ef071872802bdc3bb9a668d5101676683a0932d0cd7f0cc0ac60aedab",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:11:00"
+      },
+      {
+        "claim_num": 299,
+        "bridge_id": 11,
+        "type": "expatriation",
+        "amount": 24000000000000000000,
+        "reward": 929825132000000000,
+        "sender_address": "YG25H63YUK426IYASKHM2FJ7PDBNNW2M",
+        "dest_address": "0x42537673b7e51c228892034b890Af19Fc357c7Db",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "Z97nX3lcaFeho5pldXlwOe9vZVZ6hs29sQO8J5RCnbY=",
+        "txts": 1755365681,
+        "transfer_id": 1169,
+        "claim_txid": "0xbe2f513b47c6f3489223a9ed416c53dd2e62c8140efeeddbcb89fc83cdec64bb",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:11:00"
+      },
+      {
+        "claim_num": 300,
+        "bridge_id": 11,
+        "type": "expatriation",
+        "amount": 10000000000000000000,
+        "reward": 117520251000000000,
+        "sender_address": "YG25H63YUK426IYASKHM2FJ7PDBNNW2M",
+        "dest_address": "0x42537673b7e51c228892034b890Af19Fc357c7Db",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "pKKRv10VqS7hAYXsxr7JZXIS7RdchcN8F+nbeE2h3hc=",
+        "txts": 1761516739,
+        "transfer_id": 1170,
+        "claim_txid": "0x1a8877e5832bde689af3686e2919cdbf66ce9b3deccb307d84a02d7f5799893f",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:11:00"
+      },
+      {
+        "claim_num": 8,
+        "bridge_id": 9,
+        "type": "expatriation",
+        "amount": 1000000000000000,
+        "reward": 0,
+        "sender_address": "0xbEd0D0aa68ED0E3F32eda01B803e72F04e778393",
+        "dest_address": "0xbEd0D0aa68ED0E3F32eda01B803e72F04e778393",
+        "claimant_address": "0xbEd0D0aa68ED0E3F32eda01B803e72F04e778393",
+        "data": "",
+        "txid": "0x8bb5b89677ac2c819b352ea54c141751a58239c01a881f5f226f0a7c567ca1f3",
+        "txts": 1761990941,
+        "transfer_id": 4643,
+        "claim_txid": "0x2ccbf165db29310ae51f3045847cbed5191cc74a59ffbaff6ac5a1214c338202",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 17:14:58"
+      },
+      {
+        "claim_num": 1,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 654280000000000000000,
+        "reward": 7540400000000000000,
+        "sender_address": "VX4EKKLUY7HYZOPVZCM7OJKN6I35AEXH",
+        "dest_address": "0xCD04702C72b93052A5B70277D0559348c324E8D0",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "fszmyL8Y6rRXYUj8sbmZgdtT38yVHrEzSkWhIv8Qo1U=",
+        "txts": 1668838050,
+        "transfer_id": 1501,
+        "claim_txid": "0xc7b855df388ff682cba8bb7decd5439af40e5584b1dd22e28271cc56c0a0a514",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
+      },
+      {
+        "claim_num": 2,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 267195600000000000000,
+        "reward": 3777600000000000000,
+        "sender_address": "ZWR55JH3TARAUSEF3AXVBAXAQGXFWLNB",
+        "dest_address": "0x2F23A32CC31c3B5bBA39c567C77681373C3847a9",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "4NvZpPFYq2SPeX+IlDQkhpQk1Iqp4Ba4IvSs8/t0uvo=",
+        "txts": 1685968127,
+        "transfer_id": 1502,
+        "claim_txid": "0x9170d850e0d58996ae7b3a3a5108b24a187d9604229f10ab3256b4624161ecdb",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
+      },
+      {
+        "claim_num": 3,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 42000000000000000000,
+        "reward": 887000000000000000,
+        "sender_address": "UBKNPVZS44TSAYZB2HLFXWRN3ILWQP4R",
+        "dest_address": "0x2B185C762F6Fb49a07116EC06B238B58Fe2BeC53",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "OVVfZK+4KGn69T8+aRGMuC0H/xK2duMFwdOaO68dIa4=",
+        "txts": 1695714058,
+        "transfer_id": 1503,
+        "claim_txid": "0x6a28abad025ae38024fa510d65d106b20bab40cfca33d492bdf46eca78b6ee41",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
+      },
+      {
+        "claim_num": 4,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 21800000000000000000,
+        "reward": 684800000000000000,
+        "sender_address": "UBKNPVZS44TSAYZB2HLFXWRN3ILWQP4R",
+        "dest_address": "0x2B185C762F6Fb49a07116EC06B238B58Fe2BeC53",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "LtkhgKCrjr9dViWL5HWH/UrgS5vLu+Y5sS1ItnERvpI=",
+        "txts": 1695718384,
+        "transfer_id": 1504,
+        "claim_txid": "0x32ac7d6bb307e578d2cbab5503883a3b7ad8a9bfca7592df92bdc0c1f108e056",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
+      },
+      {
+        "claim_num": 5,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 500000000000000000000,
+        "reward": 5514200000000000000,
+        "sender_address": "3Y24IXW57546PQAPQ2SXYEPEDNX4KC6Y",
+        "dest_address": "0xbd2C1400eA794D837669d3A83Ef8B3534579b5BF",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "qBMIDK0VFh4NZbe8QE4S17To1E3Bsh5E40041pEjlXY=",
+        "txts": 1701682077,
+        "transfer_id": 1505,
+        "claim_txid": "0xa7f6c0778c884e8419c3b49e6eca6d2808fafeb508aaf8885061f3e36d1dc696",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
+      },
+      {
+        "claim_num": 6,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 120000000000000000000,
+        "reward": 1707500000000000000,
+        "sender_address": "TQSJHXPCFXHA3J2ZYEM2I5MQKQE4PCBG",
+        "dest_address": "0x30F89f5f4cF25f457B4D9cBFb64a64A97F00bED0",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "AFuPO8iZn65scdJBNQNn8y4QmaJkXMV1cEy9Czt5obY=",
+        "txts": 1701770576,
+        "transfer_id": 1506,
+        "claim_txid": "0x00d955d05ad2e237d26c608fd9919f33aef38087a402ed35870e12224c067d5b",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
+      },
+      {
+        "claim_num": 7,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 553099300000000000000,
+        "reward": 6045100000000000000,
+        "sender_address": "3Y24IXW57546PQAPQ2SXYEPEDNX4KC6Y",
+        "dest_address": "0xbd2C1400eA794D837669d3A83Ef8B3534579b5BF",
+        "claimant_address": "0x05CF60Df7ad9BBc89cE591c4DBcA4BD58135f166",
+        "data": "",
+        "txid": "zhsTQyxMFu+PF+JEShkmfeh9iGu96cTOH9IH7O2ARgY=",
+        "txts": 1702016739,
+        "transfer_id": 1507,
+        "claim_txid": "0x9d140f550e31820291b6685aa6cfebb7a284b04c0c996e4fa4eaca5d65c1f014",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
+      },
+      {
+        "claim_num": 8,
+        "bridge_id": 12,
+        "type": "repatriation",
+        "amount": 143200900000000000000,
+        "reward": 2753300000000000000,
+        "sender_address": "H7NOMITEVTY3MHDUZ45GEBYHUPRRXPHH",
+        "dest_address": "0x289e4523d98621C951927bfB7db35e73Af1Edd75",
+        "claimant_address": "0x289e4523d98621C951927bfB7db35e73Af1Edd75",
+        "data": "",
+        "txid": "Yjcr0LULrlE/nQelLgebb48YX+sFwbbrcJ2fbnkqKbs=",
+        "txts": 1711850149,
+        "transfer_id": 1508,
+        "claim_txid": "0xe2ec150bfd6e981b5bc9a6b52e61d634b2ddc75a3d337935e5e8f4cde436cb34",
+        "my_stake": 0,
+        "is_finished": 1,
+        "creation_date": "2025-11-24 20:18:38"
       }
     ],
     "challenges": [
@@ -84706,7 +85027,7 @@
         "manager": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
         "shares_asset": "0x2Dce9B2dc9983f9b435da02a69C6F0e8A31Bf3E8",
         "shares_symbol": "USDTIA",
-        "creation_date": "2025-11-23 16:29:26",
+        "creation_date": "2025-11-24 20:24:14",
         "version": "v1.1-substrate"
       },
       {
@@ -84718,7 +85039,7 @@
         "manager": "0x800a8115facA6df91f602F0cc0eC3b7Ce91F767c",
         "shares_asset": "0x6F7c9FFa2250E7119B44e3496B6f6b37736035F8",
         "shares_symbol": "WUSDTA",
-        "creation_date": "2025-11-23 16:29:27",
+        "creation_date": "2025-11-24 20:24:15",
         "version": "v1.1-substrate"
       },
       {
@@ -84730,7 +85051,7 @@
         "manager": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
         "shares_asset": "0xCf710B8715869b7fEd296275bEFCE275d69bDEd9",
         "shares_symbol": "P3DEA",
-        "creation_date": "2025-11-23 16:29:28",
+        "creation_date": "2025-11-24 20:24:16",
         "version": "v1.1-substrate"
       },
       {
@@ -84742,7 +85063,7 @@
         "manager": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
         "shares_asset": "0x8de2F4FF2392d9f967c374469b70cc834a38766b",
         "shares_symbol": "P3DEAS",
-        "creation_date": "2025-11-23 16:29:30",
+        "creation_date": "2025-11-24 20:24:18",
         "version": "v1.1-substrate"
       },
       {
@@ -84754,18 +85075,18 @@
         "manager": "0x067Fac51f31Dc80263D55f9980DF1358357DC10d",
         "shares_asset": "0x920EF022f82737037f248d858BC5177035ac1BE1",
         "shares_symbol": "P3DEAV",
-        "creation_date": "2025-11-23 16:29:32",
+        "creation_date": "2025-11-24 20:24:20",
         "version": "v1.1-substrate"
       }
     ],
     "last_blocks": [
       {
         "network": "Ethereum",
-        "last_block": 23862787
+        "last_block": 23871061
       },
       {
         "network": "BSC",
-        "last_block": 69220224
+        "last_block": 69352671
       },
       {
         "network": "Polygon",
@@ -84777,7 +85098,7 @@
       },
       {
         "network": "3DPass",
-        "last_block": 1665186
+        "last_block": 1666800
       }
     ]
   }

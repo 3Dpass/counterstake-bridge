@@ -70,7 +70,7 @@ pkill -f "node run.js"
 ## Start from bootstrap for the first catch-up
 Import the db snapshot and restart.
 ```bash
-node node import_db_for_seeding.js db_export_2025-11-23.json
+node node import_db_for_seeding.js db_export_2025-11-24.json
 ```
 
 ## Setup Keys
