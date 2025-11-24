@@ -71,18 +71,6 @@ function validateClaimAgainstTransfer(claim, transfer, bridge) {
 		};
 	}
 	
-	// Check creation_date: transfer must be created before or at the same time as the claim
-	if (claim.creation_date && transfer.creation_date) {
-		const claimDate = new Date(claim.creation_date);
-		const transferDate = new Date(transfer.creation_date);
-		if (claimDate < transferDate) {
-			return {
-				valid: false,
-				reason: `Creation date invalid: claim was created ${claim.creation_date} before transfer ${transfer.creation_date}`
-			};
-		}
-	}
-	
 	// Determine network for data matching
 	const network = claim.type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
 	
@@ -118,6 +106,34 @@ function validateClaimAgainstTransfer(claim, transfer, bridge) {
 		return {
 			valid: false,
 			reason: `TXTS mismatch: transfer.txts=${transfer.txts}, claim.txts=${claim.txts} (difference: ${Math.abs(transfer.txts - claim.txts)} seconds)`
+		};
+	}
+	
+	// Check addresses match (same as findTransfers query in handleNewClaim)
+	// Normalize addresses using the same logic as findTransfers
+	const src_network = claim.type === 'expatriation' ? bridge.home_network : bridge.foreign_network;
+	const dst_network = claim.type === 'expatriation' ? bridge.foreign_network : bridge.home_network;
+	
+	// Get networkApi from transfers module (same as fetchAndSaveTransferFromBlockchain)
+	const transfers = getTransfersModule();
+	const networkApi = transfers.networkApi;
+	
+	const normalized_claim_sender = normalizeAddress(claim.sender_address, networkApi[src_network]);
+	const normalized_claim_dest = normalizeAddress(claim.dest_address, networkApi[dst_network]);
+	const normalized_transfer_sender = normalizeAddress(transfer.sender_address, networkApi[src_network]);
+	const normalized_transfer_dest = normalizeAddress(transfer.dest_address, networkApi[dst_network]);
+	
+	if (normalized_transfer_sender !== normalized_claim_sender) {
+		return {
+			valid: false,
+			reason: `Sender address mismatch after normalization: transfer="${normalized_transfer_sender}", claim="${normalized_claim_sender}"`
+		};
+	}
+	
+	if (normalized_transfer_dest !== normalized_claim_dest) {
+		return {
+			valid: false,
+			reason: `Dest address mismatch after normalization: transfer="${normalized_transfer_dest}", claim="${normalized_claim_dest}"`
 		};
 	}
 	
