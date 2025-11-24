@@ -113,6 +113,14 @@ function validateClaimAgainstTransfer(claim, transfer, bridge) {
 		};
 	}
 	
+	// Check txts matches exactly (same as findTransfers query in handleNewClaim)
+	if (transfer.txts !== claim.txts) {
+		return {
+			valid: false,
+			reason: `TXTS mismatch: transfer.txts=${transfer.txts}, claim.txts=${claim.txts} (difference: ${Math.abs(transfer.txts - claim.txts)} seconds)`
+		};
+	}
+	
 	return { valid: true, reason: null };
 }
 
@@ -598,7 +606,11 @@ async function linkOrphanedClaims() {
 					if (validationResult) {
 						console.log(`      Reason: ${validationResult.reason}`);
 					}
-					console.log(`      Event data: amount=${eventData.amount.toString()}, reward=${eventData.reward.toString()}`);
+					if (eventData) {
+						console.log(`      Event data: amount=${eventData.amount.toString()}, reward=${eventData.reward.toString()}`);
+					} else {
+						console.log(`      Event data: not available (Obyte network or event not found)`);
+					}
 					console.log(`      Claim data: amount=${claim.amount}, reward=${claim.reward}`);
 					notFoundCount++;
 					continue;
