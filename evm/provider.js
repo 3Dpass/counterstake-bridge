@@ -112,6 +112,39 @@ function getProvider(network, bFree) {
 				// WebSocketProvider: wss://rpc.3dpass.org
 				//	return new ethers.providers.JsonRpcProvider(`https://rpc-http.3dpass.org`);
 				provider = new ethers.providers.WebSocketProvider(`wss://rpc.3dpass.org`);
+				
+				// Alternative: Xbinodes provider with API key authentication
+				// Uncomment below and comment out the line above to use xbinodes
+				/*
+				// Load xbinodes API key from conf.json
+				let xbinodesApiKey = conf.xbinodes_api_key || '';
+				if (!xbinodesApiKey) {
+					try {
+						const fs = require('fs');
+						const desktopApp = require('ocore/desktop_app.js');
+						const confJsonPath = desktopApp.getAppDataDir() + '/' + conf.CONF_FILENAME;
+						if (fs.existsSync(confJsonPath)) {
+							const externalConf = JSON.parse(fs.readFileSync(confJsonPath, 'utf8'));
+							xbinodesApiKey = externalConf.xbinodes_api_key || '';
+						}
+					} catch (err) {
+						console.log('Could not load xbinodes_api_key from conf.json:', err.message);
+					}
+				}
+				
+				if (!xbinodesApiKey) {
+					throw Error('3DPass Xbinodes API key (xbinodes_api_key) not found in conf.json');
+				}
+				
+				// Create custom WebSocket with header
+				const customWebSocket = new WebSocket('wss://3dpwss-api.xbinodes.com', {
+					headers: {
+						'x-access-key': xbinodesApiKey
+					}
+				});
+				
+				provider = new ethers.providers.WebSocketProvider(customWebSocket);
+				*/
 				break;
 			
 			default:
@@ -149,35 +182,35 @@ function getListenerProvider(network) {
 	
 	switch (network) {
 		case 'BSC':
-			// Options: exbitron, Infura, or drpc.org public RPC
-			// To use exbitron, set bsc_listener_use_exbitron = true in conf.js or conf.json
+			// Options: xbinodes, Infura, or drpc.org public RPC
+			// To use xbinodes, set bsc_listener_use_xbinodes = true in conf.js or conf.json
 			// To use Infura, set bsc_listener_use_infura = true in conf.js or conf.json
 			let bscListenerUrl;
-			const useExbitron = conf.bsc_listener_use_exbitron || false;
-			const useInfura = conf.bsc_listener_use_infura || (useExbitron ? false : true);
+			const useXbinodes = conf.bsc_listener_use_xbinodes || false;
+			const useInfura = conf.bsc_listener_use_infura || (useXbinodes ? false : true);
 			
-			if (useExbitron) {
-				// Use exbitron endpoint with custom header
-				bscListenerUrl = 'wss://bsc-wss.exbitron.com';
+			if (useXbinodes) {
+				// Use xbinodes endpoint with custom header
+				bscListenerUrl = 'wss://bscwss-api.xbinodes.com';
 				
-				// Load Exbitron API key from conf.json
-				let exbitronApiKey = conf.exbitron_api_key || '';
-				if (!exbitronApiKey) {
+				// Load Xbinodes API key from conf.json
+				let xbinodesApiKey = conf.xbinodes_api_key || '';
+				if (!xbinodesApiKey) {
 					try {
 						const fs = require('fs');
 						const desktopApp = require('ocore/desktop_app.js');
 						const confJsonPath = desktopApp.getAppDataDir() + '/' + conf.CONF_FILENAME;
 						if (fs.existsSync(confJsonPath)) {
 							const externalConf = JSON.parse(fs.readFileSync(confJsonPath, 'utf8'));
-							exbitronApiKey = externalConf.exbitron_api_key || '';
+							xbinodesApiKey = externalConf.xbinodes_api_key || '';
 						}
 					} catch (err) {
-						console.log('Could not load exbitron_api_key from conf.json:', err.message);
+						console.log('Could not load xbinodes_api_key from conf.json:', err.message);
 					}
 				}
 				
-				if (!exbitronApiKey) {
-					throw Error('BSC Exbitron API key (exbitron_api_key) not found in conf.json');
+				if (!xbinodesApiKey) {
+					throw Error('BSC Xbinodes API key (xbinodes_api_key) not found in conf.json');
 				}
 				
 				// Create custom WebSocket with header
@@ -185,7 +218,7 @@ function getListenerProvider(network) {
 				// so we create a custom WebSocket connection and pass it to WebSocketProvider
 				const customWebSocket = new WebSocket(bscListenerUrl, {
 					headers: {
-						'x-access-key': exbitronApiKey
+						'x-access-key': xbinodesApiKey
 					}
 				});
 				
@@ -193,7 +226,7 @@ function getListenerProvider(network) {
 				// In ethers v5, WebSocketProvider can accept a WebSocket instance as first argument
 				// We pass the WebSocket instance directly to the constructor
 				listenerProvider = new ethers.providers.WebSocketProvider(customWebSocket);
-				console.log(`✅ Using Exbitron for BSC listener (bsc_listener_use_exbitron enabled)`);
+				console.log(`✅ Using Xbinodes for BSC listener (bsc_listener_use_xbinodes enabled)`);
 			} else if (useInfura) {
 				// Load Infura API key from conf.json (same as main provider)
 				let infuraApiKey = conf.infura_project_id || '';
@@ -235,7 +268,7 @@ function getListenerProvider(network) {
 			if (bscListenerUrl) {
 				listenerProvider._providerUrl = maskApiKeyInUrl(bscListenerUrl);
 			} else {
-				listenerProvider._providerUrl = maskApiKeyInUrl('wss://bsc-wss.exbitron.com');
+				listenerProvider._providerUrl = maskApiKeyInUrl('wss://bscwss-api.xbinodes.com');
 			}
 			break;
 		
