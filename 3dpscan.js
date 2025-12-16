@@ -2,7 +2,7 @@ const { request } = require('./request.js');
 const { wait } = require('./utils.js');
 const { normalizeAddress } = require('./address_normalizer.js');
 
-const threedpass_base_url = process.env.testnet ? 'https://api-testnet.3dpscan.xyz' : 'https://api.3dpscan.xyz';
+const threedpass_base_url = process.env.testnet ? 'https://api-testnet.scan.p3d.top' : 'https://api.scan.p3d.top';
 let last_req_ts = 0;
 
 /**

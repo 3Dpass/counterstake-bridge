@@ -111,7 +111,7 @@ function getProvider(network, bFree) {
 				// JsonRpcProvider: https://rpc-http.3dpass.org 
 				// WebSocketProvider: wss://rpc.3dpass.org
 				//	return new ethers.providers.JsonRpcProvider(`https://rpc-http.3dpass.org`);
-				provider = new ethers.providers.WebSocketProvider(`wss://rpc.3dpass.org`);
+				provider = new ethers.providers.WebSocketProvider(`wss://rpc.p3d.top`);
 				
 				// Alternative: Xbinodes provider with API key authentication
 				// Uncomment below and comment out the line above to use xbinodes
